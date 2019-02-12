@@ -52,7 +52,7 @@ endif
 
 MACHINE=$(shell uname -m)
 OPSYS=$(shell uname -s)
-BASEDIR=$(CURDIR)/wmappsdk
+BASEDIR=$(CURDIR)
 ifeq ($(OPSYS),Linux)
 	OPSYS := linux
 else ifeq ($(OPSYS),Darwin)
@@ -70,7 +70,7 @@ else
 endif
 endif
 
-export PYTHONHOME := $(BASEDIR)/$(OPSYS)-$(MACHINE)/python
+export PYTHONHOME := $(BASEDIR)/wmappsdk/$(OPSYS)-$(MACHINE)/python
 export LD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(LD_LIBRARY_PATH)
 export DYLD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(DYLD_LIBRARY_PATH)
 export PATH := $(PYTHONHOME):$(PYTHONHOME)/bin:$(PATH)
@@ -80,7 +80,7 @@ GENPYPKG := mwappsdk/tools/genpypkg/genpypkg.py
 FLAKE_OUT_DIR := .flake
 FLAKE_EXCLUDES := $(foreach notpath,$(FLAKE_EXCLUDED_PATHS),-not -path "$(notpath)")
 FLAKE_PY_FILES := $(shell find mwdatas $(FLAKE_EXCLUDES) -name "*.py")
-FLAKE_PY_FILES := $(FLAKE_PY_FILES) $(shell find mwappsdk/src/edpcommon $(FLAKE_EXCLUDES) -name "*.py")
+FLAKE_PY_FILES := $(FLAKE_PY_FILES) $(shell find src/edpcommon $(FLAKE_EXCLUDES) -name "*.py")
 FLAKE_PY_FILES := $(FLAKE_PY_FILES) $(shell find mwappsdk/tools $(FLAKE_EXCLUDES) -name "*.py")
 FLAKE_APP_FILES := $(addprefix $(FLAKE_OUT_DIR)/, $(FLAKE_PY_FILES:.py=.flake))
 FLAKE := echo
