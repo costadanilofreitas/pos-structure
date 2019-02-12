@@ -1,0 +1,6 @@
+[submodule "src"]
+	path = src
+	url = https://bitbucket.org/edeployteam/pos-components.git
+[submodule "mwappsdk"]
+	path = mwappsdk
+	url = https://git.mwneo.com/edeploy/mwappsdk.git
