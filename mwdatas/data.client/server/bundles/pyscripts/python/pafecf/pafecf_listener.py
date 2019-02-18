@@ -27,14 +27,14 @@ import sysactions
 import persistence
 import logging
 import pafecf_actions
-from systools import sys_log_info, sys_log_warning, sys_log_debug
-from msgbus import TK_POS_GETSTATE, TK_SYS_ACK, FM_PARAM, TK_EVT_EVENT, TK_SYS_NAK, TK_FISCAL_CMD
+from systools import sys_log_info, sys_log_warning, sys_log_debug, sys_log_exception
+from msgbus import TK_POS_GETSTATE, TK_SYS_ACK, TK_SYS_NAK, FM_PARAM, TK_EVT_EVENT, TK_FISCAL_CMD
 from syserrors import SE_FPERROR
-from sysactions import get_storewide_config
+from sysactions import get_storewide_config, get_model, get_podtype, get_posfunction, has_operator_opened
 from fiscalprinter import fpcmds, fpreadout, fp, FPException, fpstatus
 from posot import OrderTaker, OrderTakerException
 from pafecf import PAF_ECF
-from helper import F, get_sale_line_priced_items, config_logger
+from helper import config_logger, PosUtil
 
 from bustoken import TK_FISCALWRAPPER_GET_NF_TYPE, TK_FISCALWRAPPER_GET_IBPT_TAX
 
@@ -84,7 +84,7 @@ def _get_additional_info(order, info, additional_info=""):
     return ""
 
 
-def update_inventory(order):
+def update_inventory(order, posid):
     """Removes sold items from the inventory"""
     state = order.get("state")
     if state != "PAID":
@@ -92,13 +92,13 @@ def update_inventory(order):
     conn = None
     for i in xrange(0, 3, 1):
         try:
-            conn = persistence.Driver().open(mbcontext)
+            conn = persistence.Driver().open(mbcontext, dbname=str(posid))
             queries = []
             insumos = []
             for row in conn.select("SELECT SKU,ProductCode,Qty FROM fiscalinfo.Insumos"):
                 sku, pcode, qty = map(row.get_entry, ("SKU", "ProductCode", "Qty"))
                 insumos.append([sku, pcode, qty])
-            lines = [line for line in order.findall("SaleLine") if line.get("level") == "0"]
+            lines = order.findall("SaleLine")
             for line in lines:
                 pcode = line.get("partCode")
                 qty = line.get("qty")
@@ -116,6 +116,9 @@ def update_inventory(order):
             break
         except:
             logger.exception("Erro atualizando estoque. Tentativa=%d" % (i))
+            sys_log_exception("Erro atualizando estoque. Tentativa=%d" % (i))
+            if conn:
+                conn.query('''ROLLBACK TRANSACTION;''')
         finally:
             if conn:
                 conn.close()
@@ -137,7 +140,7 @@ def handle_nota_manual(posid, order, orderxml):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
 
                 queries = []
                 # Store information on fiscal database
@@ -149,6 +152,9 @@ def handle_nota_manual(posid, order, orderxml):
                 break
             except:
                 logger.exception("Erro inserindo nota manual. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo nota manual. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
@@ -166,7 +172,7 @@ def handle_nfe(posid, order, orderxml):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
 
                 def quote(s):
                     if not s:
@@ -207,50 +213,15 @@ def handle_nfe(posid, order, orderxml):
                 break
             except:
                 logger.exception("Erro inserindo dados da NFe. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo dados da NFe. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
     except:
         logger.exception("Error on [handle_nfe]")
         sysactions.show_messagebox(posid, "Erro armazenando dados fiscais.\\\\Por favor chame o suporte.", icon="error")
-
-
-def event_order_state(params):
-    """
-    Handles the "ORDER_STATE" event
-    """
-    logger.debug("event_order_state START")
-    xml, subject, type, sync, posid = params[:5]
-    if type not in ("PAID",):
-        logger.debug("event_order_state END - type PAID")
-        return
-
-    # Order paid. We should get and save the current COO
-    current_coo = FpRetry(posid, mbcontext).readOut(fpreadout.FR_RECPNUMBER).strip()
-    order = etree.XML(xml).find("Order")
-    conn = None
-    for i in xrange(0, 3, 1):
-        try:
-            conn = persistence.Driver().open(mbcontext, service_name="FiscalPersistence")
-            conn.query("UPDATE FiscalData set NumeroNota = %s WHERE OrderId = %s" % (current_coo, order.attrib["orderId"]))
-            break
-        except:
-            logger.exception("Erro salvando COO atual. Tentativa=%d" % i)
-        finally:
-            if conn:
-                conn.close()
-
-    if ("NOTA_MANUAL" not in xml) and ("NFE_ID" not in xml):
-        logger.debug("event_order_state END1")
-        return
-    if _get_additional_info(order, "NOTA_MANUAL_DATA"):
-        handle_nota_manual(posid, order, xml)
-        logger.debug("event_order_state END2")
-        return
-    if _get_additional_info(order, "NFE_ID"):
-        handle_nfe(posid, order, xml)
-        logger.debug("event_order_state END3")
-        return
 
 
 def check_auto_memory_dump(prn, serial):
@@ -329,7 +300,7 @@ def handle_neworder(posid, xml):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
                 queries = []
                 queries.append("""INSERT OR REPLACE INTO fiscalinfo.FiscalOrders(PosId,OrderId,StateId,Period,FPDate,FPSerialNo,ECFModel,ECFUser,CCF,COO,AdditionalMem,CustomerName,CustomerCPF,CustomerAddress)
                     VALUES (%d,%d,%d,%d,%d,'%s','%s',%d,%d,%d,'%s','%s','%s','%s')""" % (
@@ -342,6 +313,9 @@ def handle_neworder(posid, xml):
                 break
             except:
                 logger.exception("Erro inserindo dados fiscais da nova Order. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo dados fiscais da nova Order. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
@@ -409,7 +383,7 @@ def handle_nonfiscal_doc(posid, xml, cmd):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
                 queries = []
                 queries.append("""INSERT OR REPLACE INTO fiscalinfo.NonFiscalDocuments(PosId,Period,FPSerialNo,COO,FPDate,FPTime,ECFModel,ECFUser,GNF,GRG,CDC,AdditionalMem,DocType,FiscalCMD)
                     VALUES (%d,%d,'%s',%d,%d,'%s','%s',%d,%d,%d,%d,'%s','%s',%d)""" % (
@@ -433,6 +407,9 @@ def handle_nonfiscal_doc(posid, xml, cmd):
                 break
             except:
                 logger.exception("Erro inserindo dados nao fiscais. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo dados nao fiscais. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
@@ -445,139 +422,189 @@ def handle_nonfiscal_doc(posid, xml, cmd):
         sysactions.show_info_message(posid, "")
 
 
-def get_pos_period(posid):
+def get_pos_period(pos_id):
     # Retrieve the business period
-    msg = mbcontext.MB_EasySendMessage("POS{}".format(posid), TK_POS_GETSTATE, FM_PARAM, str(posid))
+    msg = mbcontext.MB_EasySendMessage("POS{}".format(pos_id), TK_POS_GETSTATE, FM_PARAM, str(pos_id))
     if msg.token != TK_SYS_ACK:
-        logger.error("Error retrieving current business period for POS id: {}".format(posid))
+        logger.error("Error retrieving current business period for POS id: {}".format(pos_id))
         return
     period = int(msg.data.split('\0')[0])
     return period
 
 
-def handle_zreport(xml, subject, type, posid, checkexists=False, hide_error_message=False):
-    period = ""
+def get_last_z_saved(ecf_serial, pos_id):
+    # type: (unicode, unicode) -> tuple[unicode, unicode]
+    logger.debug("Start Getting Last Z Saved...")
+    conn = None
     try:
-        period = get_pos_period(posid)
-    except:
-        period = "EXCEPTION"
-        logger.exception("posid: {}, Error on [handle_nonfiscal_doc]".format(posid))
-    if "EXCEPTION" == period:
-        return
-    if "0" == period:
-        period = time.strftime("%Y%m%d")
-    logger.debug("[handle_zreport] Begin, posid: {}, businessPeriod: {}".format(posid, period))
-    prn = FpRetry(posid, mbcontext)
-    if checkexists:
-        try:
-            printer_stat = 222222
-            printer_stat = prn.printerRead()
-        except:
-            logger.exception("[handle_zreport] posid: {}, exception getting printer status".format(posid))
+        conn = persistence.Driver().open(mbcontext)
+        query = "SELECT MAX(CRZ), GT FROM fiscalinfo.ZTapes WHERE PosId={} AND FPSerialNo='{}'"
+        query = query.format((int(pos_id)), ecf_serial)
+        cursor = conn.select(query)
 
-        logger.info("[handle_zreport] posid: {}, printer_stat: {}".format(posid, printer_stat))
-        if 222222 == printer_stat:
-            return
-    sysactions.show_info_message(posid, "Aguardando impressora fiscal...", timeout=-1)
+        last_gt_saved = "0"
+        last_crz_saved = "0"
+        for row in cursor:
+            last_crz_saved = (row.get_entry(0) or "0")
+            last_gt_saved = (row.get_entry(1) or "0")
+    finally:
+        if conn:
+            conn.close()
+
+    logger.debug("End Getting Last Z Saved...")
+    return last_gt_saved, last_crz_saved
+
+
+def check_z_reports():
+    logger.debug("Start Checking Z Reports on Database...")
+
+    pos_list = PosUtil(mbcontext).get_pos_list()
+
+    for pos in pos_list:
+        pos_id = pos
+
+        model = get_model(pos_id)
+        if has_operator_opened(model):
+            continue
+
+        check_pos_z_report(pos_id)
+    logger.debug("End Checking Z Reports on Database...")
+
+
+def check_pos_z_report(pos_id):
+    try:
+        sysactions.show_info_message(pos_id, "Aguardando Impressora Fiscal...", timeout=-1)
+        return handle_z_report(pos_id)
+    finally:
+        sysactions.show_info_message(pos_id, "")
+
+
+def handle_z_report(pos_id):
+    logger.debug("Start Handle Z Report for POS: {}".format(pos_id))
+
     for i in xrange(0, 4, 1):
         try:
-            # Read FP data
-            logger.debug("[handle_zreport] Read FP data")
-            d = _get_common_fiscal_data(posid,
-                                        extra=["aInfoZ", "coosLastZ", "allTax"],
-                                        hide_error_message=hide_error_message)
-            serial = d.ecf_serial[posid]
-            model = d.ecf_model[posid]
-            fp_date = int(d.dateLastZ[posid])
-            fp_time = str(d.timeLastZ[posid])
-            first_COO = int(d.coosLastZ[posid][0])
-            last_COO = int(d.coosLastZ[posid][1])
-            CRO = int(d.aInfoZ[posid][1])
-            CRZ = int(d.aInfoZ[posid][2])
-            if checkexists:
-                try:
-                    conn = persistence.Driver().open(mbcontext)
-                    cursor = conn.select("SELECT max(crz) FROM fiscalinfo.ZTapes WHERE PosId={}".format(int(posid)))
-                    last_crz_saved = cursor.get_row(0).get_entry(0)
-                    logger.debug("[handle_zreport] last_crz_saved: {}".format(last_crz_saved))
-                    if last_crz_saved is not None and int(last_crz_saved.strip()) == CRZ:
-                        logger.info("[handle_zreport] End, reduz already exists in fiscalinfo.db")
-                        sysactions.show_info_message(posid, "")
-                        return
-                finally:
-                    if conn:
-                        conn.close()
-            logger.debug("[handle_zreport] serial: {}, CRZ: {}, last_COO: {}".format(serial, CRZ, last_COO))
-            # COO = int(d.aInfoZ[3])
-            global global_DGT
-            if posid not in global_DGT:
-                global_DGT[posid] = prn.readOut(fpreadout.FR_DAILYGT)
-            DGT = global_DGT[posid]
-            GT = prn.readOut(fpreadout.FR_GT)
-            fp_bday = int(d.aInfoZ[posid][36])
-            flags = prn.printerRead(extra=True)
-            ISSQN = "S" if (flags & fpstatus.FP_ISSQN) else "N"
-            fp_user = int(d.ecf_usernumber[posid])
-            OPNF = _calculate_OPNF(posid, fp_bday)
-            d.allTax[posid]["OPNF"] = _decimal_to_fixed_int(OPNF)
-            User_FederalRegister = prn.readEncrypted("User_FederalRegister")
-            logger.debug("[handle_zreport] GT: {}, ISSQN: {}, OPNF: {}".format(GT, ISSQN, OPNF))
-            # ECF information
-            ECFType = d.ecf_type[posid]
-            ECFBrand = d.ecf_brand[posid]
-            ECFSwVersion = prn.readOut(fpreadout.FR_FIRMWAREVERSION)
-            ECFSwDate = d.ecf_swdate[posid]
-            ECFSwTime = d.ecf_swtime[posid]
-            ECFPosId = d.ecf_posid[posid]
-            # Insert the [fiscalinfo.ZTapes] data
-            sys_log_debug("[handle_zreport] insert Z reduction into ZTapes, posid: {}, serial: {}, CRZ: {}".format(posid, serial, CRZ))
-            conn = None
-            queries = []
-            try:
-                conn = persistence.Driver().open(mbcontext)
-                queries.append("""INSERT OR REPLACE 
-                    INTO fiscalinfo.ZTapes(PosId,FPSerialNo,CRZ,FirstCOO,LastCOO,CRO,Period,FPBusinessDate,FPDate,FPTime,ECFModel,ECFUser,DGT,GT,ISSQN,AdditionalMem,ECFType,ECFBrand,ECFSwDate,ECFSwTime,ECFSwVersion,ECFPosId,UserCNPJ)
-                    VALUES (%d,'%s',%d,%d,%d,%d,%d,%d,%d,'%s','%s',%d,'%s','%s','%s','%s','%s','%s','%s','%s','%s',%d,'%s')""" % (
-                    int(posid), conn.escape(serial), int(CRZ), int(first_COO), int(last_COO), int(CRO), int(period), int(fp_bday),
-                    int(fp_date), conn.escape(fp_time), conn.escape(model), int(fp_user),
-                    conn.escape(DGT), conn.escape(GT), conn.escape(ISSQN), conn.escape(d.ecf_addedmem[posid]),
-                    conn.escape(ECFType), conn.escape(ECFBrand), conn.escape(ECFSwDate), conn.escape(ECFSwTime), conn.escape(ECFSwVersion), int(ECFPosId),
-                    conn.escape(User_FederalRegister)))
+            prn = FpRetry(pos_id, mbcontext)
+            fiscal_data = _get_common_fiscal_data(pos_id, ["aInfoZ", "coosLastZ", "allTax"])
 
-                # Insert the [fiscalinfo.ZTapeTotalizers] data
-                for name, amount in d.allTax[posid].items():
-                    queries.append("""INSERT OR REPLACE 
-                        INTO fiscalinfo.ZTapeTotalizers(PosId,FPSerialNo,CRZ,Totalizer,AdditionalMem,ECFModel,ECFUser,Period,Amount)
-                        VALUES (%d,'%s',%d,'%s','%s','%s',%d,%d,%d)""" % (
-                        int(posid), conn.escape(serial), int(CRZ), conn.escape(name), conn.escape(d.ecf_addedmem[posid]),
-                        conn.escape(model), int(fp_user), int(fp_bday), int(amount)))
+            if "EMULADOR" in d.ecf_serial[pos_id]:
+                return True
 
-                queries = BEGIN_TRANSACTION + queries + COMMIT_TRANSACTION
-                conn.query("\0".join(queries))
-                logger.debug("[handle_zreport] Z Reduction saved")
-                sys_log_debug("[handle_zreport] Z Reduction saved")
-                break
-            except:
-                sys_log_debug("[handle_zreport] Erro inserindo dados da reducao Z. Posid: {}, Tentativa: {}".format(posid, i))
-                logger.exception("[handle_zreport] Erro inserindo dados da reducao Z. Posid: {}, Tentativa: {}".format(posid, i))
-                try:
-                    logger.error(queries)
-                except:
-                    logger.exception("queries not logged")
-            finally:
-                if conn:
-                    conn.close()
-            # TODO - It seems that this is not necessary anymore, ALL MFD printers do this automatically already
-            # check_auto_memory_dump(prn, serial)
-        except FPException:
-            logger.exception("[handle_zreport] FPException")
-            sys_log_debug("[handle_zreport] FPException")
-        except:
-            logger.exception("[handle_zreport] Exception")
-            sys_log_debug("[handle_zreport] Exception")
-            sysactions.show_messagebox(posid, "Erro armazenando dados fiscais.\\\\Por favor chame o suporte.", icon="error")
+            md5_serial = prn.readEncrypted("ECF_Serial")
+            ecf_serial = fiscal_data.ecf_serial[pos_id]
+
+            if str(md5_serial).strip() != str(ecf_serial).strip():
+                sysactions.show_info_message(pos_id, "$SERIAL_PRINTER_VALIDATION_ERROR", timeout=-1, msgtype="error")
+                time.sleep(3)
+                return False
+
+            ecf_gt = prn.readOut(fpreadout.FR_GT)
+            ecf_flags = prn.printerRead(extra=True)
+            ecf_sw_version = prn.readOut(fpreadout.FR_FIRMWAREVERSION)
+            sefaz_sw_id = prn.readEncrypted("User_FederalRegister")
+            break
+        except Exception:
+            logger.exception("Error Reading Fiscal Info fro Printer - PosId: {}".format(pos_id))
+            pass
+    else:
+        # Failed to read Printer
+        return False
+
+    try:
+        last_gt, last_crz = get_last_z_saved(ecf_serial, pos_id)
+
+        new_printer = False
+        if last_gt == "0":
+            new_printer = True
+            logger.error("Last Saved GT is Zero - NEW PRINTER - PosId: {} / Serial: {}".format(pos_id, ecf_serial))
+
+        ecf_crz = int(fiscal_data.aInfoZ[pos_id][2])
+        if last_crz is not None and int(last_crz.strip()) == ecf_crz:
+            logger.debug("Z Already Saved into Database...")
+            return True
+    except Exception as _:
+        # Failed to read Last Z
+        return False
+
+    try:
+        period = get_pos_period(pos_id)
+        if period == 0:
+            period = int(time.strftime("%Y%m%d"))
+            logger.error("POS Period is ZERO - PosID: {} / Using: {}".format(pos_id, period))
+
+        fp_date = int(fiscal_data.dateLastZ[pos_id])
+        fp_business_day = int(fiscal_data.aInfoZ[pos_id][36])
+        if fp_business_day == 0:
+            fp_business_day = fp_date
+            logger.error("ECF Business Day is ZERO - PosID: {} / Printer: {}".format(pos_id, ecf_serial))
+
+        z_gt = fiscal_data.lastZGT[pos_id]
+        if round(float(z_gt), 2) != round(float(ecf_gt), 2):
+            logger.error("Current Z GT differs from GT - PosId: {} / ZGT: {} / GT: {}".format(pos_id, z_gt, ecf_gt))
+            z_gt = ecf_gt
+
+        daily_gt = str(round(float(z_gt) - float(last_gt), 2)) if new_printer is False else "0.00"
+        if round(float(daily_gt), 2) < 0:
+            logger.error("DGT less than Zero - PosId: {} / DGT: {} / LGT: {}".format(pos_id, daily_gt, last_gt))
+            daily_gt = '0.00'
+
+        ecf_model = fiscal_data.ecf_model[pos_id]
+        fp_date = int(fiscal_data.dateLastZ[pos_id])
+        fp_time = str(fiscal_data.timeLastZ[pos_id])
+        first_coo = int(fiscal_data.coosLastZ[pos_id][0])
+        last_coo = int(fiscal_data.coosLastZ[pos_id][1])
+        cro = int(fiscal_data.aInfoZ[pos_id][1])
+
+        issqn = "S" if (ecf_flags & fpstatus.FP_ISSQN) else "N"
+        fp_user = int(fiscal_data.ecf_usernumber[pos_id])
+        opnf = _calculate_OPNF(pos_id, fp_business_day)
+        fiscal_data.allTax[pos_id]["OPNF"] = _decimal_to_fixed_int(opnf)
+
+        # ECF Information
+        ecf_type = fiscal_data.ecf_type[pos_id]
+        ecf_brand = fiscal_data.ecf_brand[pos_id]
+        ecf_sw_date = fiscal_data.ecf_swdate[pos_id]
+        ecf_sw_time = fiscal_data.ecf_swtime[pos_id]
+        ecf_pos_id = fiscal_data.ecf_posid[pos_id]
+
+        conn = None
+        queries = []
+        try:
+            query_tape = """INSERT OR REPLACE INTO FiscalInfo.ZTapes (PosId, FPSerialNo, CRZ, FirstCOO, LastCOO, CRO, 
+            Period, FPBusinessDate, FPDate, FPTime, ECFModel, ECFUser, DGT, GT, ISSQN, AdditionalMem, ECFType, ECFBrand,
+            ECFSwDate, ECFSwTime, ECFSwVersion, ECFPosId, UserCNPJ) VALUES (%d,'%s',%d,%d,%d,%d,%d,%d,%d,'%s','%s',%d,
+            '%s','%s','%s','%s','%s','%s','%s','%s','%s',%d,'%s')"""
+
+            conn = persistence.Driver().open(mbcontext, dbname=str(pos_id))
+            queries.append(query_tape % (int(pos_id), conn.escape(ecf_serial), ecf_crz, first_coo, last_coo, cro,
+                                         period, fp_business_day, fp_date, conn.escape(fp_time),
+                                         conn.escape(ecf_model), fp_user, conn.escape(daily_gt), conn.escape(z_gt),
+                                         conn.escape(issqn), conn.escape(d.ecf_addedmem[pos_id]), conn.escape(ecf_type),
+                                         conn.escape(ecf_brand), conn.escape(ecf_sw_date), conn.escape(ecf_sw_time),
+                                         conn.escape(ecf_sw_version), int(ecf_pos_id), conn.escape(sefaz_sw_id)))
+
+            query = """INSERT OR REPLACE INTO FiscalInfo.ZTapeTotalizers(PosId, FPSerialNo, CRZ, Totalizer, 
+            AdditionalMem, ECFModel, ECFUser, Period, Amount) VALUES (%d,'%s',%d,'%s','%s','%s',%d,%d,%d)"""
+
+            for name, amount in d.allTax[pos_id].items():
+                if new_printer is True:
+                    continue
+
+                queries.append(query % (int(pos_id), conn.escape(ecf_serial), ecf_crz, conn.escape(name),
+                                        conn.escape(d.ecf_addedmem[pos_id]), conn.escape(ecf_model), fp_user,
+                                        fp_business_day, int(amount)))
+
+            queries = BEGIN_TRANSACTION + queries + COMMIT_TRANSACTION
+            conn.query("\0".join(queries))
         finally:
-            sysactions.show_info_message(posid, "")
+            if conn:
+                conn.close()
+
+    except Exception as _:
+        pass
+
+    logger.debug("End Handle Z Report for POS: {}".format(pos_id))
+    return True
 
 
 def update_fiscal_order_totals(posid, order):
@@ -649,12 +676,15 @@ def update_fiscal_order_totals(posid, order):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
                 queries = BEGIN_TRANSACTION + queries + COMMIT_TRANSACTION
                 conn.query("\0".join(queries))
                 break
             except:
                 logger.exception("Erro inserindo dados fiscais da venda. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo dados fiscais da venda. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
@@ -672,35 +702,23 @@ def event_fiscal_order_state(params):
     """
     logger.debug("event_fiscal_order_state - START")
 
-    conn = None
     xml, subject, type, sync, posid = params[:5]
+
     if type not in ("PAID", "VOIDED"):
         logger.debug("event_fiscal_order_state - not PAID or VOIDED - END")
-
         return
+
+    conn = None
     order = etree.XML(xml).find("Order")
+    prn = FpRetry(posid, mbcontext)
+    orderid = order.get("orderId")
+
     try:
         logger.debug("event_fiscal_order_state before update_inventory")
-        update_inventory(order)
+        update_inventory(order, posid)
         logger.debug("event_fiscal_order_state after update_inventory")
     except:
         logger.exception("Error updating inventory")
-
-    orderid = order.get("orderId")
-    try:
-        prn = FpRetry(posid, mbcontext)
-        gt = prn.readOut(fpreadout.FR_GT).strip()
-        # Store the new GT
-        if float(gt) == 0.0:
-            logger.error("FISCAL PRINTER ERROR! POS ID: [%d] GT = 0.00 " % (int(posid),))
-        else:
-            prn.writeEncrypted("RW_GT", gt)
-    except FPException:
-        logger.exception("Error on [event_fiscal_order_state]")
-        raise
-    except:
-        logger.exception("Error on [event_fiscal_order_state]")
-        raise
 
     if type == "VOIDED":
         # Check if this is a "void last" operation
@@ -712,7 +730,7 @@ def event_fiscal_order_state(params):
                 break
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
                 if is_void_last:
                     # On this case, we need to store the COO of the void in the [FiscalOrders] table
                     sysactions.show_info_message(posid, "Aguardando impressora fiscal...", timeout=-1)
@@ -735,6 +753,9 @@ def event_fiscal_order_state(params):
                 logger.exception("Error on [event_fiscal_order_state]")
             except:
                 logger.exception("Erro armazenando dados fiscais de cancelamento. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro armazenando dados fiscais de cancelamento. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 sysactions.show_info_message(posid, "")
                 if conn:
@@ -745,6 +766,7 @@ def event_fiscal_order_state(params):
             update_fiscal_order_totals(posid, order)
 
     if type == "PAID":
+        conn = None
         for i in xrange(0, 3, 1):
             try:
                 n = 0
@@ -809,7 +831,7 @@ def event_cashless(params):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
                 queries = []
                 queries.append("""INSERT OR REPLACE INTO fiscalinfo.ElectronicTransactions(PosId,OrderId,Sequence,TenderId,TenderDescr,Amount,XmlData)
                     VALUES (%d,%d,%s,%d,%s,'%s','%s')""" % (
@@ -824,6 +846,9 @@ def event_cashless(params):
                 break
             except:
                 logger.exception("Erro inserindo dados fiscais de pagamento. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo dados fiscais de pagamento. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
@@ -872,7 +897,7 @@ def event_fiscal_promotional_msg(params):
         prn = FpRetry(posid, mbcontext)
         MD5_file = prn.readFile(PAF_ECF.SW_MD5_FILE)
         md5 = hashlib.md5(MD5_file).hexdigest().upper()
-        cnpj, ie = prn.readEncrypted("SW_MD5", "User_StateRegister")
+
         # MD5
         promo_message = "MD-5: %s" % (md5)
         # Pre-venda
@@ -882,6 +907,7 @@ def event_fiscal_promotional_msg(params):
         # Cupom Mania - Requisito VIII-A, item 3 REVOGADO
         # Paraiba Legal
         if UF in "PB":
+            cnpj, ie = prn.readEncrypted("SW_MD5", "User_StateRegister")
             COO = int(prn.readOut(fpreadout.FR_RECPNUMBER))
             total_gross = order.get("totalGross")
             promo_message += "\nPARAIBA LEGAL - RECEITA CIDADA\nTORPEDO PREMIADO:\n%s %s %06d %d" % (ie[:8], order_ts.strftime("%d%m%Y"), COO, int(total_gross.replace('.', '')))
@@ -936,15 +962,18 @@ def verify_printer(posid, force=False, showmsg=True, save_pre_gt=False, xml=None
 
         prn = FpRetry(posid, mbcontext)
 
+        serial = None
+        gt = None
         if verify_printer_id or verify_gt:
             serial, gt = prn.readEncrypted("ECF_Serial", "RW_GT")
 
+        fiscal_info = None
+        if xml is not None:
+            fiscal_info = xml.find("FiscalInfo")
+
         global verify_time
         if verify_time:
-            prn_ts = None
-
-            if xml is not None:
-                prn_ts = xml.find("FiscalInfo").get("Date")
+            prn_ts = fiscal_info.get("Date") if fiscal_info is not None else None
 
             if not prn_ts:
                 prn_ts = prn.getPrinterTimestamp()
@@ -974,32 +1003,26 @@ def verify_printer(posid, force=False, showmsg=True, save_pre_gt=False, xml=None
 
         # Read expected values
         if verify_printer_id:
-            prn_serial = None
-
-            if xml is not None:
-                prn_serial = xml.find("FiscalInfo").get("Serial")
+            prn_serial = fiscal_info.get("Serial") if fiscal_info is not None else None
 
             if not prn_serial:
                 prn_serial = prn.readOut(fpreadout.FR_FPSERIALNUMBER).strip()
 
             if prn_serial != serial:
-                logger.error("FISCAL PRINTER VERIFICATION ERROR! POS ID: [%d]\nAllowed ECF: %s\nCurrent ECF: %s" % (posid, serial, prn_serial))
+                logger.error("FISCAL PRINTER ERROR! POS: [%d] - Allowed ECF: %s - Current ECF: %s" % (posid, serial, prn_serial))
                 if showmsg:
                     sysactions.show_messagebox(posid, "Impressora Fiscal não permitida:\\Número de série diferente.\\\\Por favor chame o suporte", title="Impressora Fiscal", icon="error", asynch=True, timeout=120000)
                 return False
 
         if verify_gt:
-            prn_gt = None
-
-            if xml is not None:
-                prn_gt = xml.find("FiscalInfo").get("GT")
+            prn_gt = fiscal_info.get("GT") if fiscal_info is not None else None
 
             if not prn_gt:
                 prn_gt = prn.readOut(fpreadout.FR_GT).strip()
 
             prn_gt = float(prn_gt)
             gt_pre = float(readPreGt(posid) or 0)
-            gt = float(gt.replace(",", "."))
+            gt = float(gt.replace(",", ".")) if gt is not None else 0.0
             if prn_gt != gt:
                 if gt <= prn_gt <= gt_pre:
                     prn.writeEncrypted("RW_GT", prn_gt)
@@ -1023,7 +1046,6 @@ def verify_printer(posid, force=False, showmsg=True, save_pre_gt=False, xml=None
 
     # Success
     verified_printers.add(posid)
-
     logger.debug("verify_printer - END")
 
     return True
@@ -1093,49 +1115,6 @@ def readPreGt(pos_id):
         return pre_gt
     else:
         return 0.0
-
-
-def event_fiscal_cmd_before_executed(params):
-    xml, subject, type, sync, posid = params[:5]
-    cmd = int(type, 0)
-    posid = int(posid)
-    force = False
-
-    logger.debug(str(cmd) + ": event_fiscal_cmd_before_executed - START")
-
-    if cmd == fpcmds.FPRN_SALE:
-        try:
-            pre = str.split(base64.b64decode(etree.XML(xml).find("FiscalPrinter").get("cmdbuf")), '\0')[5]
-            gt_pre = float(readPreGt(posid)) + float(pre)
-            writePreGt(posid, gt_pre)
-        except FPException:
-            logger.exception("Error on [event_fiscal_cmd_before_executed] command: [%s] posid [%d]" % (cmd, posid))
-        except:
-            logger.exception("Erro gravando GT PRE")
-
-    save_pre_gt = False
-    if cmd in (fpcmds.FPRN_SALEBEGIN, fpcmds.FPRN_BEGINOFDAY, fpcmds.FPRN_ENDOFDAY, fpcmds.FPRN_ZREPORT, fpcmds.FPRN_OPERATOROPEN, fpcmds.FPRN_CASHIN, fpcmds.FPRN_CASHOUT):
-        force = True
-        save_pre_gt = True
-
-    if not verify_printer(posid, force=force, save_pre_gt=save_pre_gt, xml=xml):
-        logger.error("Blocked execution of fiscal command [%d] for posid [%d] - Fiscal printer verification error!" % (cmd, posid))
-        result = "%d\0%s" % (SE_FPERROR, "Erro verificando a Impressora Fiscal. Chame o suporte!")
-        return FM_PARAM, result
-
-    if cmd in (fpcmds.FPRN_ENDOFDAY, fpcmds.FPRN_ZREPORT):
-        try:
-            # We must store the daily GT *BEFORE* the end-of-day on printer - if we read this value
-            # after the Z-tape, it will always be ZERO
-            prn = FpRetry(posid, mbcontext)
-            global global_DGT
-            global_DGT[posid] = prn.readOut(fpreadout.FR_DAILYGT)
-        except FPException:
-            logger.exception("Error on [event_fiscal_cmd_before_executed] command: [%s] posid [%d]" % (cmd, posid))
-        except:
-            logger.exception("Error reading daily GT from fiscal printer! POS ID: [%d]\n" % posid)
-
-    logger.debug(str(cmd) + ": event_fiscal_cmd_before_executed - END")
 
 
 def check_electronic_fiscal_file(xml, subject, type, cmd, posid):
@@ -1218,7 +1197,7 @@ def store_printer_information(xml, posid):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
                 queries = []
                 queries.append("""INSERT OR REPLACE INTO fiscalinfo.FiscalPrinters(PosId,FPSerialNo,ECFModel,ECFUser,ISSQN,AdditionalMem,ECFType,ECFBrand,ECFSwDate,ECFSwTime,ECFSwVersion,ECFPosId,UserCNPJ, CreatedAt)
                     VALUES (%d,'%s','%s',%d,'%s','%s','%s','%s','%s','%s','%s',%d,'%s', '%s')""" % (
@@ -1232,6 +1211,9 @@ def store_printer_information(xml, posid):
                 break
             except:
                 logger.exception("Erro inserindo dados fiscais da impressora. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo dados fiscais da impressora. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
@@ -1249,7 +1231,7 @@ def store_daily_inventory(xml, posid):
         conn = None
         for i in xrange(0, 3, 1):
             try:
-                conn = persistence.Driver().open(mbcontext)
+                conn = persistence.Driver().open(mbcontext, dbname=str(posid))
                 queries = []
                 d = _get_common_fiscal_data(posid, extra=["tslastdoc"])
                 printer_date_time = datetime.datetime.strptime(d.dateLastDoc[posid] + d.timeLastDoc[posid], "%Y%m%d%H%M%S")
@@ -1266,6 +1248,9 @@ def store_daily_inventory(xml, posid):
                 break
             except:
                 logger.exception("Erro inserindo historico do estoque. Posid=%d, Tentativa=%d" % (int(posid), i))
+                sys_log_exception("Erro inserindo historico do estoque. Posid=%d, Tentativa=%d" % (int(posid), i))
+                if conn:
+                    conn.query('''ROLLBACK TRANSACTION;''')
             finally:
                 if conn:
                     conn.close()
@@ -1308,11 +1293,8 @@ def event_fiscal_cmd_executed(params):
 
     posid = int(posid)
     if cmd in (fpcmds.FPRN_ENDOFDAY, fpcmds.FPRN_ZREPORT):
-        handle_zreport(xml, subject, type, posid)
+        check_pos_z_report(posid)
         check_electronic_fiscal_file(xml, subject, type, cmd, posid)
-
-    if cmd == fpcmds.FPRN_SALEBEGIN:
-        handle_neworder(posid, xml)
 
     if cmd in (fpcmds.FPRN_NFEND, fpcmds.FPRN_CASHIN, fpcmds.FPRN_CASHOUT, fpcmds.FPRN_EFTSLIP):
         handle_nonfiscal_doc(posid, xml, cmd)
@@ -1327,7 +1309,6 @@ def event_fiscal_cmd_executed(params):
 
 def event_querychagestate(params):
     xml, subject, type, sync, posid = params[:5]
-    from sysactions import get_model, get_podtype, get_posfunction
     model = get_model(posid)
     if get_podtype(model) == "OT" or get_posfunction(model) == "OT":
         return
@@ -1345,13 +1326,17 @@ def event_fiscal_queue_error(params):
 
 
 def event_verify_last_z_reduction(params):
-    xml, subject, type, sync, posid = params[:5]
+    logger.debug("[event_verify_last_z_reduction] Begin")
+    pos_id = params[4]
+    if pos_id == 0:
+        check_z_reports()
+    else:
+        if check_pos_z_report(pos_id) is False:
+            return None
+        else:
+            return "\0"
 
-    hide_error_message = False
-    if type == 'hideError':
-        hide_error_message = True
-
-    handle_zreport(None, None, None, posid, True, hide_error_message)
+    logger.debug("[event_verify_last_z_reduction] End")
 
 #
 # Printer information
@@ -1371,6 +1356,7 @@ class CommonFiscalData:
     ecf_swtime = {}
     ecf_addedmem = {}
     ecf_posid = {}
+    ecf_printer_taxes = {}
 
     # non-cached
     tslastdoc = {}
@@ -1383,10 +1369,11 @@ class CommonFiscalData:
     vTax = {}
     allTax = {}
     taxByIndex = {}
+    lastZGT = {}
 
 
 class FpRetry(fp):
-    def readOut(self, readout_option, params = [], hide_error_message=False):
+    def readOut(self, readout_option, params = []):
         """ fp.readOut(readout_option, params=[]) -> readout value
         Performs a fiscal printer readout
         @return: the readout data
@@ -1407,12 +1394,11 @@ class FpRetry(fp):
                 logger.exception("Erro lendo da impressora. readout_option=%d, Tentativa=%d" % (readout_option, i))
                 time.sleep(1)
         if error:
-            if not hide_error_message:
-                sysactions.show_info_message(self._posid, str(error), msgtype="error")
+            sysactions.show_info_message(self._posid, str(error), msgtype="error")
             raise error
 
 
-def _get_common_fiscal_data(posid, extra=[], hide_error_message=False):
+def _get_common_fiscal_data(posid, extra=[]):
     global d
     if not d:
         d = CommonFiscalData()
@@ -1425,9 +1411,10 @@ def _get_common_fiscal_data(posid, extra=[], hide_error_message=False):
             if "EMULADOR" in d.ecf_serial[posid]:
                 # For BEMATECH emulator only
                 val = ["2000-01-01T00:00:00", "2000-01-01T00:00:00", ""]
+                return
             else:
                 # Read from printer
-                val = prn.readOut(fpreadout.FR_MFADDED, hide_error_message=hide_error_message).split('\0')
+                val = prn.readOut(fpreadout.FR_MFADDED).split('\0')
         except:
             logger.exception("Erro obtendo FR_MFADDED da impressora fiscal")
             val = ["1981-01-01T01:11:10", "1982-02-02T02:22:20", "0"]
@@ -1458,37 +1445,40 @@ def _get_common_fiscal_data(posid, extra=[], hide_error_message=False):
         d.tslastdoc[posid] = prn.readOut(fpreadout.FR_DTLASTDOC).replace("-", "").replace(":", "").split("T")
         d.dateLastDoc[posid] = d.tslastdoc[posid][0]
         d.timeLastDoc[posid] = d.tslastdoc[posid][1]
-    if ("coosLastZ" in extra):
+    if "coosLastZ" in extra:
         d.coosLastZ[posid] = prn.readOut(fpreadout.FR_COOSLASTZ).split(',')
-    if ("aInfoZ" in extra) or ("allTax" in extra) or ("taxByIndex" in extra):
+    if "taxByIndex" in extra:
+        _build_tax_by_index(prn, posid, d)
+    if ("aInfoZ" in extra) or ("allTax" in extra):
         # Read information from the last Z
         val = prn.readOut(fpreadout.FR_ZREPORTDATE).replace("-", "").replace(":", "").split("T")
         d.dateLastZ[posid] = val[0]
         d.timeLastZ[posid] = val[1]
         try:
             d.aInfoZ[posid] = prn.readOut(fpreadout.FR_INFOLASTZ).split(',')
+            d.lastZGT[posid] = d.aInfoZ[posid][15]
+            d.lastZGT[posid] = d.lastZGT[posid][:-2] + '.' + d.lastZGT[posid][-2:]
         except:
             logger.exception("Could not perform fiscal-printer readout FR_INFOLASTZ - this is expected in the emulator only!")
             d.aInfoZ[posid] = ["0" for _ in range(40)]
         if int(d.aInfoZ[posid][2]) == 0:
             # Using the emulator the fiscal memory is always zeroed - so make a readout to get the real CRZ
             d.aInfoZ[posid][2] = int(prn.readOut(fpreadout.FR_ZNUMBER))
-        if ("allTax" in extra) or ("taxByIndex" in extra):
+        if "allTax" in extra:
             # Build the "allTax" and "taxByIndex" information
-            _build_fiscal_tax_info(prn, posid, d)
+            _build_all_taxes(prn, posid, d)
     return d
 
 
-def _build_fiscal_tax_info(prn, posid, d):
-    vTax = prn.genericFiscalCMD(fpcmds.FPRN_GETTAXLIST).split(',,')
-    allTax = {}
-    taxByIndex = {}
-    taxByIndex["SI"] = "IS1"
-    taxByIndex["SF"] = "FS1"
-    taxByIndex["SN"] = "NS1"
+def _build_all_taxes(prn, pos_id, d):
+    # type: (fp, int, CommonFiscalData) -> None
+
+    d.ecf_printer_taxes = prn.genericFiscalCMD(fpcmds.FPRN_GETTAXLIST).split(',,') \
+        if (d.ecf_printer_taxes is None or len(d.ecf_printer_taxes) == 0) else d.ecf_printer_taxes
+    all_tax = {}
     for taxType in range(0, 2):
         type = "S" if taxType else "T"
-        for tax in vTax[taxType].split(','):
+        for tax in d.ecf_printer_taxes[taxType].split(','):
             if tax:
                 idx = int(tax[0:2])
                 taxRate = int(tax[3:])
@@ -1496,41 +1486,56 @@ def _build_fiscal_tax_info(prn, posid, d):
                 final = (idx - 1) * 14 + 14
                 taxAcc = 0
                 try:
-                    taxAcc = int(d.aInfoZ[posid][16][initial:final])
+                    taxAcc = int(d.aInfoZ[pos_id][16][initial:final])
                 except Exception:
-                    logger.exception("Erro acessando index %d:%d de %s" % (initial, final, d.aInfoZ[posid][16]))
+                    logger.exception("Erro acessando index %d:%d de %s" % (initial, final, d.aInfoZ[pos_id][16]))
                 key = "%02d%s%04d" % (idx, type, taxRate)
-                allTax[key] = taxAcc
-                # All possible representations of this tax index
-                taxByIndex["%d" % idx] = key
-                taxByIndex["%02d" % idx] = key
-                taxByIndex["%04d" % taxRate] = key
+                all_tax[key] = taxAcc
 
-    allTax["F1"] = d.aInfoZ[posid][19]      # Substituição tributária - ICMS
-    allTax["I1"] = d.aInfoZ[posid][17]      # Isento - ICMS
-    allTax["N1"] = d.aInfoZ[posid][18]      # Não incidência de ICMS
-    allTax["FS1"] = d.aInfoZ[posid][22]     # Substituição tributária ISSQN
-    allTax["IS1"] = d.aInfoZ[posid][20]     # Isento - ISSQN
-    allTax["NS1"] = d.aInfoZ[posid][21]     # Não incidência - ISSQN
+    all_tax["F1"] = d.aInfoZ[pos_id][19]      # Substituição tributária - ICMS
+    all_tax["I1"] = d.aInfoZ[pos_id][17]      # Isento - ICMS
+    all_tax["N1"] = d.aInfoZ[pos_id][18]      # Não incidência de ICMS
+    all_tax["FS1"] = d.aInfoZ[pos_id][22]     # Substituição tributária ISSQN
+    all_tax["IS1"] = d.aInfoZ[pos_id][20]     # Isento - ISSQN
+    all_tax["NS1"] = d.aInfoZ[pos_id][21]     # Não incidência - ISSQN
 
-    allTax["OPNF"] = 0               # Operações não fiscais
+    all_tax["OPNF"] = 0               # Operações não fiscais
     for i in range(0, 28):
         initial = i * 14
         final = i * 14 + 14
         try:
-            allTax["OPNF"] += int(d.aInfoZ[posid][29][initial:final])    # Soma os 28 totalizadores
+            all_tax["OPNF"] += int(d.aInfoZ[pos_id][29][initial:final])    # Soma os 28 totalizadores
         except Exception:
-            logger.exception("Erro acessando index %d:%d de %s" % (initial, final, d.aInfoZ[posid][29]))
-    allTax["OPNF"] = "%014d" % allTax["OPNF"]
+            logger.exception("Erro acessando index %d:%d de %s" % (initial, final, d.aInfoZ[pos_id][29]))
+    all_tax["OPNF"] = "%014d" % all_tax["OPNF"]
 
-    allTax["DT"] = d.aInfoZ[posid][23]      # descontos - ICMS
-    allTax["DS"] = d.aInfoZ[posid][24]      # descontos - ISSQN
-    allTax["AT"] = d.aInfoZ[posid][25]      # acréscimos - ICMS
-    allTax["AS"] = d.aInfoZ[posid][26]      # acréscimos - ISSQN
-    allTax["Can-T"] = d.aInfoZ[posid][27]   # cancelamento - ICMS
-    allTax["Can-S"] = d.aInfoZ[posid][28]   # cancelamento - ISSQN
-    d.allTax[posid] = allTax
-    d.taxByIndex[posid] = taxByIndex
+    all_tax["DT"] = d.aInfoZ[pos_id][23]      # descontos - ICMS
+    all_tax["DS"] = d.aInfoZ[pos_id][24]      # descontos - ISSQN
+    all_tax["AT"] = d.aInfoZ[pos_id][25]      # acréscimos - ICMS
+    all_tax["AS"] = d.aInfoZ[pos_id][26]      # acréscimos - ISSQN
+    all_tax["Can-T"] = d.aInfoZ[pos_id][27]   # cancelamento - ICMS
+    all_tax["Can-S"] = d.aInfoZ[pos_id][28]   # cancelamento - ISSQN
+    d.allTax[pos_id] = all_tax
+
+
+def _build_tax_by_index(prn, pos_id, d):
+    # type: (fp, int, CommonFiscalData) -> None
+    if pos_id not in d.taxByIndex:
+        d.ecf_printer_taxes = prn.genericFiscalCMD(fpcmds.FPRN_GETTAXLIST).split(',,') \
+            if d.ecf_printer_taxes is not None else d.ecf_printer_taxes
+        tax_by_index = {"SI": "IS1", "SF": "FS1", "SN": "NS1"}
+        for taxType in range(0, 2):
+            type = "S" if taxType else "T"
+            for tax in d.ecf_printer_taxes[taxType].split(','):
+                if tax:
+                    idx = int(tax[0:2])
+                    tax_rate = int(tax[3:])
+                    key = "%02d%s%04d" % (idx, type, tax_rate)
+                    tax_by_index["%d" % idx] = key
+                    tax_by_index["%02d" % idx] = key
+                    tax_by_index["%04d" % tax_rate] = key
+
+        d.taxByIndex[pos_id] = tax_by_index
 
 
 def _decimal_to_fixed_int(v):
@@ -1542,8 +1547,7 @@ def _calculate_OPNF(posid, period):
     OPNF = None
     for i in xrange(0, 3, 1):
         try:
-            conn = persistence.Driver().open(mbcontext)
-            conn.set_dbname(str(posid))
+            conn = persistence.Driver().open(mbcontext, dbname=str(posid))
             if not period:
                 cursor = conn.select("""SELECT BusinessPeriod FROM posctrl.PosState WHERE PosId=%d""" % int(posid))
                 period = cursor.get_row(0).get_entry(0)
@@ -1564,11 +1568,10 @@ def _calculate_OPNF(posid, period):
                 conn.close()
     return OPNF
 
+
 #
 # Main function (called by pyscripts)
 #
-
-
 def main():
     ret = mbcontext.MB_EasySendMessage("FiscalWrapper", TK_FISCALWRAPPER_GET_NF_TYPE, format=FM_PARAM, data=None)
     # Processamento Finalizado com Sucesso
@@ -1582,12 +1585,10 @@ def main():
             global verify_printer_id
             verify_printer_id = str(get_storewide_config("Store.VerifyPrinterId", True)).lower() != "false"
             pyscripts.subscribe_event_listener("FISCAL_STARTUP", event_fiscal_startup)
-            pyscripts.subscribe_event_listener("ORDER_STATE", event_order_state)
             pyscripts.subscribe_event_listener("FISCAL_ORDER_STATE", event_fiscal_order_state)
             pyscripts.subscribe_event_listener("FISCAL_CMD_EXECUTED", event_fiscal_cmd_executed)
             pyscripts.subscribe_event_listener("CASHLESS", event_cashless)
             pyscripts.subscribe_event_listener("FISCAL_PROMOTIONAL_MSG", event_fiscal_promotional_msg)
-            pyscripts.subscribe_event_listener("FISCAL_CMD_BEFORE_EXECUTED", event_fiscal_cmd_before_executed)
             pyscripts.subscribe_event_listener("POS_ACCOUNT_TRANSFER_SYNC", event_account_transfer)
             pyscripts.subscribe_event_listener("POS_QUERYCHANGESTATE", event_querychagestate)
             pyscripts.subscribe_event_listener("FISCAL_QUEUE_ERROR", event_fiscal_queue_error)

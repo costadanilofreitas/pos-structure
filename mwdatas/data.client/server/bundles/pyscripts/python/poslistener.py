@@ -10,6 +10,8 @@ import re
 import logging
 import string
 from xml.etree import cElementTree as etree
+
+from posot import OrderTakerException
 from systools import sys_log_info, sys_log_exception
 # Our modules
 import pyscripts
@@ -77,17 +79,19 @@ def event_order_modifier(params):
 
     if (event_type == "TOTALED") or (event_type == "ORDER_PROPERTIES_CHANGED" and order.get("state") == "TOTALED"):
         # Whopper Wi-Fi START
-        if order.find(".//OrderProperty[@key='WHOPPER_WIFI_CODE']") is None:
+        if order.find(".//OrderProperty[@key='WHOPPER_WIFI_CODE']") is None and has_current_order(model):
             whopper_wifi_pod_types = (read_swconfig(mbcontext, "Store.WhopperWifiPodTypes") or '').split(';')
             store_id = read_swconfig(mbcontext, "Store.Id")
 
             order_id = order.get('orderId')
             podtype = get_podtype(model)
-
             if podtype in whopper_wifi_pod_types:
-                posot = get_posot(model)
-                wifi_code = get_whooper_wifi_code(store_id, order_id, datetime.datetime.now())
-                posot.setOrderCustomProperty("WHOPPER_WIFI_CODE", wifi_code)
+                try:
+                    posot = get_posot(model)
+                    wifi_code = get_whooper_wifi_code(store_id, order_id, datetime.datetime.now())
+                    posot.setOrderCustomProperty("WHOPPER_WIFI_CODE", wifi_code)
+                except OrderTakerException:
+                    logger.exception("Error saving WHOPPER WIFI code - Order: {}".format(order_id))
         # Whopper Wi-Fi END
 
         order_due, order_total, order_id, order_tax = map(order.get, ("dueAmount", "totalAmount", "orderId", "taxTotal"))
@@ -122,7 +126,9 @@ def event_order_modifier(params):
         pos_function = get_posfunction(model)
         if pod_type not in ("OT", "DL") and pos_function not in ("OT", "DL"):
             from threading import Thread
-            Thread(target=finish_sitef_transactions, args=(pos_id, order, "1")).start()
+            sitef_transactions_thread = Thread(target=finish_sitef_transactions, args=(pos_id, order, "1"))
+            sitef_transactions_thread.daemon = True
+            sitef_transactions_thread.start()
 
     if event_type == "VOID_ORDER":
         order_id = order.get("orderId")
@@ -133,7 +139,10 @@ def event_order_modifier(params):
         pos_function = get_posfunction(model)
         if pod_type not in ("OT", "DL") and pos_function not in ("OT", "DL"):
             from threading import Thread
-            Thread(target=finish_sitef_transactions, args=(pos_id, order, "0")).start()
+            sitef_transactions_thread = Thread(target=finish_sitef_transactions, args=(pos_id, order, "0"))
+            sitef_transactions_thread.daemon = True
+            sitef_transactions_thread.start()
+
         delete_payments(order_id)
 
 
@@ -334,6 +343,7 @@ def get_updated_sale_line_defaults(queries, order_id, line_number, context, part
 
 
 def event_post_new_line(params):
+    logger.debug("--- event_post_new_line START ---")
     queries = []
 
     # Get Line 0 of the Sale - Normally a COMBO
@@ -348,6 +358,7 @@ def event_post_new_line(params):
     # RUN BABY RUN
     insert_options_and_defaults(queries, order_id, line_number, item_id_line, part_code_line, prod_qty, 0, pod_type, default_produtcts=not_kiosk)
 
+    logger.debug("--- event_post_new_line END ---")
     if queries:
         return "\0".join(["0"] + [";".join(queries)])
     return None
