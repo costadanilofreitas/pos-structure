@@ -77,12 +77,8 @@ class SignInScreen extends PureComponent {
     return (
       <div className={classes.container}>
         <div className={classes.leftPanel}>
-          <Button
-            className={classes.clockButton}
-            disabled={busy}
-            executeAction={['doTimePunch']}>
-            <I18N id="$CLOCK_IN_OUT" defaultMessage="Clock In / Out"/>
-          </Button>
+
+
         </div>
         <div className={classes.centerPanel}>
           <Logo />

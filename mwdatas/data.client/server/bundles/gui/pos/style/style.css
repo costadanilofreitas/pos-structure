@@ -90,3 +90,17 @@ body {
   border-radius: 5px;
   font-size: 1.4vh;
 }
+
+.keyboard-dialog-info-cont {
+      font-size: 2vh !important;
+}
+
+.keyboard-input-backspace-root {
+   width: 4vw !important;
+   top: auto !important;
+   bottom: auto !important;
+}
+
+.dialog-body {
+  font-size: 1.5vh !important;
+}
