@@ -247,15 +247,11 @@ def open_discount(posid, discountid, extra, *args, **kwargs):
     total_amount = D(order.get("totalAmount"))
     total_tender = D(order.get("totalTender"))
     # Remove items that cannot be discounted from "total_amount"
-    conn = None
-    try:
-        conn = persistence.Driver().open(mbcontext, dbname=str(posid))
-        cursor = conn.pselect("getValidProductDiscounts", discountId=discountid)
-        to_ignore = set([row.get_entry("ItemId")
-                         for row in cursor if row.get_entry("Exclude") == 'Y'])
-    finally:
-        if conn:
-            conn.close()
+    conn = persistence.Driver().open(mbcontext)
+    cursor = conn.pselect("getValidProductDiscounts", discountId=discountid)
+    to_ignore = set([row.get_entry("ItemId")
+                     for row in cursor if row.get_entry("Exclude") == 'Y'])
+    conn.close()
     for item in order.findall("SaleLine"):
         itemid = str("%s.%s" % (item.get("itemId"), item.get("partCode")))
         if itemid in to_ignore:
@@ -295,7 +291,8 @@ def open_discount(posid, discountid, extra, *args, **kwargs):
         if not perc:
             return
         if D(perc) <= D("0") or D(perc) > D("100.0"):
-            show_info_message(posid, "$INVALID_PERCENT: %s" % perc, msgtype="warning")
+            show_info_message(posid, "$INVALID_PERCENT" % (
+                fmt(amount), fmt(total_amount)), msgtype="warning")
             return
         if D(perc) == D("100.0"):
             amount = str(total_amount)

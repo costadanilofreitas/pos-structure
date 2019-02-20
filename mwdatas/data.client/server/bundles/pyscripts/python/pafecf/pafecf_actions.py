@@ -118,29 +118,24 @@ def generateElectronicFiscalFile(posid, serial="", request_date="false", preview
             pos_id = posid
         # Get the printer serial number if necessary
         if not serial:
-            conn = None
-            try:
-                conn = persistence.Driver().open(mbcontext)
-                cursor = conn.select("""
-                SELECT DISTINCT FPSerialNo
-                FROM (
-                    SELECT DISTINCT FPSerialNo FROM fiscalinfo.FiscalPrinters
-                    UNION ALL
-                    SELECT DISTINCT FPSerialNo FROM fiscalinfo.FiscalOrders WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
-                    UNION ALL
-                    SELECT DISTINCT FPSerialNo FROM fiscalinfo.NonFiscalDocuments WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
-                    UNION ALL
-                    SELECT DISTINCT FPSerialNo FROM fiscalinfo.ZTapes WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
-                    UNION ALL
-                    SELECT DISTINCT FPSerialNo FROM fiscalinfo.ZTapeTotalizers WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
-                )
-                """ % locals())
-                if not cursor.rows():
-                    show_messagebox(posid, message="Nenhum dado encontrado para este período!", icon="warning")
-                    return
-            finally:
-                if conn:
-                    conn.close()
+            conn = persistence.Driver().open(mbcontext)
+            cursor = conn.select("""
+            SELECT DISTINCT FPSerialNo
+            FROM (
+                SELECT DISTINCT FPSerialNo FROM fiscalinfo.FiscalPrinters
+                UNION ALL
+                SELECT DISTINCT FPSerialNo FROM fiscalinfo.FiscalOrders WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
+                UNION ALL
+                SELECT DISTINCT FPSerialNo FROM fiscalinfo.NonFiscalDocuments WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
+                UNION ALL
+                SELECT DISTINCT FPSerialNo FROM fiscalinfo.ZTapes WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
+                UNION ALL
+                SELECT DISTINCT FPSerialNo FROM fiscalinfo.ZTapeTotalizers WHERE PosId=%(pos_id)s AND Period BETWEEN %(period_begin)s AND %(period_end)s
+            )
+            """ % locals())
+            if not cursor.rows():
+                show_messagebox(posid, message="Nenhum dado encontrado para este período!", icon="warning")
+                return
             serials = [row.get_entry(0) for row in cursor]
             serial = serials[0]
         # get encrypted information

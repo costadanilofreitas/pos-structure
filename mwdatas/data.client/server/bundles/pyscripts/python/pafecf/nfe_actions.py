@@ -255,13 +255,9 @@ def add_nfe_products(out, nfe):
     pcodes = ','.join(set([str(line.get("partCode")) for line in nfe["order"].findall("SaleLine") if int(line.get("level")) == 0]))
     # Retrieve information from those products from the database
     drv = persistence.Driver()
-    conn = None
-    try:
-        conn = drv.open(mbcontext, dbname=str(nfe["order"].get("posId")))
-        cursor = conn.select("SELECT * FROM fiscalinfo.FiscalProductDB WHERE ProductCode IN (%s)" % pcodes)
-    finally:
-        if conn:
-            conn.close()
+    conn = drv.open(mbcontext)
+    conn.set_dbname(str(nfe["order"].get("posId")))
+    cursor = conn.select("SELECT * FROM fiscalinfo.FiscalProductDB WHERE ProductCode IN (%s)" % pcodes)
     proddb = {}
     for row in cursor:
         proddb[int(row.get_entry("ProductCode"))] = row
@@ -466,15 +462,10 @@ def emitirNFe(posid, *args):
     check_current_order(posid, model=model, need_order=False)
     import nfe_tables
     # Determina o numero da ultima NF-e emitida
-    conn = None
-    try:
-        conn = persistence.Driver().open(mbcontext)
-        cursor = conn.select("SELECT MAX(Number) FROM fiscalinfo.NFe")
-        nfe_number = int(cursor.get_row(0).get_entry(0) or 0) + 1 if cursor.rows() else 1
-        del cursor
-    finally:
-        if conn:
-            conn.close()
+    conn = persistence.Driver().open(mbcontext)
+    cursor = conn.select("SELECT MAX(Number) FROM fiscalinfo.NFe")
+    nfe_number = int(cursor.get_row(0).get_entry(0) or 0) + 1 if cursor.rows() else 1
+    del cursor
 
     info = {}
     nfe_number = show_keyboard(posid, "Digite o número da NF-e:", defvalue=str(nfe_number), title="Emissão de NF-e", mask="INTEGER", numpad=True)

@@ -33,7 +33,7 @@ from systools import sys_log_info, sys_log_debug, sys_log_exception, sys_log_err
 from msgbus import TK_EFT_REQUEST, TK_EVT_EVENT, TK_FISCAL_CMD, TK_SYS_NAK, TK_ACCOUNT_EFTACTIVITY, TK_ACCOUNT_GIFTCARDACTIVITY, TK_POS_SETDEFSERVICE, TK_SYS_ACK, TK_SYS_CHECKFORUPDATES, \
     TK_POS_SETRECALLDATA, TK_POS_USERLOGOUT, TK_POS_USERLOGIN, TK_POS_LISTUSERS, TK_POS_SETFUNCTION, TK_POS_USEROPEN, TK_I18N_GETLANGS, TK_POS_SETLANG, TK_CMP_TERM_NOW, \
     TK_POS_SETPOD, TK_CDRAWER_OPEN, TK_POS_SETMODIFIERSDATA, TK_ACCOUNT_TRANSFER, TK_HV_GLOBALRESTART, TK_GENESIS_LISTPKGS, TK_GENESIS_APPLYUPDATE, TK_CASHLESS_REPORT, \
-    FM_STRING, FM_PARAM, FM_XML, TK_PERSIST_SEQUENCER_INCREMENT, MBException, SE_NOTFOUND, MBEasyContext, TK_POS_BUSINESSEND, TK_POS_GETSTATE, TK_PRN_GETSTATUS, TK_PRN_PRINT, MBTimeout
+    FM_STRING, FM_PARAM, FM_XML, TK_PERSIST_SEQUENCER_INCREMENT, MBException, SE_NOTFOUND, MBEasyContext, TK_POS_BUSINESSEND, TK_POS_GETSTATE, TK_PRN_GETSTATUS, TK_PRN_PRINT
 import bustoken
 import datetime
 from posot import OrderTaker, OrderTakerException, ClearOptionException
@@ -56,8 +56,8 @@ from bustoken import TK_SITEF_ADD_PAYMENT, TK_SITEF_CANCEL_PAYMENT, TK_SITEF_FIN
     TK_FISCALWRAPPER_GET_NF_TYPE, TK_DAILYGOALS_UPDATE_GOALS, TK_BKOFFICEUPLOADER_SEND_SANGRIA, TK_FISCALWRAPPER_RE_SIGN_XML, TK_REMOTE_ORDER_SEND_ORDER_TO_PRODUCTION, TK_FISCALWRAPPER_SITUATION, \
     TK_MAINTENANCE_RECREATE_FILE_NUMBER, TK_BKOFFICEUPLOADER_SEND_BKOFFICE_ORDER, TK_RUPTURA_GET_ENABLED, TK_RUPTURA_GET_DISABLED, TK_RUPTURA_UPDATE_ITEMS, TK_DISCOUNT_APPLY, TK_DISCOUNT_CLEAR, \
     TK_BLACKLIST_CHECK_STRING, TK_BLACKLIST_FILTER_STRING, TK_REMOTE_ORDER_OPEN_STORE, TK_REMOTE_ORDER_CLOSE_STORE, \
-    TK_REMOTE_ORDER_GET_STORE, TK_VERIFY_PAF_ECF_LISTENER, TK_POS_FUNCTION_CHANGED
-from fiscalprinter import fpcmds, FPException, fp, fpreadout
+    TK_REMOTE_ORDER_GET_STORE
+from fiscalprinter import fpcmds
 
 import manager
 # noinspection PyUnresolvedReferences
@@ -86,10 +86,13 @@ if os.path.exists(debugPath):
         sys.path.append(debugPath)
     import pydevd
 
-manager.mbcontext = pyscripts.mbcontext
+# Use the line below in the function you want to debug
+# UNTIL HERE
+
 manager.users.mbcontext = pyscripts.mbcontext
 manager.reports.mbcontext = pyscripts.mbcontext
 logger = logging.getLogger("PosActions")
+
 
 #
 # Constants
@@ -154,12 +157,8 @@ cancela = False
 # Receipt
 dbd = DBDriver()
 
-lock_tender = threading.Lock()
+lock = threading.Lock()
 tendering = {}
-
-lock_recall = threading.Lock()
-recalling = []
-
 # limit values to sangria
 sangria_levels = None
 max_transfer_value = 0
@@ -305,7 +304,7 @@ def _sitef_processing_received(params):
 #
 def main():
     # pydevd.settrace('localhost', port=9123, stdoutToServer=True, stderrToServer=True, suspend=False)
-
+    #
     # Subscribes event callbacks
     sysactions.initialize()
 
@@ -326,8 +325,8 @@ def main():
     global cliche
     cliche = ClicheHelper(mbcontext).get_cliche()
 
-    global lock_tender
-    with lock_tender:
+    global lock
+    with lock:
         global tendering
         for posid in poslist:
             tendering[int(posid)] = False
@@ -335,7 +334,7 @@ def main():
     config_logger(os.environ["LOADERCFG"], 'PosActions')
 
 
-def populate_combo_taxes(posid):
+def populate_combo_taxes():
     BEGIN_TRANSACTION = ["BEGIN TRANSACTION", "UPDATE fiscalinfo.FiscalDEnabled SET Enabled=0"]
     COMMIT_TRANSACTION = ["UPDATE fiscalinfo.FiscalDEnabled SET Enabled=1", "COMMIT TRANSACTION"]
 
@@ -401,14 +400,11 @@ def populate_combo_taxes(posid):
     queries = [query]
     conn = None
     try:
-        conn = persistence.Driver().open(mbcontext, dbname=str(posid))
+        conn = persistence.Driver().open(mbcontext)
         queries = BEGIN_TRANSACTION + queries + COMMIT_TRANSACTION
         conn.query("\0".join(queries))
-    except Exception as ex:
+    except Exception:
         logger.exception("ERRO CRIANDO FISCALINFO DATABASE INFORMATION")
-        sys_log_exception("ERRO CRIANDO FISCALINFO DATABASE INFORMATION")
-        if conn:
-            conn.query('''ROLLBACK TRANSACTION;''')
     finally:
         if conn:
             conn.close()
@@ -423,8 +419,6 @@ def load_posconfig():
     global max_transfer_value
     global show_all_transfer
     global round_donation_enabled
-    global round_donation_pod_types
-    global round_donation_payment_types
     global round_donation_institution
     global round_donation_cnpj
     global round_donation_site
@@ -433,10 +427,6 @@ def load_posconfig():
     global void_last_order_btn
     global set_product_quantity_pre
     global skim_digit_limit
-    global picklist_reprint_type
-    global update_vtt_url
-
-    config = cfgtools.read(os.environ["LOADERCFG"])
 
     # Store-wide config
     sangria_levels = get_storewide_config("Store.SangriaLevels", defval="250;500;1000")
@@ -447,8 +437,6 @@ def load_posconfig():
     manager.is24HoursStore = is24HoursStore
 
     round_donation_enabled = get_storewide_config("Store.RoundDonationInfo.RoundDonationEnabled", defval="false").lower() == "true"
-    round_donation_pod_types = get_storewide_config("Store.RoundDonationInfo.RoundDonationPodTypes", defval="FC;DT;KK;DS").split(';')
-    round_donation_payment_types = get_storewide_config("Store.RoundDonationInfo.RoundDonationPaymentTypes", defval="0").split(';')
     round_donation_institution = get_storewide_config("Store.RoundDonationInfo.RoundDonationInstitution")
     round_donation_cnpj = get_storewide_config("Store.RoundDonationInfo.RoundDonationCNPJ")
     round_donation_site = get_storewide_config("Store.RoundDonationInfo.RoundDonationSite")
@@ -456,9 +444,6 @@ def load_posconfig():
     void_line_authorization = get_storewide_config("Store.VoidLineAuthorization", defval="false").lower() == "true"
     void_order_authorization = get_storewide_config("Store.VoidOrderAuthorization", defval="false").lower() == "true"
     void_last_order_btn = get_storewide_config("Store.VoidLastOrderBtn", defval="false").lower() == "true"
-
-    update_vtt_url = config.find_value("UpdateVtt.UpdateVttURL")
-    picklist_reprint_type = config.find_value("Reprint.PicklistReprintType") or "production_pick_list"
 
     skim_digit_limit_cfg = get_storewide_config("Store.SkimDigitLimit", defval="4-30")
     skim_digit_limit = {"min": int(skim_digit_limit_cfg.split("-")[0]),
@@ -501,7 +486,6 @@ def load_posconfig():
 
 
 def force_sqlite_cache():
-    conn = None
     try:
         conn = persistence.Driver().open(mbcontext)
         for posid in poslist:
@@ -795,319 +779,313 @@ def doSale(pos_id, part_code, qty="", size="", sale_type="EAT_IN", *args):
     """
 
     logger.debug("--- doSale START ---")
-
-    if not pafecflistenter_component_found(pos_id):
-        return
-
     model = get_model(pos_id)
-
-    pos_ot = get_posot(model)
-    pod_type = get_podtype(model)
-
-    dlg_id = None
-    is_new_order = None
+    check_operator_logged(pos_id, model=model, can_be_blocked=False)
+    posot = get_posot(model)
+    podtype = get_podtype(model)
+    posfunction = get_posfunction(model)
+    is_new_order = not has_current_order(model)
+    customer_doc = None
+    customer_name = None
+    pre_venda = None
+    last_order = None
+    dlgid = None
     try:
         logger.debug("--- doSale before popup 'Processando cupom fiscal' ---")
-        if get_nf_type(pos_id) == "PAF":
-            dlg_id = show_messagebox(pos_id, "$PROCESSING_FISCAL_DATA", title="$PROCESSING", buttons="", asynch=True, timeout=180000, focus=False)
-
-        logger.debug("--- doSale before get pricelist ---")
-        price_list = get_pricelist(model) if pod_type != "DL" else "DL"
-        sale_type = "DRIVE_THRU" if (pod_type == "DT") else sale_type
-
-        pos_function = get_posfunction(model)
-        is_new_order = not has_current_order(model)
-
-        # Do NOT proceed if there is already an opened Order and not PartCode was provided
-        if not is_new_order and part_code is None:
-            return
-
-        order_properties_dict = {}
-        if is_new_order is True:
-            order_properties_dict = new_order_properties(pod_type, pos_function, pos_id, pos_ot)
-
-        order_created = False
+        dlgid = show_messagebox(pos_id, "$PROCESSING_FISCAL_DATA", title="$PROCESSING", buttons="", asynch=True, timeout=180000, focus=False) if get_nf_type(pos_id) == "PAF" else None
         if is_new_order:
-            order_created = process_new_order(model, pod_type, pos_function, pos_id, pos_ot, price_list, sale_type)
+            logger.debug("--- doSale start new order ---")
+            # check if skim is needed before new order
+            period = get_business_period(model)
+            session = get_operator_session(model)
+            if doSetDrawerStatus(pos_id, get_drawer_amount(pos_id, period, session)):
+                return
+            # check if the drawer should be closed before starting an order
+            if get_cfg(pos_id).key_value("needToCloseDrawer", "true") == "true":
+                check_drawer(pos_id, model)
+            # Offer to start multi-order on DT cashier
+            if podtype == "DT" and posfunction == "CS" and get_last_order(model):
+                index = show_messagebox(pos_id, message="$DO_YOU_WANT_SAME_OR_NEW_CAR", title="$SAME_CAR", buttons="$SAME_CAR|$NEW_CAR|$CANCEL")
+                if index in (None, 2):
+                    return  # User cancelled, or timeout
+                if index == 0:
+                    check_current_order(pos_id, model=model, need_order=False)
+                    try:
+                        last_order = get_last_order(model)
+                        if not last_order:
+                            show_info_message(pos_id, "$NO_PREVIOUS_ORDER_FOR_MULTIORDER", msgtype="warning")
+                            return
+                        # check if the drawer should be closed before starting an order
+                        if get_cfg(pos_id).key_value("needToCloseDrawer", "true") == "true":
+                            check_drawer(pos_id, model)
+                    except OrderTakerException, e:
+                        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
-        logger.debug("--- doSale before retrieve quantity ---")
-        qty = retrieve_quantity(model, qty)
+            if get_nf_type(pos_id) == "PAF":
+                logger.debug("--- doSale before customer info ---")
+                valid = False
+                while not valid:
+                    customer_doc = show_keyboard(pos_id, "(somente números)", title="Digite o CPF/CNPJ", numpad=True)
+                    if customer_doc in (None, ""):
+                        break
+                    if len(customer_doc) <= 11:
+                        valid = validar_cpf(customer_doc)
+                    elif len(customer_doc) > 11:
+                        valid = validar_cnpj(customer_doc)
+                    if valid:
+                        if posot.additionalInfo:
+                            posot.additionalInfo += "|CPF=%s" % (customer_doc)
+                        else:
+                            posot.additionalInfo = "CPF=%s" % (customer_doc)
+                    else:
+                        show_info_message(pos_id, "Número de CPF/CNPJ Inválido!", msgtype="critical")
+                while True:
+                    customer_name = show_keyboard(pos_id, "Digite o nome do cliente", defvalue="", title="", numpad=False)  # type: str
+                    if customer_name not in (None, ""):
+                        customer_name = customer_name.translate(None, '-+[]/;.|<>:?{}=_()*&^%$#@!,')
+                        if check_customer_name(pos_id, customer_name) is False:
+                            continue
+                        if posot.additionalInfo:
+                            posot.additionalInfo += "|NAME=%s" % (customer_name)
+                        else:
+                            posot.additionalInfo = "NAME=%s" % (customer_name)
+                    break
 
-        if is_new_order is True and order_created is False and part_code is None:
-            logger.debug("--- doSale before posot.createOrder ---")
-            sale = pos_ot.createOrder(int(pos_id), pricelist=price_list, saletype=sale_type)
-            logger.debug("--- doSale after posot.createOrder ---")
-        else:
+                customer_address = show_keyboard(pos_id, "Digite o endereço do cliente", defvalue="", title="", numpad=False)
+                if customer_address not in (None, ""):
+                    customer_address = customer_address.translate(None, '-+[]/;.|<>:?{}=_()*&^%$#@!')
+                    if posot.additionalInfo:
+                        posot.additionalInfo += "|ADDRESS=%s" % (customer_address)
+                    else:
+                        posot.additionalInfo = "ADDRESS=%s" % (customer_address)
+
+                logger.debug("--- doSale after customer info ---")
+                # Pre-venda
+                if podtype == "OT" or posfunction == "OT":
+                    msg = send_message("Persistence", TK_PERSIST_SEQUENCER_INCREMENT, format=FM_PARAM, data="PafPreVenda", timeout=600 * USECS_PER_SEC)
+                    if msg.token == TK_SYS_NAK:
+                        raise Exception("Error incrementing mandatory sequence [PafPreVenda] on Persistence")
+                    pre_venda = str(msg.data.split('\0')[0])
+                    if posot.additionalInfo:
+                        posot.additionalInfo += "|PreVenda=%s" % pre_venda
+                    else:
+                        posot.additionalInfo = "PreVenda=%s" % pre_venda
+        qty = int(qty or "1")
+        last_blkopnotify = posot.blkopnotify
+        try:
+            logger.debug("--- doSale before get_pricelist ---")
+            price_list = get_pricelist(model) if podtype != "DL" else "DL"
+            posot.blkopnotify = True
+            sale_type = "DRIVE_THRU" if (podtype == "DT") else sale_type
+            if is_new_order:
+                try:
+                    # Do NOT allow NEW ORDERS after BLOCK TIME
+                    check_operator_logged(pos_id, model=model, can_be_blocked=True)
+
+                    logger.debug("--- doSale before posot.createOrder ---")
+                    posot.createOrder(int(pos_id), pricelist=price_list, multiorderid=last_order["orderId"] if last_order else '', saletype=sale_type)
+                    logger.debug("--- doSale after posot.createOrder ---")
+                except OrderTakerException:
+                    if get_nf_type(pos_id) == "PAF":
+                        try:
+                            logger.exception("Erro ao iniciar pedido. Cancelando possivel pedido em aberto na impressora")
+                            data = '\x00'.join(map(str, [fpcmds.FPRN_SALECANCEL, '', '', '']))
+                            msg = mbcontext.MB_EasySendMessage("FiscalPrinter%s" % pos_id, TK_FISCAL_CMD, format=FM_PARAM, data=data)
+                            if msg.token == TK_SYS_ACK:
+                                posot.createOrder(int(pos_id), pricelist=price_list, multiorderid=last_order["orderId"] if last_order else '', saletype=sale_type)
+                            else:
+                                show_info_message(pos_id, "$FISCAL_PRINTER_COMM_ERROR", msgtype="error")
+                        except:
+                            show_info_message(pos_id, "$FISCAL_PRINTER_COMM_ERROR", msgtype="error")
+                    else:
+                        sys_log_exception('Error creating ORDER')
+
+            if set_product_quantity_pre:
+                model = get_model(pos_id)
+                pre_quantity = get_custom(model, "pre_quantity")
+                qty = pre_quantity if pre_quantity is not None else 1
+
             logger.debug("--- doSale before posot.doSale ---")
-            sale = pos_ot.doSale(int(pos_id), part_code, price_list, qty, False, size, sale_type)
-            logger.debug("--- doSale END ---")
+            sale = posot.doSale(int(pos_id), itemid=part_code, pricelist=price_list, qtty=qty, verifyOption=False, dimension=size, saletype=sale_type)
+            logger.debug("--- doSale after posot.doSale ---")
 
-        if len(order_properties_dict) > 0:
-            logger.debug("--- doSale update custom properties ---")
-            pos_ot.setOrderCustomProperties(order_properties_dict)
+            if customer_doc not in (None, ""):
+                posot.setOrderCustomProperty("CUSTOMER_DOC", customer_doc)
+            if customer_name not in (None, ""):
+                posot.setOrderCustomProperty("CUSTOMER_NAME", customer_name)
+            if pre_venda not in (None, ""):
+                posot.setOrderCustomProperty("PRE_VENDA", pre_venda)
+        finally:
+            posot.blkopnotify = last_blkopnotify
 
+        logger.debug("--- doSale before posot.updateOrderProperties ---")
+        posot.updateOrderProperties(pos_id, saletype=sale_type)
         return sale
 
-    except Exception as ex:
-        if isinstance(ex, OrderTakerException):
-            if handle_order_taker_exception(pos_id, pos_ot, ex, mbcontext):
-                return
-            else:
-                show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                                  msgtype="critical")
-        else:
-            show_info_message(pos_id, "ERRO AO INICIAR A VENDA - {}".format(ex._descr), msgtype="critical")
+    except OrderTakerException, e:
+        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+        raise StopAction()
 
+    except Exception as ex:
         if is_new_order:
             model = get_model(pos_id)
+            posot = get_posot(model)
             if has_current_order(model):
-                void_order(pos_id)
-
-        sys_log_exception('Error in doSale - new order: {} - '.format(is_new_order), ex)
+                posot.voidOrder(pos_id)
+        else:
+            sys_log_exception('Error in doSale')
+        raise StopAction()
     finally:
-        if dlg_id:
-            time.sleep(0.1)
-            sysactions.close_asynch_dialog(pos_id, dlg_id)
-            logger.debug("--- doSale after popup 'Processando cupom fiscal' ---")
-
-
-def pafecflistenter_component_found(pos_id):
-    if get_nf_type(pos_id) != "PAF":
-        return True
-
-    try:
-        msg = mbcontext.MB_EasySendMessage("PafEcfListener", token=TK_VERIFY_PAF_ECF_LISTENER, format=FM_PARAM, data="")
-        if msg.token != TK_SYS_ACK:
-            show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
-            return False
-
-        return True
-    except Exception as _:
-        show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
-        return False
-
-
-def handle_synchronization_error(pos_id, pos_ot, dlgid=None):
-    # type: (int, OrderTaker) -> None
-    while True:
         if dlgid:
-            close_asynch_dialog(pos_id, dlgid)
-
-        show_messagebox(pos_id, "$SYNCHRONIZATION_ERROR", "$ERROR", timeout=600000)
-        try:
-            if not has_current_order(get_model(pos_id)):
-                return 
-            pos_ot.voidOrder(pos_id)
-            return
-        except Exception as ex:
-            if isinstance(ex, OrderTakerException):
-                if handle_order_taker_exception(pos_id, pos_ot, ex, mbcontext):
-                    return
-
-            logger.exception("Erro cancelando pedido")
-            show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                              msgtype="critical")
-
-
-def handle_printer_validation_error(pos_id, msg):
-    # type: (int, unicode) -> None
-    show_messagebox(pos_id, msg, "$ERROR")
-
-
-def retrieve_quantity(model, qty):
-    if set_product_quantity_pre:
-        pre_quantity = get_custom(model, "pre_quantity")
-        qty = pre_quantity if pre_quantity is not None else 1
-
-    return qty
-
-
-def process_new_order(model, pod_type, pos_function, pos_id, pos_ot, price_list, sale_type):
-    logger.debug("--- doSale start new order ---")
-    check_new_order(model, pos_id)
-    return offer_multi_order(model, pod_type, pos_id, pos_ot, pos_function, price_list, sale_type)
-
-
-def new_order_properties(pod_type, pos_function, pos_id, pos_ot):
-    logger.debug("--- doSale get_nf_type PAF ---")
-
-    dict_sale = {}
-    if get_nf_type(pos_id) == "PAF":
-        logger.debug("--- doSale before customer info ---")
-        customer_doc = get_customer_doc(pos_id, pos_ot)
-        customer_name = get_customer_name(pos_id, pos_ot)
-        get_and_fill_customer_address(pos_id, pos_ot)
-        logger.debug("--- doSale after customer info ---")
-        pre_sale = get_paf_pre_sale(pod_type, pos_ot, pos_function)
-        dict_sale = update_custom_properties(customer_doc, customer_name, pre_sale)
-
-    return dict_sale
-
-
-def check_new_order(model, pos_id):
-    check_operator_logged(pos_id, model=model, can_be_blocked=True)
-
-    # check if skim is needed before new order
-    check_sangria(model, pos_id)
-
-    # check if the drawer should be closed before starting an order
-    logger.debug("--- doSale check_drawer ---")
-    if get_cfg(pos_id).key_value("needToCloseDrawer", "true") == "true":
-        check_drawer(pos_id, model)
-
-
-def check_sangria(model, pos_id):
-    if is_sangria_enable():
-        period = get_business_period(model)
-        session = get_operator_session(model)
-        drawer_amount = get_drawer_amount(pos_id, period, session)
-
-        logger.debug("--- doSale doSetDrawerStatus ---")
-        if doSetDrawerStatus(pos_id, drawer_amount):
-            raise StopAction()
-
-
-def offer_multi_order(model, pod_type, pos_id, pos_ot, pos_function, price_list, sale_type):
-    if pod_type == "DT" and pos_function == "CS" and get_last_order(model):
-        buttons = "$SAME_CAR|$NEW_CAR|$CANCEL"
-        index = show_messagebox(pos_id, message="$DO_YOU_WANT_SAME_OR_NEW_CAR", title="$SAME_CAR", buttons=buttons)
-        if index in (None, 2):
-            raise StopAction()  # User cancelled, or timeout
-
-        if index == 1:
-            return False
-
-        check_current_order(pos_id, model=model, need_order=False)
-        try:
-            last_order = get_last_order(model)
-            if not last_order:
-                show_info_message(pos_id, "$NO_PREVIOUS_ORDER_FOR_MULTIORDER", msgtype="warning")
-                raise StopAction()
-
-            logger.debug("--- doSale before posot.createOrder ---")
-            order_id = last_order["orderId"]
-            pos_ot.createOrder(int(pos_id), pricelist=price_list, multiorderid=order_id, saletype=sale_type)
-            logger.debug("--- doSale after posot.createOrder ---")
-
-        except OrderTakerException as ex:
-            show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                              msgtype="critical")
-            raise StopAction()
-        else:
-            return True
-
-    return False
-
-
-def update_custom_properties(customer_doc=None, customer_name=None, pre_sale=None):
-    dict_sale = {}
-
-    if customer_doc not in (None, ""):
-        dict_sale.update({"CUSTOMER_DOC": customer_doc})
-    if customer_name not in (None, ""):
-        dict_sale.update({"CUSTOMER_NAME": customer_name})
-    if pre_sale not in (None, ""):
-        dict_sale.update({"PRE_VENDA": pre_sale})
-
-    return dict_sale
-
-
-def get_paf_pre_sale(pod_type, pos_ot, pos_function):
-    pre_sales = None
-    if pod_type == "OT" or pos_function == "OT":
-        msg = send_message("Persistence", TK_PERSIST_SEQUENCER_INCREMENT, FM_PARAM, "PafPreVenda", 600 * USECS_PER_SEC)
-        if msg.token == TK_SYS_NAK:
-            raise Exception("Error incrementing mandatory sequence [PafPreVenda] on Persistence")
-        pre_sales = str(msg.data.split('\0')[0])
-        if pos_ot.additionalInfo:
-            pos_ot.additionalInfo += "|PreVenda=%s" % pre_sales
-        else:
-            pos_ot.additionalInfo = "PreVenda=%s" % pre_sales
-    return pre_sales
-
-
-def get_and_fill_customer_address(pos_id, pos_ot):
-    customer_address = show_keyboard(pos_id, "Digite o endereço do cliente", defvalue="", title="", numpad=False)
-    if customer_address not in (None, ""):
-        customer_address = customer_address.translate(None, '-+[]/;.|<>:?{}=_()*&^%$#@!').upper()
-    else:
-        customer_address = ""
-
-    fill_additional_info(pos_ot, "ADDRESS", customer_address)
-
-
-def get_customer_doc(pos_id, pos_ot, default_doc=""):
-    valid = False
-    customer_doc = ""
-    while not valid:
-        customer_doc = show_keyboard(pos_id, "(somente números)", title="Digite o CPF/CNPJ", numpad=True, defvalue=default_doc)
-        if customer_doc in (None, ""):
-            customer_doc = ""
-            break
-        valid = validate_document(customer_doc)
-        if not valid:
-            show_info_message(pos_id, "Número de CPF/CNPJ Inválido!", msgtype="critical")
-
-    fill_additional_info(pos_ot, "CPF", customer_doc)
-    return customer_doc
-
-
-def validate_document(customer_doc):
-    valid = False
-    if len(customer_doc) <= 11:
-        valid = validar_cpf(customer_doc)
-    elif len(customer_doc) > 11:
-        valid = validar_cnpj(customer_doc)
-    return valid
-
-
-def get_customer_name(pos_id, pos_ot, default_name=""):
-    valid = False
-    customer_name = ""
-    while not valid:
-        customer_name = show_keyboard(pos_id, "Digite o nome do cliente", defvalue=default_name, title="", numpad=False)
-        if customer_name in (None, ""):
-            customer_name = ""
-            break
-        customer_name = customer_name.translate(None, '-+[]/;.|<>:?{}=_()*&^%$#@!,').upper()
-        valid = check_customer_name(pos_id, customer_name)
-
-    fill_additional_info(pos_ot, "NAME", customer_name)
-    return customer_name
-
-
-def fill_additional_info(pos_ot, properties, value):
-    if pos_ot.additionalInfo:
-        pos_ot.additionalInfo += "|"
-    else:
-        pos_ot.additionalInfo = ""
-    pos_ot.additionalInfo += "{0}={1}".format(properties, value)
-
-
-def customer_doc_is_required(order_xml, pod_function):
-    if pod_function == "OT":
-        return False, ""
-
-    return _check_custom_properties(order_xml, "CUSTOMER_DOC")
-
-
-def customer_name_is_required(order_xml):
-    return _check_custom_properties(order_xml, "CUSTOMER_NAME")
-
-
-def _check_custom_properties(order_xml, property_name):
-    for prop in order_xml.findall("CustomOrderProperties/OrderProperty"):
-        key, value = prop.get("key"), prop.get("value")
-        if key == property_name:
-            if value == "":
-                return True, ""
-            return False, value
-    return True, ""
+            time.sleep(0.1)
+            sysactions.close_asynch_dialog(pos_id, dlgid)
+            logger.debug("--- doSale after popup 'Processando cupom fiscal' ---")
 
 
 @action
 def doStartOrder(pos_id, sale_type="EAT_IN", *args):
-    doSale(pos_id, None, "", "", sale_type, args)
+    """ doStartOrder(posid)
+    Starts an order
+    @param pos_id: POS id
+    @param sale_type: Optional type of sale (default: EAT_IN)
+    """
+
+    logger.debug("--- doStartOrder START ---")
+
+    model = get_model(pos_id)
+    period = get_business_period(model)
+    session = get_operator_session(model)
+    if doSetDrawerStatus(pos_id, get_drawer_amount(pos_id, period, session)):
+        return
+    check_operator_logged(pos_id, model=model, can_be_blocked=False)
+    posot = get_posot(model)
+    podtype = get_podtype(model)
+    posfunction = get_posfunction(model)
+    is_new_order = not has_current_order(model)
+    customer_doc = None
+    customer_name = None
+    pre_venda = None
+    last_order = None
+    dlgid = None
+
+    logger.debug("--- doStartOrder before popup 'Processando cupom fiscal' ---")
+
+    try:
+        dlgid = show_messagebox(pos_id, "$PROCESSING_FISCAL_DATA", title="$PROCESSING", buttons="", asynch=True, timeout=180000) if get_nf_type(pos_id) == "PAF" else None
+        if is_new_order:
+            # check if the drawer should be closed before starting an order
+            if get_cfg(pos_id).key_value("needToCloseDrawer", "true") == "true":
+                check_drawer(pos_id, model)
+            # Offer to start multi-order on DT cashier
+            if podtype == "DT" and posfunction == "CS" and get_last_order(model):
+                index = show_messagebox(pos_id, message="$DO_YOU_WANT_SAME_OR_NEW_CAR", title="$SAME_CAR", buttons="$SAME_CAR|$NEW_CAR|$CANCEL")
+                if index in (None, 2):
+                    return  # User cancelled, or timeout
+                if index == 0:
+                    check_current_order(pos_id, model=model, need_order=False)
+                    try:
+                        last_order = get_last_order(model)
+                        if not last_order:
+                            show_info_message(pos_id, "$NO_PREVIOUS_ORDER_FOR_MULTIORDER", msgtype="warning")
+                            return
+                        # check if the drawer should be closed before starting an order
+                        if get_cfg(pos_id).key_value("needToCloseDrawer", "true") == "true":
+                            check_drawer(pos_id, model)
+                    except OrderTakerException, e:
+                        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+
+            if get_nf_type(pos_id) == "PAF":
+                logger.debug("--- doStartOrder before popup customer info ---")
+                valid = False
+                while not valid:
+                    customer_doc = show_keyboard(pos_id, "(somente números)", title="Digite o CPF/CNPJ", numpad=True)
+                    if customer_doc in (None, ""):
+                        break
+                    if len(customer_doc) <= 11:
+                        valid = validar_cpf(customer_doc)
+                    elif len(customer_doc) > 11:
+                        valid = validar_cnpj(customer_doc)
+                    if valid:
+                        if posot.additionalInfo:
+                            posot.additionalInfo += "|CPF=%s" % (customer_doc)
+                        else:
+                            posot.additionalInfo = "CPF=%s" % (customer_doc)
+                    else:
+                        show_info_message(pos_id, "Número de CPF/CNPJ Inválido!", msgtype="critical")
+                while True:
+                    customer_name = show_keyboard(pos_id, "Digite o nome do cliente", defvalue="", title="", numpad=False)  # type: str
+                    if customer_name not in (None, ""):
+                        customer_name = customer_name.translate(None, '-+[]/;.|<>:?{}=_()*&^%$#@!,')
+                        if check_customer_name(pos_id, customer_name) is False:
+                            continue
+                        if posot.additionalInfo:
+                            posot.additionalInfo += "|NAME=%s" % (customer_name)
+                        else:
+                            posot.additionalInfo = "NAME=%s" % (customer_name)
+                    break
+
+                customer_address = show_keyboard(pos_id, "Digite o endereço do cliente", defvalue="", title="", numpad=False)
+                if customer_address not in (None, ""):
+                    customer_address = customer_address.translate(None, '-+[]/;.|<>:?{}=_()*&^%$#@!')
+                    if posot.additionalInfo:
+                        posot.additionalInfo += "|ADDRESS=%s" % (customer_address)
+                    else:
+                        posot.additionalInfo = "ADDRESS=%s" % (customer_address)
+                # Pre-venda
+                if podtype == "OT" or posfunction == "OT":
+                    msg = send_message("Persistence", TK_PERSIST_SEQUENCER_INCREMENT, format=FM_PARAM, data="PafPreVenda", timeout=600 * USECS_PER_SEC)
+                    if msg.token == TK_SYS_NAK:
+                        raise Exception("Error incrementing mandatory sequence [PafPreVenda] on Persistence")
+                    pre_venda = str(msg.data.split('\0')[0])
+                    if posot.additionalInfo:
+                        posot.additionalInfo += "|PreVenda=%s" % (pre_venda)
+                    else:
+                        posot.additionalInfo = "PreVenda=%s" % (pre_venda)
+        else:
+            show_info_message(pos_id, "Ja existe uma venda aberta", msgtype="info")
+            return
+
+        logger.debug("--- doStartOrder after popup customer info ---")
+
+        # Do NOT allow NEW ORDERS after BLOCK TIME
+        check_operator_logged(pos_id, model=model, can_be_blocked=True)
+
+        sale_type = "DRIVE_THRU" if (podtype == "DT") else sale_type
+        price_list = get_pricelist(model) if podtype != "DL" else "DL"
+
+        logger.debug("--- doStartOrder before createOrder ---")
+
+        posot.createOrder(int(pos_id), pricelist=price_list, multiorderid=last_order["orderId"] if last_order else '', saletype=sale_type)
+
+        logger.debug("--- doStartOrder after createOrder ---")
+
+        if customer_doc not in (None, ""):
+            posot.setOrderCustomProperty("CUSTOMER_DOC", customer_doc)
+        if customer_name not in (None, ""):
+            posot.setOrderCustomProperty("CUSTOMER_NAME", customer_name)
+        if pre_venda not in (None, ""):
+            posot.setOrderCustomProperty("PRE_VENDA", pre_venda)
+
+        logger.debug("--- doStartOrder return ---")
+
+        return True
+
+
+
+    except OrderTakerException, e:
+        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+    except Exception as ex:
+        if is_new_order:
+            model = get_model(pos_id)
+            posot = get_posot(model)
+            if has_current_order(model):
+                posot.voidOrder(pos_id)
+        else:
+            sys_log_exception('Error in doSale')
+    finally:
+        if dlgid:
+            sysactions.close_asynch_dialog(pos_id, dlgid)
+            logger.debug("--- doStartOrder after popup 'Processando cupom fiscal' ---")
 
 
 @action
@@ -1121,7 +1099,7 @@ def get_nf_type(posid=0, *args):
             manager.nf_type = nf_type
             # Populate taxes for combos
             if nf_type == "PAF":
-                populate_combo_taxes(posid)
+                populate_combo_taxes()
     return nf_type
 
 
@@ -1133,66 +1111,59 @@ def doOptionShowScreen(posid, context, pcode, qty="", lineNumber="", size="", sc
 
 @action
 def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", *args):
-    logger.debug("--- doCompleteOption START ---")
+    # pydevd.settrace('localhost', port=9125, stdoutToServer=True, stderrToServer=True, suspend=False)
+
     list_categories = sell_categories[int(posid)]
     if len(list_categories) > 0:
         if _cache.is_not_order_kiosk(pcode, get_podtype(get_model(posid)) or None, list_categories):
             show_info_message(posid, '$KIOSK_NOT_SALE', msgtype='error')
-            raise StopAction
+            return
 
     sale_xml = doOption(posid, context, pcode, qty, line_number, size, sale_type, args)
     if sale_xml is None:
         return
-
-    logger.debug("--- waitOrder START ---")
     # Waits a maximum of 5 seconds for the order to "arrive" at the POS model
-    time_limit = (time.time() + 5.0)
-    while (time.time() < time_limit) and (not has_current_order(get_model(posid))):
+    timelimit = (time.time() + 5.0)
+    while (time.time() < timelimit) and (not has_current_order(get_model(posid))):
         time.sleep(0.1)
-    logger.debug("--- waitOrder END ---")
 
     if sale_xml not in ["", None, True, False]:
         sale_line = int(etree.XML(sale_xml).attrib['lineNumber'])
         order_line = -1
 
-        logger.debug("--- waitNewLine START ---")
         # Waits a maximum of 5 seconds for NewLine "arrive" at POS model
-        while (time.time() < time_limit) and (sale_line > order_line):
+        while (time.time() < timelimit) and (sale_line > order_line):
             time.sleep(0.1)
             if get_current_order(get_model(posid)).findall('SaleLine'):
-                sale_lines = get_current_order(get_model(posid)).findall('SaleLine')
-                order_line = int(max(sale_lines, key=lambda x: int(x.attrib['lineNumber'])).attrib['lineNumber'])
-        logger.debug("--- waitNewLine START ---")
+                order_line = int(max(get_current_order(get_model(posid)).findall('SaleLine'), key=lambda x: int(x.attrib['lineNumber'])).attrib['lineNumber'])
 
         checkShowModifierScreen(posid, sale_xml, "350")
-    logger.debug("--- doCompleteOption END ---")
+
     return sale_xml
 
 
 @action
-def doOption(pos_id, context, part_code, qty="", line_number="", size="", sale_type="EAT_IN", *args):
-    logger.debug("--- doOption START ---")
-    model = get_model(pos_id)
+def doOption(posid, context, pcode, qty="", lineNumber="", size="", sale_type="EAT_IN", *args):
+    model = get_model(posid)
     try:
-        check_operator_logged(pos_id, model=model, can_be_blocked=False)
-        item_qty = qty or "1"
+        check_operator_logged(posid, model=model, can_be_blocked=False)
+        reqqty = int(qty or "1")
         if has_current_order(model):
-            pos_ot = get_posot(model)
+            posot = get_posot(model)
 
             # Try to resolve an open option
-            option_done = pos_ot.doOption(int(pos_id), part_code, item_qty, line_number, (size or '@'))
-            if option_done:
+            # If no size has been passed, use the special "@" size, which will try to solve the
+            # option using the option's size (E.g.: "Small Coke" for a "Select Small Drink")
+            opdone = posot.doOption(int(posid), pcode, reqqty, lineNumber, (size or '@'))
+            if opdone:
                 return True
 
         # Options not solved OR there are remaining items to sell
-        sale_xml = doSale(pos_id, "%s.%s" % (context, part_code), item_qty, size, sale_type)
-        logger.debug("--- doOption END ---")
+        sale_xml = doSale(posid, "%s.%s" % (context, pcode), qty, size, sale_type)
         return sale_xml
 
-    except OrderTakerException as ex:
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
-        logger.debug("--- doOption Exception END ---")
+    except OrderTakerException, e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
     return False
 
 
@@ -1219,9 +1190,8 @@ def doClearOption(posid, lineNumber="", qty="", *args):
     except ClearOptionException, e:
         sys_log_exception("Could not clear option")
         show_info_message(posid, "Error %s" % e, msgtype="error")
-    except OrderTakerException, ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+    except OrderTakerException, e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
 
 @action
@@ -1358,18 +1328,20 @@ def _apply_discount(order, discount_id, discount_amount, discount_pct):
     if queries:
         conn = None
         try:
-            conn = DBDriver().open(mbcontext, dbname=str(order.get("posId")))
+            conn = DBDriver().open(mbcontext, order.get("posId"))
             conn.transaction_start()
             conn.query('''BEGIN TRANSACTION;''')
             conn.query(";".join(queries))
             conn.query('''COMMIT TRANSACTION;''')
         except Exception as ex:
-            if conn:
-                conn.query('''ROLLBACK TRANSACTION;''')
+            conn.query('''ROLLBACK TRANSACTION;''')
+            conn.transaction_end()
+            conn.close()
             raise ex
-        finally:
-            if conn:
-                conn.close()
+
+        if conn:
+            conn.transaction_end()
+            conn.close()
 # END of _apply_discount
 
 
@@ -1378,17 +1350,12 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_kiosk="False", *args):
     is_kiosk = is_kiosk and is_kiosk.lower() == "true"
 
     logger.debug("Totalizando Order - POS %s" % pos_id)
-
-    if not pafecflistenter_component_found(pos_id):
-        return
-
     model = get_model(pos_id)
     posot = get_posot(model)
     period = get_business_period(model)
     session = get_operator_session(model)
-    if is_sangria_enable():
-        if doSetDrawerStatus(pos_id, get_drawer_amount(pos_id, period, session)):
-            return
+    if not is_kiosk and doSetDrawerStatus(pos_id, get_drawer_amount(pos_id, period, session)):
+            return False
 
     if is_day_blocked(model):
         show_info_message(pos_id, "$POS_IS_BLOCKED_BY_TIME", msgtype="critical")
@@ -1479,7 +1446,7 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_kiosk="False", *args):
 
         if dlg_id != -1:
             close_asynch_dialog(pos_id, dlg_id)
-        
+
         if pod_function != "OT" and not get_nf_type(pos_id) == "PAF":
             if not is_kiosk:
                 # CPF Number
@@ -1488,22 +1455,11 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_kiosk="False", *args):
                 doSetCustomerName(pos_id, False)
                 logger.debug("Nome e CPF Inseridos - POS %s" % pos_id)
 
-        if get_nf_type(pos_id) != "PAF":
-            fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=True)
-
-    except Exception as ex:
-        if isinstance(ex, OrderTakerException):
-            if handle_order_taker_exception(pos_id, posot, ex, mbcontext):
-                return
-
-        show_info_message(pos_id,
-                          "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
-        if is_recall:
-            raise ex
-
+    except OrderTakerException, e:
+        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
     finally:
         logger.debug("Order Totalizada - POS %s" % pos_id)
+    return True
 # END of doTotal
 
 
@@ -1570,9 +1526,13 @@ def doStoreOrder(pos_id, totalize="none", *args):
         if doTotal(pos_id, screen_number="") == "Error":
             return
 
-    if totalize.lower() != "true" and get_nf_type(pos_id) != "PAF":
-        fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=True)
+    if not get_nf_type(pos_id) == "PAF":
+        # CPF Number
+        doSetCustomerDocument(pos_id, False)
+        # Client Name
+        doSetCustomerName(pos_id, False)
 
+    posot = get_posot(model)
     # Pre-venda
     pre_venda = None
     if pod_function == "OT":
@@ -1587,39 +1547,8 @@ def doStoreOrder(pos_id, totalize="none", *args):
         if pre_venda:
             show_messagebox(pos_id, "Pre Venda: PV%010d" % int(pre_venda))
         show_info_message(pos_id, "Pedido foi salvo!", msgtype="warning")
-    except OrderTakerException as ex:
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
-
-    order = model.find("CurrentOrder/Order")
-    order_id = order.get("orderId")
-    logger.debug("Pedido Salvo - Order %s - PosId %s" % (order_id, pos_id))
-
-
-def fill_customer_properties(model, pod_function, pos_id, pos_ot, get_doc=False, get_name=False, force=False):
-    check_current_order(pos_id, model)
-    order_xml = get_current_order(model)
-
-    customer_doc = ""
-    default_doc = ""
-    if get_doc:
-        is_required, default_doc = customer_doc_is_required(order_xml, pod_function)
-        if force or is_required:
-            customer_doc = get_customer_doc(pos_id, pos_ot, default_doc)
-
-    customer_name = ""
-    default_name = ""
-    if get_name:
-        is_required, default_name = customer_name_is_required(order_xml)
-        if force or is_required:
-            customer_name = get_customer_name(pos_id, pos_ot, default_name)
-
-    if (customer_doc == default_doc) and (customer_name == default_name):
-        return
-
-    order_properties_dict = update_custom_properties(customer_doc, customer_name)
-    if len(order_properties_dict) > 0:
-        pos_ot.setOrderCustomProperties(order_properties_dict)
+    except OrderTakerException as e:
+        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
 
 @action
@@ -1633,32 +1562,32 @@ def doBackFromTotal(pos_id, void_reason=5, *args):
     if "CS" in pod_function:
         default_screen = "201"
 
-    try:
-        tender = model.find("CurrentOrder/Order/TenderHistory/Tender")
-        if tender is not None:
-            confirm = show_confirmation(pos_id, "$CANNOT_CHANGE_ORDER_WITH_PAYMENTS", timeout=180000)
-            if confirm:
-                if void_order_authorization:
-                    if not get_authorization(pos_id, min_level=LEVEL_SUPERVISOR, model=model, insert_auth=True):
-                        return
+    tender = model.find("CurrentOrder/Order/TenderHistory/Tender")
+    if tender is not None:
+        confirm = show_confirmation(pos_id, "$CANNOT_CHANGE_ORDER_WITH_PAYMENTS", timeout=180000)
+        if confirm:
+            if void_order_authorization:
+                if not get_authorization(pos_id, min_level=LEVEL_SUPERVISOR, model=model, insert_auth=True):
+                    return False
 
-                void_reason = get_void_reason_id(pos_id, void_reason)
-                if not void_reason:
-                    return
+            void_reason = get_void_reason_id(pos_id, void_reason)
+            if not void_reason:
+                return False
 
-                void_order(pos_id)
-                order = get_current_order(model)
-                posot = get_posot(model)
-                posot.setOrderCustomProperties(void_reason, order.get('orderId'))
-                doShowScreen(pos_id, default_screen)  # Returns to the previous screen
-        else:
-            check_current_order(pos_id, model=model, need_order=True)
+            posot = get_posot(model)
+            posot.voidOrder(pos_id)
+            order = get_current_order(model)
+            posot.setOrderCustomProperties(void_reason, order.get('orderId'))
+            doShowScreen(pos_id, default_screen)  # Returns to the previous screen
+    else:
+        check_current_order(pos_id, model=model, need_order=True)
+        try:
             get_posot(model).reopenOrder(int(pos_id))
+        except OrderTakerException as e:
+            show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
-    except OrderTakerException as ex:
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
-
-    doShowScreen(pos_id, default_screen)  # Returns to the previous screen
+        doShowScreen(pos_id, default_screen)  # Returns to the previous screen
+    return True
 
 
 @action
@@ -1682,17 +1611,13 @@ def doChangeEFT(posid, *args):
     else:
         show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
 
-
 @action
 def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmation="false", is_kiosk='false', *args):
     logger.debug("--- doTender START ---")
     is_kiosk = is_kiosk and is_kiosk.lower() == 'true'
+
     if is_kiosk:
         show_info_message(pos_id, "AGUARDE", msgtype="info")
-
-    if not pafecflistenter_component_found(pos_id):
-        return
-
     # Inline function to Cancel current Order and Delete Payments
     def cancel_sale_and_payments(error_message=""):
         if get_nf_type(pos_id) == "PAF":
@@ -1736,17 +1661,9 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                 if float(round_donation_value) > 0.0:
                     _do_print_donation(pos_id, order_id, customer_name, round_donation_value, round_donation_institution, round_donation_cnpj, round_donation_site, cliche)
                 break
-            except OrderTakerException as ex:
-                if isinstance(ex, OrderTakerException):
-                    if handle_order_taker_exception(pos_id, posot, ex, mbcontext, dlgid):
-                        return
-                    else:
-                        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                                          msgtype="critical")
-
+            except OrderTakerException:
                 # Erro Fiscal (Normalmente falha de comunicação com a impressora) - PopUp (Tentar Novamente ou Cancelar)
-                try_again_response = show_messagebox(pos_id, "Ocorreu um erro finalizando a venda", title="$ERROR",
-                                                     icon="error", buttons="Tentar Novamente|Cancelar")
+                try_again_response = show_messagebox(pos_id, "Ocorreu um erro finalizando a venda", title="$ERROR", icon="error", buttons="Tentar Novamente|Cancelar")
 
                 # 0 -> Tentar Novamente / 1 -> Cancelar
                 if try_again_response != 0:
@@ -1759,8 +1676,8 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                     close_asynch_dialog(pos_id, dlgid)
     # END
 
-    global lock_tender
-    with lock_tender:
+    global lock
+    with lock:
         global tendering
         if tendering[int(pos_id)]:
             sys_log_error("PosId {0} Tendering True".format(pos_id))
@@ -1775,8 +1692,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
         posot = get_posot(model)
         period = get_business_period(model)
         session = get_operator_session(model)
-        pod_type = get_podtype(model)
-        round_donation_value = 0.0
+        round_donation_value = '0.0'
 
         xml_order = get_current_order(model)
         if xml_order.get("state") != "TOTALED":
@@ -1841,38 +1757,6 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                 order_due = float(previous_tender_amount) + float(due_amount)
 
         if not ignore_payment:
-            change = 0
-
-            def _is_donation_enable():
-                if round_donation_enabled is False:
-                    return False
-
-                if tender_seq_id != 1:
-                    return False
-
-                if pod_type not in round_donation_pod_types:
-                    return False
-
-                if tender_type_id not in round_donation_payment_types:
-                    return False
-
-                return True
-
-            def _do_round_donation():
-                if _is_donation_enable():
-                    donation_value = round(order_due % 1, 2)
-                    if donation_value == 0.0:
-                        return 0.0
-
-                    donation_value = 1 - donation_value
-                    donation_message = "$PARTICIPATE_ROUND_PROJECT_BODY|$L10N_CURRENCY_SYMBOL|{}"\
-                        .format(format(donation_value, '.2f'))
-
-                    if show_confirmation(pos_id, message=donation_message, title="$ROUND_PROJECT_TITLE"):
-                        return round(donation_value, 2)
-
-                return 0.0
-
             # Check the maximum change
             if (amount != "") and (float(amount) > order_due):
                 if tendertype["electronicTypeId"] in (1, 2):
@@ -1883,7 +1767,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                     show_info_message(pos_id, "$NO_CHANGE_ALLOWED_IN_REFUND", msgtype="warning")
                     return
 
-                change += float(amount) - order_due
+                change = float(amount) - order_due
                 change_limit = tendertype['changeLimit']
 
                 if change_limit and change > float(change_limit):
@@ -1905,13 +1789,6 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                             round_donation_value = '0.0'
 
                 show_messagebox(pos_id, "$MONEY_CHANGE|R$%.2f" % abs(change))
-
-            elif (amount != "") and float(due_amount) == float(amount):
-                if tendertype["electronicTypeId"] in (1, 2):
-                    # Arredondar Cartão de Crédito
-                    round_donation_value = _do_round_donation()
-                    if round_donation_value > 0.0:
-                        amount = format(float(amount) + round_donation_value, '.2f')
 
             xml = None
 
@@ -1976,13 +1853,13 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
             #  PAF: We need to save all payment activities to be printed when order is paid
             if get_nf_type(pos_id) == "PAF" and tendertype["electronicTypeId"] not in (0, 3):
                 logger.debug("--- doTender before PAF save all payments activities ---")
-                conn = None
                 try:
                     TENDER_CREDIT_CARD = "2"
                     TENDER_DEBIT_CARD = "3"
                     tender_id = (TENDER_CREDIT_CARD if tendertype["electronicType"] == "CREDIT_CARD" else TENDER_DEBIT_CARD)
                     # insert the [fiscalinfo.ElectronicTransactions] data
-                    conn = persistence.Driver().open(mbcontext, dbname=str(pos_id))
+                    drv = persistence.Driver()
+                    conn = drv.open(mbcontext)
                     queries = []
                     queries.append("""INSERT OR REPLACE INTO fiscalinfo.ElectronicTransactions(PosId,OrderId,Sequence,TenderId,TenderDescr,Amount,XmlData)
                         VALUES (%d,%d,%s,%d,%s,'%s','%s')""" % (
@@ -1997,6 +1874,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                     COMMIT_TRANSACTION = ["UPDATE fiscalinfo.FiscalDEnabled SET Enabled=1", "COMMIT TRANSACTION"]
                     queries = BEGIN_TRANSACTION + queries + COMMIT_TRANSACTION
                     conn.query("\0".join(queries))
+                    conn.close()
                 except Exception as ex:
                     show_info_message(pos_id, "Erro armazenando dados do pagamento: %s" % str(ex), msgtype="error")
                 finally:
@@ -2014,16 +1892,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
 
             # Do Tender - DO NOT SET ORDER TO PAID
             logger.debug("--- doTender before posot.doTender ---")
-
-            tender_details = ""
-            if tendertype["electronicTypeId"] in (1, 2):
-                tender_details = json.dumps({"CNPJAuth": xml.attrib["CNPJAuth"],
-                                             "TransactionProcessor": xml.attrib["TransactionProcessor"],
-                                             "Bandeira": xml.attrib["Bandeira"],
-                                             "IdAuth": xml.attrib["IdAuth"],
-                                             "AuthCode": xml.attrib["AuthCode"]})
-
-            res = posot.doTender(int(pos_id), tender_type_id, amount, 1, previous_tender_id, tenderdetail=tender_details)
+            res = posot.doTender(int(pos_id), tender_type_id, amount, 1, previous_tender_id)
             logger.debug("--- doTender after posot.doTender ---")
             if float(res["dueAmount"]) > 0:
                 if is_kiosk:
@@ -2038,6 +1907,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
         demo_without_fiscal = config.find_value("Demonstration.DemoWithoutFiscal")
         while True:
             logger.debug("--- doTender before PROCESSING_FISCAL_DATA ---")
+
             try:
                 if not is_kiosk:
                     dlgid = show_messagebox(pos_id, "$PROCESSING_FISCAL_DATA", title="$PROCESSING", buttons="", asynch=True, timeout=300000)
@@ -2120,31 +1990,23 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                 time.sleep(0.2)
                 logger.debug("--- doTender after PROCESSING_FISCAL_DATA ---")
 
-        if is_sangria_enable()and not is_kiosk:
+        if not is_kiosk:
             doSetDrawerStatus(pos_id, get_drawer_amount(pos_id, period, session), xml_order.get("state"), get_custom(model, "sangria_level_1_alert"))
         doShowScreen(pos_id, "main")
 
     except OrderTakerException as ex:
-        if isinstance(ex, OrderTakerException):
-            if handle_order_taker_exception(pos_id, posot, ex, mbcontext):
-                return
-
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
     finally:
-        with lock_tender:
+        with lock:
             tendering[int(pos_id)] = False
             close_asynch_dialog(pos_id, dlgid) if dlgid else None
 
     logger.debug("--- doTender END ---")
 
 
-def void_order(pos_id, lastpaidorder=0, order_id='', abandon=0):
-    model = get_model(pos_id)
+def void_order(pos_id, model):
     posot = get_posot(model)
-
-    order_id = int(order_id) if order_id != "" else ""
-    posot.voidOrder(int(pos_id), int(lastpaidorder), order_id, abandon)
+    posot.voidOrder(int(pos_id))
 
 
 @action
@@ -2183,7 +2045,7 @@ def verify_and_fix_business_period(pos_id):
             sys_log_exception("Error in Fix Business Period")
             logger.debug("Error in Fix Business Period - POS {0} %s".format(pos_id))
         finally:
-            if conn:
+            if conn is not None:
                 conn.close()
 
         change_mainscreen(pos_id, "500", persist=True)
@@ -2196,9 +2058,7 @@ def verify_and_fix_business_period(pos_id):
                 logger.exception("Erro reiniciando Posctrl")
 
         from threading import Thread
-        restart_posctrl_thread = Thread(target=thread_restart_posctrl, args=(pos_id,))
-        restart_posctrl_thread.deamon = True
-        restart_posctrl_thread.start()
+        Thread(target=thread_restart_posctrl, args=(pos_id,)).start()
         return False
     return True
 
@@ -2219,7 +2079,7 @@ def verify_and_fix_opened_users(pos_id):
             sys_log_exception("Error in Fix Opened User")
             logger.debug("Error in Fix Opened User - POS {0} %s".format(pos_id))
         finally:
-            if conn:
+            if conn is not None:
                 conn.close()
 
 
@@ -2239,26 +2099,22 @@ def closeday(pos_id, store_wide="false", *args):
         cancel_saved_orders = get_storewide_config("Store.cancelSavedOrders", defval="false").lower() == "true"
 
         if cancel_saved_orders:
+            podtype = get_podtype(model)
             posot = get_posot(model)
-
-            orig_id = "POS00{:02d}".format(int(pos_id))
-            orders = posot.listOrders(state="STORED", originatorid=orig_id)
+            orders = posot.listOrders(state="STORED", podtype=podtype)
 
             if len(orders) > 0:
                 pedidos = show_confirmation(pos_id, message="Deseja apagar todos os pedidos salvos neste POS?", buttons="Sim|Não")
 
                 if pedidos:
-                    wait_dlg_id = show_messagebox(pos_id, "$VOIDING_STORED_ORDERS", "$DAY_CLOSURE", buttons="", asynch=True)
                     try:
                         for order in orders:
                             orig_id = int(order.get("originatorId")[3:])
                             if orig_id == int(pos_id):
-                                void_order(pos_id, order_id=order.get("orderId"))
+                                posot.voidOrder(orig_id, orderid=order.get("orderId"))
                     except Exception:
                         sys_log_exception("Erro ao apagar pedidos salvos")
                         show_info_message(pos_id, "Erro ao apagar pedidos salvos", msgtype="error")
-                    finally:
-                        close_asynch_dialog(pos_id, wait_dlg_id)
 
     period = get_business_period(model)
     period_fmt = format_date(period)
@@ -2332,44 +2188,40 @@ def closeday(pos_id, store_wide="false", *args):
         if not show_confirmation(pos_id, message=message):
             return
 
-    wait_dlg_id = show_messagebox(pos_id, "$PLEASE_WAIT", "$DAY_CLOSURE", buttons="", asynch=True)
-    try:
-        posnumbers = sorted(posnumbers)
-        sys_log_info("Closing business day. [Store-wide: %s] posnumbers: %s" % (store_wide, posnumbers))
-        # pos_ok = []
-        error = None
-        for posno in posnumbers:
-            try:
-                sys_log_info("Closing business day on POS id: [%s]" % posno)
-                msg = send_message("POS%d" % int(posno), TK_POS_BUSINESSEND, FM_PARAM, "%s" % (posno), timeout=600 * USECS_PER_SEC)
-                if msg.token == TK_SYS_ACK:
-                    # pos_ok.append(posno)
-                    if not (get_nf_type(pos_id) == "PAF" and today != period):
-                        report = generate_report("cash", posno, period, "0", "false", "0", "end_of_day")
-                        if (not report) or not print_text(pos_id, model, report, preview=False, force_printer=get_used_service(get_model(posno), "printer")):
-                            sys_log_exception("Error printing day-close report for POS ID: %s" % posno)
+    posnumbers = sorted(posnumbers)
+    sys_log_info("Closing business day. [Store-wide: %s] posnumbers: %s" % (store_wide, posnumbers))
+    # pos_ok = []
+    error = None
+    for posno in posnumbers:
+        try:
+            sys_log_info("Closing business day on POS id: [%s]" % posno)
+            msg = send_message("POS%d" % int(posno), TK_POS_BUSINESSEND, FM_PARAM, "%s" % (posno), timeout=600 * USECS_PER_SEC)
+            if msg.token == TK_SYS_ACK:
+                # pos_ok.append(posno)
+                if not (get_nf_type(pos_id) == "PAF" and today != period):
+                    report = generate_report("cash", posno, period, "0", "false", "0", "end_of_day")
+                    if (not report) or not print_text(pos_id, model, report, preview=False, force_printer=get_used_service(get_model(posno), "printer")):
+                        sys_log_exception("Error printing day-close report for POS ID: %s" % posno)
 
-                    show_info_message(posno, "$OPERATION_SUCCEEDED", msgtype="success")
-                    if period[6:] == "01" and get_nf_type(posno) == "PAF":
-                        #  End of the first day of the month. We should generate the MF and MFD files
-                        show_info_message(posno, "Aguarde, gerando arquivos MF e MFD", msgtype="warning")
-                        try:
-                            from pafecf import pafecf_actions
-                            pafecf_actions.pafArquivo(posno, "MF")
-                            pafecf_actions.pafArquivo(posno, "MFD")
-                            show_info_message(posno, "$OPERATION_SUCCEEDED", msgtype="success")
-                        except Exception as ex:
-                            show_info_message(posno, message="Ocorreu um erro: %s" % str(ex), msgtype="error")
-                    continue
-                else:
-                    error = str(msg.data)
-            except Exception:
-                sys_log_exception("Error closing business day on pos id: %s" % posno)
+                show_info_message(posno, "$OPERATION_SUCCEEDED", msgtype="success")
+                if period[6:] == "01" and get_nf_type(posno) == "PAF":
+                    #  End of the first day of the month. We should generate the MF and MFD files
+                    show_info_message(posno, "Aguarde, gerando arquivos MF e MFD", msgtype="warning")
+                    try:
+                        from pafecf import pafecf_actions
+                        pafecf_actions.pafArquivo(posno, "MF")
+                        pafecf_actions.pafArquivo(posno, "MFD")
+                        show_info_message(posno, "$OPERATION_SUCCEEDED", msgtype="success")
+                    except Exception as ex:
+                        show_info_message(posno, message="Ocorreu um erro: %s" % str(ex), msgtype="error")
+                continue
+            else:
+                error = str(msg.data)
+        except Exception:
+            sys_log_exception("Error closing business day on pos id: %s" % posno)
 
-            show_info_message(posno, "$OPERATION_FAILED", msgtype="error")
-            show_info_message(pos_id, "$ERROR_CLOSING_BUSINESS_PERIOD|%s" % error, msgtype="error")
-    finally:
-        close_asynch_dialog(pos_id, wait_dlg_id)
+        show_info_message(posno, "$OPERATION_FAILED", msgtype="error")
+        show_info_message(pos_id, "$ERROR_CLOSING_BUSINESS_PERIOD|%s" % error, msgtype="error")
 
 
 def check_cancel(model, posot, posid, period):
@@ -2412,7 +2264,7 @@ def is_last_opened_pos(posid):
 def doVoidStoredOrder(pos_id, order_id="", orig_id="", void_reason=6, *args):
     dlg_id = None
     try:
-        dlg_id = show_messagebox(pos_id, message="$PLEASE_WAIT", title="Apagando pedido salvo", icon="info", buttons="", asynch=True)
+        dlg_id = show_messagebox(pos_id, message="$PLEASE_WAIT", title="Apagando Pedido", icon="info", buttons="", asynch=True)
         model = get_model(pos_id)
         posot = get_posot(model)
         if void_order_authorization:
@@ -2422,20 +2274,15 @@ def doVoidStoredOrder(pos_id, order_id="", orig_id="", void_reason=6, *args):
         if not void_reason:
             return
 
-        if get_nf_type(pos_id) == "PAF":
-            do_recall_order(pos_id, order_id, check_date=False)
-            posot.doTotal(pos_id)
-            void_order(pos_id, lastpaidorder=1)
-        else:
-            do_recall_order(pos_id, order_id, check_date=False)
-            void_order(pos_id)
-
+        do_recall_order(pos_id, order_id)
+        posot.doTotal(pos_id)
+        posot.voidOrder(pos_id, lastpaidorder=1)
         posot.setOrderCustomProperties(void_reason, order_id)
 
-        show_info_message(pos_id, "Pedido salvo apagado", msgtype="success")
-    except Exception as _:
-        show_info_message(pos_id, "Erro ao tentar apagar pedido salvo", msgtype="error")
-        sys_log_exception("Erro ao apagar pedido salvo")
+        show_info_message(pos_id, "Pedido Salvo Apagado", msgtype="success")
+    except Exception as ex:
+        show_info_message(pos_id, "Erro ao tentar apagar Pedido Salvo", msgtype="error")
+        sys_log_exception("Erro ao apagar pedido")
     finally:
         close_asynch_dialog(pos_id, dlg_id) if dlg_id else None
 
@@ -2444,95 +2291,65 @@ def doVoidStoredOrder(pos_id, order_id="", orig_id="", void_reason=6, *args):
 
 @action
 def doRecallNext(pos_id, screen_number="", order_id="", totalize=False, originator_pos_id=None, order_business_period=None, *args):
-    logger.debug("Recall pedido - Order %s - PosId %s" % (order_id, pos_id))
+    logger.debug("Recall Pedido - Order %s" % order_id)
 
-    global lock_recall
-    with lock_recall:
-        global recalling
-        if order_id in recalling:
-            show_info_message(pos_id, "Pedido número %s já recuperado em outro caixa" % order_id, msgtype="critical")
-            sys_log_error("PosId {} - Order {} - Already in Recall".format(pos_id, order_id))
-            logger.debug("Recall sendo recuperado em outro caixa - Order %s - PosId %s" % (order_id, pos_id))
+    model = get_model(pos_id)
+    posot = get_posot(model)
+
+    # TODO: Read this configuration from loader
+    closing_day = False
+    if not closing_day and order_business_period is not None:
+        current_business_day = datetime.datetime.strptime(get_business_period(model), "%Y%m%d")
+        order_business_period = datetime.datetime.strptime(order_business_period, "%Y%m%d")
+
+        if current_business_day > order_business_period:
+            if show_confirmation(pos_id, message="Pedido salvo em dia de negócio anterior ao atual. Recupere-o em outro caixa ou apague-o.", buttons="Apagar|$CANCEL"):
+                try:
+                    posot.voidOrder(orderid=order_id)
+                    change_screen(pos_id, "600", "")  # Show tender screen
+                except BaseException as ex:
+                    sys_log_exception("Erro ao apagar pedido")
+                    show_info_message(pos_id, "Erro ao tentar apagar pedido", msgtype="error")
             return
-        else:
-            recalling.append(order_id)
 
+        if order_business_period > current_business_day:
+            show_messagebox(pos_id, "Pedido foi salvo em um dia de negócio posterior ao atual. Por favor abra um novo dia de negócio.")
+            return
+
+        check_operator_logged(pos_id, model=model, can_be_blocked=False)
+        check_current_order(pos_id, model=model, need_order=False)
+
+    period = get_business_period(model)
+    session = get_operator_session(model)
+
+    if doSetDrawerStatus(pos_id, get_drawer_amount(pos_id, period, session)):
+        return
+
+    dlg_id = -1
     try:
-        model = get_model(pos_id)
+        dlg_id = show_messagebox(pos_id, message="$PLEASE_WAIT", title="Recuperando Pedido", icon="info", buttons="", asynch=True)
+        do_recall_order(pos_id, order_id, originator_pos_id)
+        logger.debug("Pedido Totalizado - Order %s" % order_id)
 
-        # TODO: Read this configuration from loader
-        closing_day = False
-        if not closing_day and order_business_period is not None:
-            current_business_day = datetime.datetime.strptime(get_business_period(model), "%Y%m%d")
-            order_business_period = datetime.datetime.strptime(order_business_period, "%Y%m%d")
+        if totalize == 'true':
+            doTotal(pos_id, screen_number, dlg_id, *args)
 
-            if current_business_day > order_business_period:
-                if show_confirmation(pos_id, message="Pedido salvo em dia de negócio anterior ao atual. Recupere-o em outro caixa ou apague-o.", buttons="Apagar|$CANCEL"):
-                    try:
-                        do_recall_order(pos_id, order_id)
-                        void_order(pos_id)
-                        change_screen(pos_id, "600", "")  # Show tender screen
-                    except BaseException as _:
-                        sys_log_exception("Erro ao apagar pedido")
-                        logger.debug("Erro void order recall pedido - Order %s - PosId %s" % (order_id, pos_id))
-                        show_info_message(pos_id, "Erro ao tentar apagar pedido", msgtype="error")
-                return
-
-            if order_business_period > current_business_day:
-                show_messagebox(pos_id, "Pedido foi salvo em um dia de negócio posterior ao atual. Por favor abra um novo dia de negócio.")
-                logger.debug("Recall pedido foi salvo em um dia de negócio posterior ao atual - Order %s - PosId %s" % (order_id, pos_id))
-                return
-
-            check_operator_logged(pos_id, model=model, can_be_blocked=False)
-            check_current_order(pos_id, model=model, need_order=False)
-
-        period = get_business_period(model)
-        session = get_operator_session(model)
-
-        if is_sangria_enable():
-            if doSetDrawerStatus(pos_id, get_drawer_amount(pos_id, period, session)):
-                logger.debug("Recall pedido sangria - Order %s - PosId %s" % (order_id, pos_id))
-                return
-
-        dlg_id = -1
-        try:
-            dlg_id = show_messagebox(pos_id, message="$PLEASE_WAIT", title="Recuperando pedido", icon="info", buttons="", asynch=True)
-            do_recall_order(pos_id, order_id, originator_pos_id)
-            logger.debug("Pedido Totalizado - Order %s" % order_id)
-
-            if totalize == 'true':
-                doTotal(pos_id, screen_number, dlg_id, True, *args)
-
-            logger.debug("Recall finalizado - Order %s - PosId %s" % (order_id, pos_id))
-        except OrderTakerException as e:
-            screen_number = "600"  # Update to the same Screen
-
-            if get_nf_type(pos_id) == "PAF":
-                show_info_message(pos_id, "Erro ao recuperar pedido: %s" % (e.getErrorDescr()),msgtype="critical")
-                logger.debug("Erro ao recuperar pedido - Order %s - PosId %s - %s" % (order_id, pos_id,
-                                                                                      e.getErrorDescr()))
-            else:
-                show_info_message(pos_id, "Pedido número %s já recuperado em outro caixa" % order_id, msgtype="critical")
-                logger.debug("Recall pedido já recuperado em outro caixa - Order %s - PosId %s" % (order_id, pos_id))
-                
-            sys_log_info("$ERROR_CODE_INFO|%d|%s - POS %s" % (e.getErrorCode(), e.getErrorDescr(), pos_id))
-        except Exception as ex:
-            sys_log_exception("Erro recuperando pedido - %s" % str(ex))
-            logger.debug("Recall error - Order %s - PosId %s" % (order_id, pos_id))
-        finally:
-            if dlg_id != -1:
-                close_asynch_dialog(pos_id, dlg_id)
-            if screen_number:
-                # Show tender screen
-                change_screen(pos_id, screen_number, "")
+    except OrderTakerException as e:
+        screen_number = "600"  # Update to the same Screen
+        show_info_message(pos_id, "Pedido Número %s já Recuperado em outro Caixa" % order_id, msgtype="critical")
+        sys_log_info("$ERROR_CODE_INFO|%d|%s - POS %s" % (e.getErrorCode(), e.getErrorDescr(), pos_id))
+    except Exception as ex:
+        sys_log_exception("Erro recuperando pedido - %s" % str(ex))
 
     finally:
-        with lock_recall:
-            if order_id in recalling:
-                recalling.remove(order_id)
+        if dlg_id != -1:
+            close_asynch_dialog(pos_id, dlg_id)
+        if screen_number:
+            change_screen(pos_id, screen_number, "")  # Show tender screen
+        logger.debug("Recall Finalizado - Order %s" % order_id)
 
 
-def do_recall_order(pos_id, order_id, originator_pos_id=None, check_date=True):
+def do_recall_order(pos_id, order_id, originator_pos_id=None):
     model = get_model(pos_id)
     posot = get_posot(model)
     session = get_operator_session(model)
@@ -2557,15 +2374,14 @@ def do_recall_order(pos_id, order_id, originator_pos_id=None, check_date=True):
     model = get_model(pos_id)
     order = model.find("CurrentOrder/Order")
 
-    if check_date is True:
-        # Cannot recall order older than 20 hours
-        now = datetime.datetime.now()
-        order_created_date = datetime.datetime.strptime(order.get("createdAt"), "%Y-%m-%dT%H:%M:%S.%f")
-        if order_created_date < now - timedelta(hours=20):
-            show_messagebox(pos_id, "$CANNOT_RECALL_ORDER_TOO_OLD", title="$ERROR", icon="error", buttons="$OK")
-            void_order(pos_id)
-            screen_number = "600"  # Update to the same Screen
-            return
+    # Cannot recall order older than 20 hours
+    now = datetime.datetime.now()
+    order_created_date = datetime.datetime.strptime(order.get("createdAt"), "%Y-%m-%dT%H:%M:%S.%f")
+    if order_created_date < now - timedelta(hours=20):
+        show_messagebox(pos_id, "$CANNOT_RECALL_ORDER_TOO_OLD", title="$ERROR", icon="error", buttons="$OK")
+        posot.voidOrder(pos_id, order_id)
+        screen_number = "600"  # Update to the same Screen
+        return
 
     sale_lines = order.findall("SaleLine")
     deleted_line_numbers = map(lambda x: x.get("lineNumber"),
@@ -2592,18 +2408,20 @@ def do_recall_order(pos_id, order_id, originator_pos_id=None, check_date=True):
     if queries:
         conn = None
         try:
-            conn = DBDriver().open(mbcontext, dbname=str(pos_id))
+            conn = DBDriver().open(mbcontext, pos_id)
             conn.transaction_start()
             conn.query('''BEGIN TRANSACTION;''')
             conn.query(";".join(queries))
             conn.query('''COMMIT TRANSACTION;''')
         except Exception as ex:
-            if conn:
-                conn.query('''ROLLBACK TRANSACTION;''')
+            conn.query('''ROLLBACK TRANSACTION;''')
+            conn.transaction_end()
+            conn.close()
             raise ex
-        finally:
-            if conn:
-                conn.close()
+
+        if conn:
+            conn.transaction_end()
+            conn.close()
 
     logger.debug("Produtos Default Incluidos no Pedido - Order %s" % order_id)
 
@@ -2630,24 +2448,18 @@ def showRecallByPicture(posid, screenNumber="", *args):
             xml = ""
         # Now we have the full order picture of each order (or an empty xml)
         send_message("POS%d" % int(posid), TK_POS_SETRECALLDATA, FM_PARAM, "%s\0%s" % (posid, xml), timeout=600 * USECS_PER_SEC)
-    except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+    except OrderTakerException as e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
     if screenNumber:
         # Show the recall-by-picture screen
         doShowScreen(posid, screenNumber)
 
 
 def get_void_reason_id(pos_id, selected_index=None):
-    void_reason_ids = range(1, 8)
-    void_reason_options = ["1 - Mudou de Ideia",
-                           "2 - Duplicado",
-                           "3 - Venda Errada",
-                           "4 - Cancelamento",
-                           "5 - Cupom Cancelado",
-                           "6 - Pagamento Cancelado",
-                           "7 - Pedido Salvo Cancelado"]
-    void_reason_to_show = void_reason_options[0:4]
+    void_reason_ids = [1, 2, 3, 4, 5, 6, 7]
+    void_reason_options = ["1 - Mudou de Ideia", "2 - Duplicado", "3 - Venda Errada", "4 - Cancelamento",
+                           "5 - Cupom Cancelado", "6 - Pagamento Cancelado", "7 - Pedido Salvo Cancelado"]
+    void_reason_to_show = ["1 - Mudou de Ideia", "2 - Duplicado", "3 - Venda Errada", "4 - Cancelamento"]
     if not selected_index:
         selected_index = show_listbox(pos_id, void_reason_to_show, message="Selecione o Motivo:")
 
@@ -2663,11 +2475,9 @@ def get_void_reason_id(pos_id, selected_index=None):
 @action
 def doVoidSale(pos_id, getAuthorization="False", void_reason=None, force_close="False", *args):
     logger.debug("--- doVoidSale START ---")
+    config = cfgtools.read(os.environ["LOADERCFG"])
+    demo_without_fiscal = config.find_value("Demonstration.DemoWithoutFiscal")
 
-    if not pafecflistenter_component_found(pos_id):
-        return
-
-    force_close = force_close.lower() == "true"
     if force_close and not void_last_order_btn:
         # fake message
         show_info_message(pos_id, "Erro 27: Não foi possível cancelar o pedido", msgtype="error")
@@ -2691,6 +2501,9 @@ def doVoidSale(pos_id, getAuthorization="False", void_reason=None, force_close="
             lastorder = 0
         elif order.get("state") in ("PAID",):
             lastorder = 1
+            if demo_without_fiscal == 'true':
+                show_info_message(pos_id, "Não é possível efetuar a ação em modo demonstração", msgtype="warning")
+                return
         else:
             show_info_message(pos_id, "Pedido não encontrado ou já cancelado", msgtype="warning")
             return
@@ -2724,12 +2537,8 @@ def doVoidSale(pos_id, getAuthorization="False", void_reason=None, force_close="
             show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
         else:
             doShowScreen(pos_id, "main")  # Returns to the previous screen
-    except Exception as ex:
-        if isinstance(ex, OrderTakerException):
-            if handle_order_taker_exception(pos_id, posot, ex, mbcontext):
-                return
-
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
+    except OrderTakerException as e:
+        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
     finally:
         if dlgid:
             time.sleep(0.1)
@@ -2761,9 +2570,8 @@ def doVoidSaleWithConfirmation(posid, was_stored=False, *args):
                 return
             get_posot(model).voidOrder(int(posid))
             doShowScreen(posid, "main")  # Returns to the previous screen
-        except OrderTakerException as ex:
-            show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                              msgtype="critical")
+        except OrderTakerException as e:
+            show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
 
 @action
@@ -2832,20 +2640,18 @@ def loginuser(pos_id, *args):
         return True
 
     model = get_model(pos_id)
-    podtype = str(get_podtype(model))
-    pos_service = "POS%d" % int(pos_id)
+    podtype = get_podtype(model)
+    posfunction = get_posfunction(model)
 
-    if get_nf_type(pos_id) == "PAF" and podtype != "OT":
-        prn = FpRetry(pos_id, mbcontext)
-        ecf_serial = prn.readOut(fpreadout.FR_FPSERIALNUMBER).strip()
-        md5_serial = prn.readEncrypted("ECF_Serial")
-
-        if str(md5_serial).strip() != str(ecf_serial).strip():
-            sysactions.show_info_message(pos_id, "$SERIAL_PRINTER_VALIDATION_ERROR", msgtype="error")
-            time.sleep(3)
-            return False
+    try:
+        if get_nf_type() == "PAF" and not(podtype == "OT" or posfunction == "OT"):
+            mbcontext.MB_EasyEvtSend("pafVerifyLastZReduction", xml='', type="hideError", synchronous=True, sourceid=int(pos_id))
+    except (BaseException, Exception):
+        logger.exception("posid: {}, Error on [pafVerifyLastZReduction]".format(pos_id))
 
     check_business_day(pos_id, need_opened=True, can_be_blocked=False)
+    podtype = str(get_podtype(model))
+    pos_service = "POS%d" % int(pos_id)
 
     if has_operator_opened(model):
         # Check if multiple operators are allowed
@@ -2966,7 +2772,24 @@ def loginuser(pos_id, *args):
             return  # User cancelled, or timeout
 
         initfloat = list_min_values_drawer.split(";")[index]
-        initfloat = float(initfloat or 0.0)
+
+        conn = None
+        if float(initfloat) == 0:
+            try:
+                conn = persistence.Driver().open(mbcontext, pos_id)
+                session_initial = "pos={},user={},count=1,period={}".format(pos_id, user_id, datetime.datetime.now().strftime('%Y%m%d'))
+                sql = "insert into Transfer (Period, PosId, SessionId, Type, Description, Amount, TenderId) values ({}, {}, '{}', 1, 'Initial Float', '0.0', 0);".format(datetime.datetime.now().strftime('%Y%m%d'), pos_id, session_initial)
+
+                conn.query(sql)
+            except Exception:
+                pass
+            finally:
+                if conn:
+                    conn.close()
+
+            initfloat = float(initfloat)
+        else:
+            initfloat = float(initfloat or 0.0)
     else:
         initfloat = 0.0
 
@@ -2975,80 +2798,56 @@ def loginuser(pos_id, *args):
         if not get_authorization(pos_id, min_level=LEVEL_SUPERVISOR, model=model):
             return
 
-    wait_dlg_id = show_messagebox(pos_id, "$PLEASE_WAIT", "$OPERATOR_OPENING", buttons="", asynch=True)
+    # Send the open command to POS Controller
+    msg = send_message(pos_service, TK_POS_USEROPEN, FM_PARAM, "%s\0%s\0%s\0%s" % (pos_id, user_id, initfloat, longusername), timeout=600 * USECS_PER_SEC)
+    if msg.token == TK_SYS_NAK:
+        show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
+        return
+
+    # Send the login command to POS Controller
+    msg = send_message(pos_service, TK_POS_USERLOGIN, FM_PARAM, "%s\0%s\0%s" % (pos_id, user_id, longusername), timeout=600 * USECS_PER_SEC)
+    if msg.token == TK_SYS_NAK:
+        show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
+        return
+
+    if posfunction == "DS":
+        check_main_screen(pos_id)
+
+    send_message(pos_service, TK_POS_SETPOD, FM_PARAM, "%s\0%s\0" % (pos_id, podtype), timeout=600 * USECS_PER_SEC)
+    send_message(pos_service, TK_POS_SETFUNCTION, FM_PARAM, "%s\0%s\0" % (pos_id, posfunction), timeout=600 * USECS_PER_SEC)
+
+    # Check the main screen for this POD and POS Function
+    if posfunction != "DS":
+        check_main_screen(pos_id)
+
     try:
-        # Send the open command to POS Controller
-        msg = send_message(pos_service, TK_POS_USEROPEN, FM_PARAM, "%s\0%s\0%s\0%s" % (pos_id, user_id, initfloat, longusername), timeout=600 * USECS_PER_SEC)
-        if msg.token == TK_SYS_NAK:
-            show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-            return
+        time.sleep(1)
+        mbcontext.MB_EasySendMessage("DailyGoals", TK_DAILYGOALS_UPDATE_GOALS)
+    except MBException as e:
+        if e.errorcode == 2:  # NOT_FOUND, servico de DailyGoals nao disponivel
+            sys_log_info("[DailyGoals] Serviço Não Encontrado")
+        else:
+            sys_log_exception("[DailyGoals] Erro {}".format(e.errorcode))
+    except Exception:
+        sys_log_exception("[DailyGoals]")
 
-        # Send the login command to POS Controller
+    if int(initfloat) > 0:
+        doOpenDrawer(pos_id)
 
-        msg = send_message(pos_service, TK_POS_USERLOGIN, FM_PARAM, "%s\0%s\0%s" % (pos_id, user_id, longusername), timeout=600 * USECS_PER_SEC)
-        if msg.token == TK_SYS_NAK:
-            show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-            return
+    operator = get_current_operator(get_model(pos_id))
+    operator_name = (operator.get("name")).encode('utf-8')
+    operator_id = operator.get("id")
+    initial_float = operator.get("initialFloat")
+    period = get_business_period(model)
+    print_report(pos_id, model, get_nf_type(pos_id) == "PAF", "loginOperator_report", pos_id, operator_id, operator_name, initial_float, period)
+    doShowScreen(pos_id, "main")
+    show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
 
-        if posfunction == "DS":
-            check_main_screen(pos_id)
+    # Enable the eLanes void security model again if necessary
+    set_custom(pos_id, "VOIDAUTH_SESSION_DISABLED", "false", persist=True)
 
-        send_message(pos_service, TK_POS_SETPOD, FM_PARAM, "%s\0%s\0" % (pos_id, podtype), timeout=600 * USECS_PER_SEC)
-        send_message(pos_service, TK_POS_SETFUNCTION, FM_PARAM, "%s\0%s\0" % (pos_id, posfunction), timeout=600 * USECS_PER_SEC)
-
-        if get_nf_type(pos_id) == "PAF":
-            mbcontext.MB_EasySendMessage("PafEcfListener", token=TK_POS_FUNCTION_CHANGED, format=FM_PARAM, data=str(pos_id))
-
-        # Check the main screen for this POD and POS Function
-        if posfunction != "DS":
-            check_main_screen(pos_id)
-
-        try:
-            time.sleep(1)
-            mbcontext.MB_EasySendMessage("DailyGoals", TK_DAILYGOALS_UPDATE_GOALS)
-        except MBException as e:
-            if e.errorcode == 2:  # NOT_FOUND, servico de DailyGoals nao disponivel
-                sys_log_info("[DailyGoals] Serviço Não Encontrado")
-            else:
-                sys_log_exception("[DailyGoals] Erro {}".format(e.errorcode))
-        except Exception:
-            sys_log_exception("[DailyGoals]")
-
-        if podtype != "OT" and posfunction != "OT":
-            conn = None
-            if float(initfloat) == 0:
-                try:
-                    conn = persistence.Driver().open(mbcontext, pos_id)
-                    session_initial = get_operator_session(get_model(pos_id))
-                    sql = "insert into Transfer (Period, PosId, SessionId, Type, Description, Amount, TenderId) values ({}, {}, '{}', 1, 'Initial Float', '0.0', 0);".format(datetime.datetime.now().strftime('%Y%m%d'), pos_id, session_initial)
-
-                    conn.query(sql)
-                except Exception:
-                    pass
-                finally:
-                    if conn:
-                        conn.close()
-
-            if int(initfloat) > 0:
-                doOpenDrawer(pos_id)
-
-        operator = get_current_operator(get_model(pos_id))
-        operator_name = (operator.get("name")).encode('utf-8')
-        operator_id = operator.get("id")
-        initial_float = operator.get("initialFloat")
-        period = get_business_period(model)
-        close_asynch_dialog(pos_id, wait_dlg_id)
-        print_report(pos_id, model, get_nf_type(pos_id) == "PAF", "loginOperator_report", pos_id, operator_id, operator_name, initial_float, period)
-        doShowScreen(pos_id, "main")
-        show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
-
-        # Enable the eLanes void security model again if necessary
-        set_custom(pos_id, "VOIDAUTH_SESSION_DISABLED", "false", persist=True)
-
-        # Processamento Finalizado com Sucesso
-        save_signedin_user(pos_id, user_id, userinfo)
-    finally:
-        close_asynch_dialog(pos_id, wait_dlg_id)
+    # Processamento Finalizado com Sucesso
+    save_signedin_user(pos_id, user_id, userinfo)
 
 
 def list_users(pos_id):
@@ -3062,42 +2861,42 @@ def list_users(pos_id):
     return opened_users
 
 @action
-def logoffuser(pos_id, *args):
-    logger.debug("Logoff POS %d - Iniciando logoff." % int(pos_id))
-    if not verify_and_fix_business_period(pos_id):
+def logoffuser(posid, *args):
+    logger.debug("Logoff POS %d - Iniciando logoff." % int(posid))
+    if not verify_and_fix_business_period(posid):
         return "Error"
 
-    model = get_model(pos_id)
+    model = get_model(posid)
     posot = get_posot(model)
     session_id = get_operator_session(model)
-    set_custom(pos_id, "Last SessionId", session_id, persist=True)
-    check_current_order(pos_id, model=model, need_order=False)
+    set_custom(posid, "Last SessionId", session_id, persist=True)
+    check_current_order(posid, model=model, need_order=False)
 
     try:
-        opened_users = list_users(pos_id)
+        opened_users = list_users(posid)
     except:
-        show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
+        show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
         return
 
     if not opened_users:
-        logger.debug("Logoff POS %d - Não há operadores logados." % int(pos_id))
-        show_info_message(pos_id, "$THERE_ARE_NO_OPENED_USERS", msgtype="warning")
+        logger.debug("Logoff POS %d - Não há operadores logados." % int(posid))
+        show_info_message(posid, "$THERE_ARE_NO_OPENED_USERS", msgtype="warning")
         return
 
     if len(opened_users) > 1:
         opened_users.sort(key=lambda x: x.get("id"))
         options = [("%s - %s" % (tag.get("id"), tag.get("name"))).encode('utf-8') for tag in opened_users]
-        index = show_listbox(pos_id, options)
+        index = show_listbox(posid, options)
         if index is None:
             return  # The user cancelled - or timed-out
 
         userid = opened_users[index].get("id")
     else:
         userid = opened_users[0].get("id")
-        logger.debug("Logoff POS %d - Obtido id do operador - %s" % (int(pos_id), userid))
+        logger.debug("Logoff POS %d - Obtido id do operador - %s" % (int(posid), userid))
 
     # verificar autorização do gerente
-    if not get_authorization(pos_id, min_level=LEVEL_SUPERVISOR, model=model, is_login=False):
+    if not get_authorization(posid, min_level=LEVEL_SUPERVISOR, model=model, is_login=False):
         return
 
     has_to_do_transfer = True
@@ -3105,42 +2904,35 @@ def logoffuser(pos_id, *args):
     if pod_function == "OT":
         has_to_do_transfer = False
     if has_to_do_transfer:
-        declared_amount = doTransfer(pos_id, 6)
+        declared_amount = doTransfer(posid, 6)
         if not declared_amount:
             return
 
-    wait_dlg_id = show_messagebox(pos_id, "$PLEASE_WAIT", "$OPERATOR_CLOSURE", buttons="", asynch=True)
-    try:
-        pos_service = "POS%d" % int(pos_id)
-        original_podtype = str(get_cfg(pos_id).find_value("pod"))
-        send_message(pos_service, TK_POS_SETPOD, FM_PARAM, "%s\0%s\0" % (pos_id, original_podtype),
-                     timeout=600 * USECS_PER_SEC)
+    pos_service = "POS%d" % int(posid)
+    original_podtype = str(get_cfg(posid).find_value("pod"))
+    send_message(pos_service, TK_POS_SETPOD, FM_PARAM, "%s\0%s\0" % (posid, original_podtype), timeout=600 * USECS_PER_SEC)
 
-        logger.debug("Logoff POS %d - Deslogando operador %s" % (int(pos_id), userid))
-        msg = send_message("POS%d" % int(pos_id), TK_POS_USERLOGOUT, FM_PARAM, "%s\0%s" % (pos_id, userid),
-                           timeout=600 * USECS_PER_SEC)
-        if msg.token == TK_SYS_ACK:
-            logger.debug("Logoff POS %d - Operador %s deslogado com sucesso" % (int(pos_id), userid))
-            posot.resetCurrentOrder(pos_id)
-            period = get_business_period(model)
+    logger.debug("Logoff POS %d - Deslogando operador %s" % (int(posid), userid))
+    msg = send_message("POS%d" % int(posid), TK_POS_USERLOGOUT, FM_PARAM, "%s\0%s" % (posid, userid), timeout=600 * USECS_PER_SEC)
+    if msg.token == TK_SYS_ACK:
+        logger.debug("Logoff POS %d - Operador %s deslogado com sucesso" % (int(posid), userid))
+        posot.resetCurrentOrder(posid)
+        period = get_business_period(model)
 
-            # Restore the default main screen
-            change_mainscreen(pos_id, "0", persist=True)
+        # Restore the default main screen
+        change_mainscreen(posid, "0", persist=True)
 
-            # Enable the eLanes void security model again if necessary
-            set_custom(pos_id, "VOIDAUTH_SESSION_DISABLED", "false", persist=True)
-            clear_custom(pos_id, SIGNED_IN_USER)
+        # Enable the eLanes void security model again if necessary
+        set_custom(posid, "VOIDAUTH_SESSION_DISABLED", "false", persist=True)
+        clear_custom(posid, SIGNED_IN_USER)
 
-            change_screen(pos_id, "500")
-            # print_report(posid, model, True, "cash_over_short_op_report", posid, period, userid)
-            print_report(pos_id, model, False, "checkout_report", pos_id, period, userid, "False", "0", "logoffuser",
-                         session_id)
-            show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
-        else:
-            logger.error("Logoff POS %d - Falha ao deslogar operador %s" % (int(pos_id), userid))
-            show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-    finally:
-        close_asynch_dialog(pos_id, wait_dlg_id)
+        change_screen(posid, "500")
+        # print_report(posid, model, True, "cash_over_short_op_report", posid, period, userid)
+        print_report(posid, model, False, "checkout_report", posid, period, userid, "False", "0", "logoffuser", session_id)
+        show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
+    else:
+        logger.error("Logoff POS %d - Falha ao deslogar operador %s" % (int(posid), userid))
+        show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
 
 
 @action
@@ -3158,9 +2950,7 @@ def doOpenDrawer(posid, check_oper="true", *args):
     drawers = model.findall("CashDrawer")
     for drawer in drawers:
         from threading import Thread
-        open_drawer_thread = Thread(target=thread_open_drawer, args=(drawer,))
-        open_drawer_thread.daemon = True
-        open_drawer_thread.start()
+        Thread(target=thread_open_drawer, args=(drawer,)).start()
 
 
 @action
@@ -3202,9 +2992,8 @@ def doVoidLine(pos_id, lineNumbers = None, *args):
                 return
         dlgid = show_messagebox(pos_id, "$PROCESSING_FISCAL_DATA", title="$PROCESSING", buttons="", asynch=True, timeout=180000) if get_nf_type(pos_id) == "PAF" else None
         get_posot(model).voidLine(int(pos_id), lineNumbers)
-    except OrderTakerException as ex:
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+    except OrderTakerException as e:
+        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
     except BaseException as ex:
         show_info_message(pos_id, "$FISCAL_PRINTER_COMM_ERROR", msgtype="critical")
     finally:
@@ -3293,9 +3082,8 @@ def doVoidLineCheckAuthorization(posid, lineNumbers, *args):
             show_info_message(posid, message="")
         # Void!
         doVoidLine(posid, lineNumbers)
-    except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+    except OrderTakerException as e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
     finally:
         if conn:
             conn.close()
@@ -3411,7 +3199,7 @@ def doApplyModifiers(pos_id, modifiers_str, *args):
         if queries:
             conn = None
             try:
-                conn = DBDriver().open(mbcontext, dbname=str(pos_id))
+                conn = DBDriver().open(mbcontext, pos_id)
                 conn.transaction_start()
                 conn.query('''BEGIN TRANSACTION;''')
                 conn.query(";".join(queries))
@@ -3419,12 +3207,14 @@ def doApplyModifiers(pos_id, modifiers_str, *args):
                     _send_modifiers_to_printer(pos_id, items, modifiers_xml, parent_quantity)
                 conn.query('''COMMIT TRANSACTION;''')
             except Exception as ex:
-                if conn:
-                    conn.query('''ROLLBACK TRANSACTION;''')
+                conn.query('''ROLLBACK TRANSACTION;''')
+                conn.transaction_end()
+                conn.close()
                 return
-            finally:
-                if conn:
-                    conn.close()
+
+            if conn:
+                conn.transaction_end()
+                conn.close()
 
         posot.updateOrderProperties(pos_id, saletype=old_order_xml.get("saleTypeDescr"))
         doShowScreen(pos_id, "-1")
@@ -3522,74 +3312,21 @@ def notImplemented(posid, *args):
 
 
 def get_drawer_amount(posid, period, session):
-    logger.debug("--- get_drawer_amount START ---")
     conn = None
     try:
-        conn = persistence.Driver().open(mbcontext, dbname=str(posid))
+        conn = persistence.Driver().open(mbcontext, posid)
         conn.transaction_start()
         # set the period
-        logger.debug("--- get_drawer_amount DELETE ReportsPeriod ---")
         conn.query("DELETE FROM temp.ReportsPeriod")
-        logger.debug("--- get_drawer_amount INSERT ReportsPeriod ---")
         conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,EndPeriod) VALUES(%s,%s)" % (period, period))
-        logger.debug("--- get_drawer_amount SELECT Transfer ---")
-        cursor = conn.select("""SELECT T.Period AS Period,
-           T.SessionId AS SessionId,
-           SUM(CASE WHEN T.Type=1 THEN 1 ELSE 0 END) AS InitialFloatQty,
-           tdsum(CASE WHEN T.Type=1 THEN T.Amount ELSE '0.00' END) AS InitialFloatAmount,
-           SUM(CASE WHEN T.Type=2 THEN 1 ELSE 0 END) AS SkimQty,
-           tdsum(CASE WHEN T.Type=2 THEN T.Amount ELSE '0.00' END) AS SkimAmount,
-           SUM(CASE WHEN T.Type=3 THEN 1 ELSE 0 END) AS TransferInQty,
-           tdsum(CASE WHEN T.Type=3 THEN T.Amount ELSE '0.00' END) AS TransferInAmount,
-           SUM(CASE WHEN T.Type=4 THEN 1 ELSE 0 END) AS TransferOutQty,
-           tdsum(CASE WHEN T.Type=4 THEN T.Amount ELSE '0.00' END) AS TransferOutAmount
-            FROM
-                Transfer T
-            WHERE T.Period = '%s'
-            AND T.SessionId = '%s'
-            GROUP BY Period, SessionId""" % (period, session))
-
+        cursor = conn.select("SELECT * FROM temp.CASHView WHERE BusinessPeriod='%s' AND SessionId = '%s'" % (period, session))
         row = cursor.get_row(0)
-        if row is not None:
-            initialfloat = D(row.get_entry("InitialFloatAmount") or 0)
-            transfer_in_amount = D(row.get_entry("TransferInAmount") or 0)
-            skim_amount = D(row.get_entry("SkimAmount") or 0)
-            transfer_out_amount = D(row.get_entry("TransferOutAmount") or 0)
-        else:
-            initialfloat = 0
-            transfer_in_amount = 0
-            skim_amount = 0
-            transfer_out_amount = 0
-
-        logger.debug("--- get_drawer_amount SELECT Orders ---")
-        cursor_cash_drawer = conn.select("""
-        	SELECT
-                   tdsub(tdsum(DA.SaleCashAmount),COALESCE(tdsum(DA.SaleCashChangeAmount), 0)) AS CashGrossAmount,
-                   tdsum(DA.RefundCashAmount) AS RefundCashAmount
-                FROM (
-                    SELECT
-                        substr(Orders.SessionID, instr(Orders.SessionID, 'period=')+7) AS BusinessPeriod,
-                        Orders.SessionID AS SessionID,
-                        Orders.OrderId AS OrderId,
-                        tdsum(CASE WHEN (Orders.OrderType=0) THEN OrderTender.ChangeAmount ELSE '0.00' END) AS SaleChangeAmount,
-                        tdsum(CASE WHEN (Orders.OrderType=0 AND OrderTender.TenderId=0) THEN OrderTender.ChangeAmount ELSE '0.00' END) AS SaleCashChangeAmount,
-                        tdsum(CASE WHEN (Orders.OrderType=0 AND OrderTender.TenderId=0) THEN OrderTender.TenderAmount ELSE '0.00' END) AS SaleCashAmount,
-                        COALESCE(tdsum(CASE WHEN (OrderTender.TenderId=0 AND Orders.OrderType=1) THEN tdsub(OrderTender.TenderAmount,COALESCE(OrderTender.ChangeAmount,'0')) ELSE '0.00' END),'0.00') AS RefundCashAmount,
-                        COALESCE(tdsum(CASE WHEN (Orders.OrderType=0 AND OrderTender.TenderId=0) THEN OrderTender.TipAmount ELSE '0.00' END),'0.00') AS TipsCashAmount
-                    FROM
-                        orderdb.Orders Orders
-                    JOIN
-                        orderdb.OrderTender OrderTender
-                        ON OrderTender.OrderId=Orders.OrderId
-                    WHERE Orders.StateId=5 AND Orders.OrderType IN (0,1)
-                    AND substr(Orders.SessionID, instr(Orders.SessionID, 'period=')+7) = '%s'
-                    AND Orders.SessionID = '%s'
-                    GROUP BY Orders.BusinessPeriod, Orders.SessionId, Orders.OrderId) AS DA""" % (period, session))
-
-        row_cash_drawer = cursor_cash_drawer.get_row(0)
-        cash_gross_amount = D(row_cash_drawer.get_entry("CashGrossAmount") or 0)
-        cash_refund_amount = D(row_cash_drawer.get_entry("RefundCashAmount") or 0)
-        logger.debug("--- get_drawer_amount SELECT OrderCustomProperties inner Orders---")
+        initialfloat = D(row.get_entry("InitialFloat") or 0)
+        cash_gross_amount = D(row.get_entry("CashGrossAmount") or 0)
+        transfer_in_amount = D(row.get_entry("TransferInAmount") or 0)
+        cash_refund_amount = D(row.get_entry("CashRefundAmount") or 0)
+        skim_amount = D(row.get_entry("SkimAmount") or 0)
+        transfer_out_amount = D(row.get_entry("TransferOutAmount") or 0)
         cursor = conn.select("""SELECT COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
                                 INNER JOIN Orders o 
                                 ON o.OrderId = ocp.OrderId 
@@ -3600,15 +3337,13 @@ def get_drawer_amount(posid, period, session):
         donated_amount = D(row.get_entry("DonatedAmount") or 0)
         drawer_amount = initialfloat + cash_gross_amount + transfer_in_amount + donated_amount - (cash_refund_amount + skim_amount + transfer_out_amount)
         drawer_amount = round(drawer_amount, 2)
-    except Exception as ex:
-        logger.exception("--- get_drawer_amount ---")
-        sys_log_exception("get_drawer_amount Error")
+    except:
         show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
         return
     finally:
         if conn:
+            conn.transaction_end()
             conn.close()
-    logger.debug("--- get_drawer_amount END ---")
     return drawer_amount
 
 
@@ -3649,10 +3384,7 @@ def doTransfer(posid, transfer_type, *args):
     message = "$ENTER_AMOUNT_TO_TRANSFER_TYPE|%s" % description if not int(transfer_type) == 6 else "Insira o valor presente na gaveta \\ (Sem fundo de troco)"
     amount = show_keyboard(posid, message, title="", mask="CURRENCY", numpad=True, timeout=720000)
 
-    if amount is None:
-        return
-
-    if amount in ("", ".") or round(float(amount), 2) < 0 or round(float(amount), 2) > round(float(max_transfer_value), 2) or (int(transfer_type) != 6 and round(float(amount), 2) == 0):
+    if amount in (None, "", ".") or round(float(amount), 2) < 0 or round(float(amount), 2) > round(float(max_transfer_value), 2) or (int(transfer_type) != 6 and round(float(amount), 2) == 0):
         show_info_message(posid, "Valor Inválido. Digite um valor válido menor que R$ {0:.2f}".format(max_transfer_value), msgtype="error")
         return
 
@@ -3690,31 +3422,31 @@ def doTransfer(posid, transfer_type, *args):
     elif int(transfer_type) == 2:
         just = "Valor Informado=%.02f; Valor Esperado=%.02f; Justificativa=Sangria Menu Gerente" % (amount, amount)
 
-    banana = 0
-    if int(transfer_type) != 3 and amount > 0:
-        valid_banana = True
-        while valid_banana:
-            banana = show_keyboard(posid, "Entre com o numero COMPLETO da banana", title="", numpad=True, timeout=720000, buttons=buttons, mask="INTEGER")
+    #banana = 0
+    #if int(transfer_type) != 3 and amount > 0:
+        #valid_banana = True
+        #while valid_banana:
+        #    banana = show_keyboard(posid, "Entre com o numero COMPLETO da banana", title="", numpad=True, timeout=720000, buttons=buttons, mask="INTEGER")
 
-            if banana not in (None, ""):
-                if len(banana) < skim_digit_limit['min'] or len(banana) > skim_digit_limit['max']:
-                    show_info_message(posid, "O numero da banana precisa ter entre {} e {} dígitos"
-                                      .format(skim_digit_limit['min'], skim_digit_limit['max']),
-                                      msgtype="error")
-                    continue
+        #    if banana not in (None, ""):
+        #        if len(banana) < skim_digit_limit['min'] or len(banana) > skim_digit_limit['max']:
+        #            show_info_message(posid, "O numero da banana precisa ter entre {} e {} dígitos"
+        #                              .format(skim_digit_limit['min'], skim_digit_limit['max']),
+        #                              msgtype="error")
+        #            continue
 
-                is_exist_banana = _is_exist_banana(posid, banana, *args)
-                if int(is_exist_banana or 0) > 0:
-                    show_info_message(posid, "O numero da banana ja existe no sistema", msgtype="error")
-                    continue
+        #        is_exist_banana = _is_exist_banana(posid, banana, *args)
+        #        if int(is_exist_banana or 0) > 0:
+        #            show_info_message(posid, "O numero da banana ja existe no sistema", msgtype="error")
+        #            continue
 
-                valid_banana = False
-            else:
-                if int(transfer_type) != 6 and banana is None:
-                    return
+        #        valid_banana = False
+        #    else:
+        #        if int(transfer_type) != 6: #and banana is None:
+        #            return
 
     msg = send_message("account%s" % posid, TK_ACCOUNT_TRANSFER, FM_PARAM, "%s\0%s\0%s\0%s\0%s\0%s" % (session, int(transfer_type), descri_key, amount, transfer_id, just or "NULL"), timeout=600 * USECS_PER_SEC)
-    _update_manager_id_on_transfer(posid, str(banana), model, *args)
+    #_update_manager_id_on_transfer(posid, str(banana), model, *args)
     if msg.token == TK_SYS_ACK:
         if int(transfer_type) == 6:
             skim_result = send_message("account%s" % posid, TK_ACCOUNT_TRANSFER, FM_PARAM, "%s\0%s\0%s\0%s\0%s" % (session, 2, "TRANSFER_SKIM", drawer_amount, transfer_id), timeout=600 * USECS_PER_SEC)
@@ -3726,9 +3458,9 @@ def doTransfer(posid, transfer_type, *args):
         else:
             doOpenDrawer(posid)  # Open the drawer
         if not get_nf_type(posid) == "PAF":
-            if print_report(posid, model, ppview, "transferReport", posid, operatorid, transfer_type, amount, period, banana):
+            if print_report(posid, model, ppview, "transferReport", posid, operatorid, transfer_type, amount, period):
                 show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
-            _update_manager_id_on_transfer(posid, str(banana), model, *args)
+            #_update_manager_id_on_transfer(posid, str(banana), model, *args)
             if (drawer_amount - amount) < float(sangria_levels.split(";")[0]):
                 set_custom(posid, "sangria_level_1_alert", "0")
 
@@ -3778,7 +3510,7 @@ def _get_initial_value_drawer(posid, session, *args):
         period_sess_now = session.split(',')[3].split('=')[1]
 
         conn = persistence.Driver().open(mbcontext, posid)
-        cursor = conn.select("select amount, sessionid from transfer where description = 'Initial Float' and posid = '{}' order by ID desc limit 1".format(pos_sess_now))
+        cursor = conn.select("select amount, sessionid from transfer where description = 'Initial Float' and posid = '{}' order by Timestamp desc limit 1".format(pos_sess_now))
 
         if cursor.rows() > 0:
             for row in cursor:
@@ -3960,9 +3692,8 @@ def doListPaidOrders(posid, limit=10, *args):
         # Sort the orders by their ID
         orders.sort(key=lambda x: x["orderId"], reverse=False)
         set_custom(posid, "paidOrders", ",".join([x.get("orderId") for x in orders]))
-    except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+    except OrderTakerException as e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
 
 def get_timestamp():
@@ -4177,7 +3908,12 @@ def doVoidPaidSale(posid, request_authorization="true", allpos="false", requestd
         # Build the preview data to be displayed on UI
         preview_data = []
         # Sort the orders by their ID
-        orders = sorted(orders, key=lambda x: map(int, re.findall('\d+', x['custom_properties']['FISCALIZATION_DATE'] if 'custom_properties' in x else x['createdAt'])), reverse=True)
+        config = cfgtools.read(os.environ["LOADERCFG"])
+        demo_without_fiscal = config.find_value("Demonstration.DemoWithoutFiscal")
+        if demo_without_fiscal == 'true':
+            orders = sorted(orders, key=lambda x: map(int, re.findall('\d+', x['createdAt'])), reverse=True)
+        else:
+            orders = sorted(orders, key=lambda x: map(int, re.findall('\d+', x['custom_properties']['FISCALIZATION_DATE'] if 'custom_properties' in x else x['createdAt'])), reverse=True)
         # Base URL
         baseurl = "/mwapp/services/PosController/POS%d/?token=TK_POS_EXECUTEACTION&format=2&isBase64=true&payload=" % int(posid)
 
@@ -4186,13 +3922,11 @@ def doVoidPaidSale(posid, request_authorization="true", allpos="false", requestd
             order_id = order["orderId"]
             order_posid = int(order["originatorId"][3:])
             order_gross = float(order.get("totalGross", 0.00))
-            order_created_date = datetime.datetime.strptime(order.get("createdAt"), "%Y-%m-%dT%H:%M:%S")
-            order_timestamp = order_created_date.strftime('%H:%M')
             order_type = order["podType"]
             partner = ""
             if 'custom_properties' in order:
                 partner = order["custom_properties"]["PARTNER"] if "PARTNER" in order["custom_properties"] else ""
-            descr = "{}{:02} #{:04} {} R${:.2f}".format(order_type, order_posid, int(order_id) % 10000, order_timestamp, order_gross)
+            descr = "{}{:02} #{:03} R${:.2f}".format(order_type, order_posid, int(order_id) % 10000, order_gross)
             if partner != "":
                 short_reference = order["custom_properties"]["SHORT_REFERENCE"] if "SHORT_REFERENCE" in order["custom_properties"] else order_id
                 if partner.upper() == "APP":
@@ -4206,27 +3940,26 @@ def doVoidPaidSale(posid, request_authorization="true", allpos="false", requestd
         # Let the user select an order ...
 
         while True:
-            selected = show_order_preview(posid, preview_data, buttons="Cupom|Picklist|$CLOSE", onthefly=True, title="Selecione um pedido para impressão:")
-            if (selected is None) or (selected[0] == "2"):
+            selected = show_order_preview(posid, preview_data, buttons="$CLOSE", onthefly=True, title="Selecione um pedido para impressão:")
+            if (selected is None) or (selected[0] == "0"):
                 return  # Timeout, or the user cancelled
 
             order_type = filter(lambda x: x["orderId"] == selected[1], orders)[0]["podType"]
-            selected_order = filter(lambda x: x["orderId"] == selected[1], orders)[0]
             if order_type not in enabled_reprint_pod_types or get_nf_type(posid) == "PAF" :
-                show_messagebox(posid, "$REPRINT_FORBIDDEN", title="$REPRINT_ORDERS", icon="info", buttons="$OK")
+                show_messagebox(posid, "$REPRINT_FORBIDDEN", title="Alerta", icon="info", buttons="$OK")
                 continue
 
             if (selected is None) or (selected[0] == "1"):
                 try:
                     model = sysactions.get_model(posid)
                     order_pict = posot.orderPicture("", selected[1])
-                    data = sysactions.print_report(posid, model, False, picklist_reprint_type, order_pict)
-                    if data is True:
+                    data = sysactions.print_report(posid, model, False, "production_pick_list", order_pict)
+                    if data:
                         show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
                     else:
-                        show_messagebox(posid, "$ERROR_REPRINT_PICKLIST|", title="$REPRINT_ORDERS", icon="error", buttons="$OK")
+                        show_messagebox(posid, "$ERROR|%s" % data, title="$ERROR", icon="error", buttons="$OK")
                 except Exception as ex:
-                    show_messagebox(posid, "$ERROR_REPRINT_PICKLIST|%s" % repr(ex), title="$REPRINT_ORDERS", icon="error", buttons="$OK")
+                    show_messagebox(posid, "$ERROR|%s" % repr(ex), title="$ERROR", icon="error", buttons="$OK")
                 # Because the user may reprint more then one PICKLIST without exiting
                 continue
 
@@ -4243,36 +3976,27 @@ def doVoidPaidSale(posid, request_authorization="true", allpos="false", requestd
                         current_printer = get_used_service(model, "printer")
                         msg = mbcontext.MB_EasySendMessage(current_printer, TK_PRN_PRINT, format=FM_PARAM, data=msg.data, timeout=10000000)  # type: MBMessage
                         if msg.token != TK_SYS_ACK:
-                            show_messagebox(posid, "$ERROR_REPRINT_NFE|%s" % msg.data, title="$REPRINT_ORDERS", icon="error", buttons="$OK")
+                            show_messagebox(posid, "$ERROR_REPRINT_NFE|%s" % msg.data, title="$ERROR", icon="error", buttons="$OK")
                         else:
-                            donation_value = _get_custom_property_value_by_key("DONATION_VALUE", selected_order["custom_properties"])
-                            if donation_value is not None:
-                                donation_value = float(donation_value.replace(",", "."))
-                                donation_value = format(donation_value, '.2f').replace(",", ".")
-                                customer_name = _get_custom_property_value_by_key("CUSTOMER_NAME", selected_order["custom_properties"]) or ""
-                                _do_print_donation(posid, orderid, customer_name, donation_value, round_donation_institution, round_donation_cnpj, round_donation_site, cliche)
-
                             show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
                     except Exception as ex:
-                        show_messagebox(posid, "$ERROR_REPRINT_NFE|%s" % repr(ex), title="$REPRINT_ORDERS", icon="error", buttons="$OK")
+                        show_messagebox(posid, "$ERROR_REPRINT_NFE|%s" % repr(ex), title="$ERROR", icon="error", buttons="$OK")
             except Exception as ex:
                 sys_log_exception("Could not print Receipt for voided order - Error: %s" % str(ex))
 
-    except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+    except OrderTakerException as e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
 
 @action
-def doReprintTef(pos_id, *args):
+def doReprintTef(posid, *args):
     """
     Reprints last TEF coupon paid in this POS
     """
-    wait_dlg_id = show_messagebox(pos_id, "$PLEASE_WAIT", "$REPRINTING_RECEIPT", buttons="", asynch=True)
     try:
-        model = get_model(pos_id)
-        check_operator_logged(pos_id, model=model, can_be_blocked=False)
-        check_current_order(pos_id, model, need_order=False)
+        model = get_model(posid)
+        check_operator_logged(posid, model=model, can_be_blocked=False)
+        check_current_order(posid, model, need_order=False)
         drv = persistence.Driver()
         conn = None
         try:
@@ -4288,21 +4012,19 @@ def doReprintTef(pos_id, *args):
             printed = False
             for line in cursor:
                 if line.get_entry("ReceiptMerchant"):
-                    print_text(pos_id, model, line.get_entry("ReceiptMerchant"))
+                    print_text(posid, model, line.get_entry("ReceiptMerchant"))
                     printed = True
                     break
             if printed:
-                show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
+                show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
             else:
-                show_info_message(pos_id, "Não há comprovante para ser impresso", msgtype="warning")
+                show_info_message(posid, "Não há comprovante para ser impresso", msgtype="warning")
         finally:
             if conn:
                 conn.close()
     except Exception as ex:
-        show_info_message(pos_id, "Impossivel imprimir ultimo cupom: %s" % str(ex), msgtype="error")
+        show_info_message(posid, "Impossivel imprimir ultimo cupom: %s" % str(ex), msgtype="error")
         sys_log_exception("Could not print Receipt for order")
-    finally:
-        close_asynch_dialog(pos_id, wait_dlg_id)
 
 
 def _do_print_donation(pos_id, order_id, customer_name, donation_value, donation_institution, donation_cnpj, donation_site, cliche):
@@ -4395,7 +4117,7 @@ def doReprintOrder(pos_id, order_id, *args):
                     line_orig_qty = line.get('qty')
                     line.set('addedQty', str(max(0, int(line_orig_qty) - int(corrected_line_dict['default_qty']))))
                     line.set('defaultQty', corrected_line_dict['default_qty'])
-        data = sysactions.print_report(pos_id, model, False, picklist_reprint_type, etree.tostring(order))
+        data = sysactions.print_report(pos_id, model, False, "production_pick_list", etree.tostring(order))
         if not data:
             sys_log_error("Exception reprinting Picklist for order %s" % order_id)
     except Exception as ex:
@@ -4495,9 +4217,8 @@ def doChangeQuantity(posid, line_numbers, qty, is_absolute='false', is_kiosk='fa
 
         if to_void:
             posot.voidLine(posid, "|".join(to_void))
-    except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+    except OrderTakerException as e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
 
 
 @action
@@ -4562,6 +4283,7 @@ def doGetItemComposition(pos_id, line_number, modifier_screen="350", qty="0", de
                 if default_mod_set in modifier_sets[key].modifiers_sets and key in active_item_ids:
                     if min_level > len(modifier_sets[key].context.split(".")):
                         min_mod_set = modifier_sets[key].context + "." + default_mod_set if default_mod_set != "" else ""
+                        min_level = len(modifier_sets[key].context.split("."))
                         min_level = len(modifier_sets[key].context.split("."))
 
             temp_item_id = "%s.%s" % (item_id, part_code)
@@ -5074,11 +4796,11 @@ def doPurgeStoredOrders(pos_id):
         return
     try:
         for order in orders:
+            orig_id = int(order.get("sessionId").split(",")[0].split("=")[1])
             order_id = order.get("orderId")
-            do_recall_order(pos_id, order_id, check_date=False)
-            void_order(pos_id)
+            posot.voidOrder(orig_id, orderid=order_id)
         show_info_message(pos_id, "Pedidos salvos apagados", msgtype="success")
-    except Exception as _:
+    except Exception as ex:
         show_info_message(pos_id, "Erro ao tentar apagar pedidos salvos", msgtype="error")
 
 
@@ -5097,7 +4819,7 @@ def doPrintLogoffReport(pos_id):
         date_input_format = "%Y-%m-%d %H:%M:%S"
         date_output_format = "%d/%m/%Y %H:%M:%S"
 
-        conn = DBDriver().open(mbcontext, dbname=str(pos_id))
+        conn = DBDriver().open(mbcontext, pos_id)
         conn.transaction_start()
 
         sql = """SELECT * FROM posctrl.UserSession
@@ -5182,11 +4904,6 @@ def doUpdateVtt(pos_id):
         if wait_dlg_id:
             close_asynch_dialog(pos_id, wait_dlg_id)
 
-def is_sangria_enable():
-    if sangria_levels is None:
-        return False
-    else:
-        return True
 
 def doSetDrawerStatus(pos_id, amount, state=None, alert_level_1='0'):
     sangria_levels_list = [float(level) for level in sangria_levels.split(";")] if sangria_levels else []
@@ -5228,7 +4945,7 @@ def doReportSangria(posid, *args):
         footer = "{}".format("*" * 35)
 
         for row in cursor:
-            pos_id, number_banana, manager_id, amount, timestamp, session_id, gla_ccount, description, date_fiscal, sent, ID = map(row.get_entry, ("PosId", "NumberBanana", "ManagerID", "Amount", "Timestamp", "SessionId", "GLAccount", "Description", "Period", "Sent", "ID"))
+            pos_id, amount, timestamp, session_id, gla_ccount, description, date_fiscal = map(row.get_entry, ("PosId", "Amount", "Timestamp", "SessionId", "GLAccount", "Description", "Period"))
 
             if gla_ccount is None:
                 continue
@@ -5240,19 +4957,19 @@ def doReportSangria(posid, *args):
 
                 date_sangria = get_date_difference_GMT_timezone(timestamp)
 
-                json_data.append([number_banana, {
+                json_data.append([{
                     "amount": amount,
                     "timestamp": timestamp,
                     "session_id": session_id,
                     "gla_ccount": gla_ccount,
                     "date_fiscal": date_fiscal,
-                    "pos_id": pos_id,
-                    "number_banana": number_banana,
-                    "manager_id": manager_id,
-                    "transfer_id": ID}, ID])
+                    "pos_id": pos_id}])
+                   # "number_banana": number_banana,
+                  #  "manager_id": manager_id,
+                  #  "transfer_id": ID}, ID])
 
                 # montando the list to display the popup
-                banana = "Banana# {}".format(number_banana)
+                #banana = "Banana# {}".format(number_banana)
 
                 info = gla_ccount.split(";")[0].split("=")
                 info = "%-13s: %s" % (info[0].strip().split(" ")[1], info[1].strip())
@@ -5262,20 +4979,20 @@ def doReportSangria(posid, *args):
 
                 just = gla_ccount.split(";")[2].split("=")
                 just = "%-13s: %s" % (just[0].strip(), just[1].strip()[:20])
-                sent = "%-13s: %s" % ("Enviado", "Sim" if int(sent) == 1 else "Não")
+               # sent = "%-13s: %s" % ("Enviado", "Sim" if int(sent) == 1 else "Não")
 
                 # banana, period, timestanp, user
-                print_banana = "%-13s: %s" % ("Banana", number_banana)
+                #print_banana = "%-13s: %s" % ("Banana", number_banana)
                 print_period = "%-13s: %s/%s/%s" % ("Periodo", date_fiscal[6:], date_fiscal[4:6], date_fiscal[:4])
                 print_timestamp = "%-13s: %s/%s/%s %s:%s:%s" % ("Timestamp", date_sangria[8:10], date_sangria[5:7], date_sangria[:4], date_sangria[11:13], date_sangria[14:16], date_sangria[17:19])
                 print_user = "%-13s: %s" % ("Usuario", user)
-                formated_msg = "{}\n\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n\n{}".format(header, print_banana, print_period, print_timestamp, info, esper, print_user, sent, just, footer)
+                formated_msg = "{}\n\n{}\n{}\n{}\n{}\n{}\n{}\n\n{}".format(header, print_period, print_timestamp, info, esper, print_user,  just, footer)
 
                 # dict with all the sangrias
-                print_list.append([number_banana, formated_msg])
+                print_list.append([timestamp, timestamp, formated_msg])
 
                 # list to popup
-                data.append([number_banana, banana, formated_msg])
+                data.append([timestamp, timestamp, formated_msg])
 
         if len(data) == 0:
             show_info_message(posid, "Não existem sangrias {}para essa data".format("" if show_all_transfer else "pendentes "), msgtype="error")
@@ -5283,13 +5000,12 @@ def doReportSangria(posid, *args):
     finally:
         if conn:
             conn.close()
-
-    index = show_text_preview(posid, data, title='Selecione uma Sangria:', buttons='Enviar|$PRINT|$CANCEL', defvalue='', onthefly=False, timeout=120000)
+    logger.debug(data)
+    index = show_listbox(posid, data, message='Selecione uma Sangria:', buttons='Enviar|$PRINT|$CANCEL', icon='')
     if index is None:
         return
 
     if int(index[0]) == 0:
-        wait_dlg_id = show_messagebox(posid, "$SENDING_SKIM_TO_BKOFFICE", "$WAIT_MESSAGE", buttons="", asynch=True)
         try:
             obj, id = {}, 0
             for data in json_data:
@@ -5300,32 +5016,29 @@ def doReportSangria(posid, *args):
                 except:
                     continue
 
-            msg = mbcontext.MB_EasySendMessage("BKOfficeUploader", TK_BKOFFICEUPLOADER_SEND_SANGRIA, data=str(obj), format=FM_PARAM, timeout=-1)
+           # msg = mbcontext.MB_EasySendMessage("BKOfficeUploader", TK_BKOFFICEUPLOADER_SEND_SANGRIA, data=str(obj), format=FM_PARAM, timeout=1000000)
 
-            if msg.token == TK_SYS_NAK:
-                show_info_message(posid, "Falha de comunicação com o servidor", msgtype="error")
-                return
+            #if msg.token == TK_SYS_NAK:
+             #   show_info_message(posid, "Falha de comunicação com o servidor", msgtype="error")
+             #   return
 
-            response = eval(msg.data)
+            #response = eval(msg.data)
 
-            if response['status']:
-                show_info_message(posid, "Enviado com sucesso", msgtype="success")
-                try:
-                    conn = persistence.Driver().open(mbcontext, posid)
-                    conn.select("""UPDATE account.Transfer SET Sent='1' where ID='{}'""".format(id))
-                except:
-                    sys_log_exception("Error in sangria update")
-                finally:
-                    if conn:
-                        conn.close()
-            else:
-                show_info_message(posid, str(response['description'].encode('utf-8')), msgtype="error")
+            #if response['status']:
+            #    show_info_message(posid, "Enviado com sucesso", msgtype="success")
+            #    try:
+            #        conn = persistence.Driver().open(mbcontext, posid)
+            #        conn.select("""UPDATE account.Transfer SET Sent='1' where ID='{}'""".format(id))
+            #    except:
+            #        sys_log_exception("Error in sangria update")
+            #    finally:
+            #        if conn:
+            #            conn.close()
+            #else:
+            #    show_info_message(posid, str(response['description'].encode('utf-8')), msgtype="error")
 
-        except Exception as _:
+        except:
             show_info_message(posid, "Falha de comunicação com o servidor", msgtype="error")
-        finally:
-            close_asynch_dialog(posid, wait_dlg_id)
-
 
     if int(index[0]) == 1:
         try:
@@ -5344,8 +5057,8 @@ def doReportSangria(posid, *args):
                     show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
                 else:
                     show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
-        except Exception as _:
-            show_info_message(posid, "Erro ao imprimir relatório", msgtype="error")
+        except:
+            show_info_message(posid, "$ERROR", msgtype="error")
 
 
 @action
@@ -5400,78 +5113,52 @@ def doRecreateXMLFiscal(posid, *args):
         show_info_message(posid, "$ERROR", msgtype="error")
 
 @action
-def doReportBKOffice(pos_id, *args):
-    data, print_list, json_data = [], [], []
-
-    model = get_model(pos_id)
-    pos_ot = get_posot(model)
-
-    period = show_keyboard(pos_id, "Digite a data ou pressione 'Ok' para data atual", title="", mask="DATE", numpad=True)
-    if period is None:
-        return
-    if not is_valid_date(period):
-        show_info_message(pos_id, "$INVALID_DATE", msgtype="error")
-        return
-
-    date_bkOffice = '-'.join(i for i in [period[:4], period[4:6], period[6:8]])
-    query_transfer = "SELECT PosId, OrderId, datetime(DataNota, 'unixepoch') as date, OrderPicture  FROM fiscal.FiscalData WHERE date(datetime(datanota, 'unixepoch')) == '{0}' AND SentToBKOffice <> 1 AND SentToNfce = 1".format(date_bkOffice)
-
-    paid_orders = [int(x['orderId']) for x in pos_ot.listOrders(state="PAID")]
-
-    orders = []
-    conn = None
+def doReportBKOffice(posid, *args):
+    conn, data, print_list, json_data = None, [], [], []
     try:
+        period = show_keyboard(posid, "Digite a data ou pressione 'Ok' para data atual", title="", mask="DATE", numpad=True)
+        if period is None:
+            return
+        if not is_valid_date(period):
+            show_info_message(posid, "$INVALID_DATE", msgtype="error")
+            return
+
+        date_bkOffice = '-'.join(i for i in [period[:4], period[4:6], period[6:8]])
+        query_transfer = "SELECT PosId, OrderId, date(datetime(DataNota, 'unixepoch')) as date, OrderPicture  FROM fiscal.FiscalData WHERE date(datetime(datanota, 'unixepoch')) == '{0}' AND SentToBKOffice <> 1 AND SentToNfce = 1".format(date_bkOffice)
+
         conn = persistence.Driver().open(mbcontext, service_name="FiscalPersistence")
         cursor = conn.select(query_transfer)
+
+        separator = "{}".format("*" * 35)
+
         for row in cursor:
             pos_id, order_id, date_fiscal, order_picture = map(row.get_entry, ("PosId", "OrderId", "date", "OrderPicture"))
-            if int(order_id) in paid_orders:
-                orders.append((pos_id, order_id, date_fiscal, order_picture))
+
+            # mounting dict to send to backoffice
+            json_data.append([order_id, {"order_id": order_id}, order_id])
+
+            # list to popup
+            order_pict = etree.XML(base64.b64decode(order_picture))
+            value_order = order_pict.attrib['totalAmount']
+            title = "Order# {0}".format(order_id)
+            date_formated = '/'.join(i for i in [date_fiscal[8:10], date_fiscal[5:7], date_fiscal[:4]])
+            formated_msg = "{}\n\nOrder: {}\nPos Id: {}\nData: {}\nValor do pedido: R${}\n\n{}".format(separator, order_id, pos_id, date_formated, value_order, separator)
+            data.append([order_id, title, formated_msg])
+            print_list.append([order_id, formated_msg])
+
+        if len(data) == 0:
+            show_info_message(posid, "Não existe Ordens", msgtype="error")
+            return
     finally:
         if conn:
             conn.close()
 
-    separator = "{}".format("*" * 35)
-
-    if len(orders) == 0:
-        show_info_message(pos_id, "Nenhum pedido pendente encontrado", msgtype="warning")
-        return
-
-    for order in orders:
-        pos_id, order_id, date_fiscal, order_picture = order
-        json_data.append([order_id, {"order_id": order_id}, order_id])
-
-        order_pict = etree.XML(base64.b64decode(order_picture))
-
-        if order_pict.tag == 'Orders':
-            order_pict = order_pict.find('Order')
-
-        value_order = order_pict.attrib['totalGross']
-
-        date = '/'.join(i for i in [date_fiscal[8:10], date_fiscal[5:7], date_fiscal[:4]])
-        hour = date_fiscal.split(" ")[1]
-        date_formated = "{} {}".format(date, hour)
-
-        title = "Pedido# {0} - {1}".format(order_id, hour)
-
-        formated_msg = "{}\n" \
-                       "\nPedido: {}" \
-                       "\nPOS...: {}" \
-                       "\nData..: {}" \
-                       "\nValor.: R${}" \
-                       "\n\n{}"\
-            .format(separator, order_id, pos_id, date_formated, value_order, separator)
-
-        data.append([order_id, title, formated_msg])
-        print_list.append([order_id, formated_msg])
-
-    index = show_text_preview(pos_id, data, title='Selecione um item:', buttons='Enviar|$PRINT|$CANCEL', defvalue='', onthefly=False, timeout=120000)
+    index = show_text_preview(posid, data, title='Selecione um item:', buttons='Enviar|$PRINT|$CANCEL', defvalue='', onthefly=False, timeout=120000)
 
     if index is None:
         return
 
     if int(index[0]) == 0:
-        wait_dlg_id = show_messagebox(pos_id, "$SENDING_ORDER_TO_BKOFFICE", "$WAIT_MESSAGE", buttons="", asynch=True)
         try:
             obj = {}
             for data in json_data:
@@ -5481,18 +5168,16 @@ def doReportBKOffice(pos_id, *args):
                 except:
                     continue
 
-            msg = mbcontext.MB_EasySendMessage("BKOfficeUploader", TK_BKOFFICEUPLOADER_SEND_BKOFFICE_ORDER, data=str(obj), format=FM_PARAM, timeout=-1)
+            msg = mbcontext.MB_EasySendMessage("BKOfficeUploader", TK_BKOFFICEUPLOADER_SEND_BKOFFICE_ORDER, data=str(obj), format=FM_PARAM, timeout=1000000)
             msg = eval(msg.data)
 
             if msg.get('status'):
-                show_info_message(pos_id, msg.get('msg').encode('utf-8'), msgtype="success")
+                show_info_message(posid, msg.get('msg').encode('utf-8'), msgtype="success")
             else:
-                show_info_message(pos_id, msg.get('msg').encode('utf-8'), msgtype="error")
+                show_info_message(posid, msg.get('msg').encode('utf-8'), msgtype="error")
 
-        except Exception as _:
-            show_info_message(pos_id, "Falha de comunicação com o servidor", msgtype="error")
-        finally:
-            close_asynch_dialog(pos_id, wait_dlg_id)
+        except:
+            show_info_message(posid, "Falha de comunicação com o servidor", msgtype="error")
 
     if int(index[0]) == 1:
         try:
@@ -5506,13 +5191,13 @@ def doReportBKOffice(pos_id, *args):
                     continue
 
             if message is not None:
-                msg = mbcontext.MB_EasySendMessage("printer%s" % pos_id, TK_PRN_PRINT, FM_PARAM, message)
+                msg = mbcontext.MB_EasySendMessage("printer%s" % posid, TK_PRN_PRINT, FM_PARAM, message)
                 if msg.token == TK_SYS_ACK:
-                    show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
+                    show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
                 else:
-                    show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-        except Exception as _:
-            show_info_message(pos_id, "Erro ao imprimir relatório", msgtype="error")
+                    show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
+        except:
+            show_info_message(posid, "$ERROR", msgtype="error")
 
 
 @action
@@ -5597,7 +5282,7 @@ def rupturaItens(pos_id, *args):
                         "Ruptura",
                         TK_RUPTURA_UPDATE_ITEMS,
                         FM_PARAM,
-                        '\0'.join(map(str, [json.dumps({'enabled': enabled_ingredients, 'disabled': disabled_ingredients}), user_id, pos_id]))
+                        '\0'.join(map(str, [json.dumps({'enabled': enabled_ingredients, 'disabled': disabled_ingredients}), user_id]))
                     )
                     if msg.token == TK_SYS_NAK:
                         raise Exception(msg.data)
@@ -5644,7 +5329,11 @@ def check_customer_name(posid, customer_name, silent=False):
 def changeRemoteOrderStoreStatus(posid):
     model = get_model(posid)
     user_id = get_custom(model, 'Last Manager ID')
-    msg = send_message("RemoteOrder", TK_REMOTE_ORDER_GET_STORE, FM_PARAM)
+    msg = send_message(
+        "RemoteOrder",
+        TK_REMOTE_ORDER_GET_STORE,
+        FM_PARAM
+    )
     if msg.token == TK_SYS_NAK:
         show_info_message(posid, "Erro obtendo status da loja para o app/delivery.", msgtype="error")
         return
@@ -5665,81 +5354,25 @@ def changeRemoteOrderStoreStatus(posid):
             show_info_message(posid, "Loja {} para o app/delivery.".format(status_to), msgtype="success")
 
 
-def handle_order_taker_exception(pos_id, pos_ot, ex, mbcontext, dlgid=None):
-    # type: (int, OrderTaker, OrderTakerException, MBEasyContext, int) -> bool
-    if ex.getErrorCode() == 4005:
-        order_xml = etree.XML(pos_ot.orderPicture(pos_id))
-        logger.exception("OrderTakerException: synchronization error.\n Order XML:\n {}"
-                         .format(etree.tostring(order_xml)))
-
-        error_description_is_json = True
-        try:
-            json.loads(ex.getErrorDescr())
-        except Exception as _:
-            error_description_is_json = False
-
-        if not error_description_is_json:
-            show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(),
-                                                                  ex.getErrorDescr().replace("{}", "")),
-                              msgtype="critical")
-        handle_synchronization_error(pos_id, pos_ot, dlgid)
+@action
+def doClearOptionItem(posid, linenumber="", itemid="", *args):
+    model = get_model(int(posid))
+    check_current_order(posid, model=model, need_order=True)
+    if not linenumber or not itemid:
+        show_info_message(posid, "Select the line to clear", msgtype="error")
+        return False  # Nothing to clear
+    # Clear the option
+    posot = get_posot(model)
+    try:
+        posot.clearOption(posid, linenumber, "", itemid)
         return True
-    elif ex.getErrorCode() == 100036:
-        handle_printer_validation_error(pos_id, "$SERIAL_PRINTER_VALIDATION_ERROR")
-        return True
-    elif ex.getErrorCode() == 100037:
-        try:
-            prn = FpRetry(pos_id, mbcontext)
-            gt_encrypted = prn.readEncrypted("RW_GT")
-            if gt_encrypted == "ERROR":
-                gt_printer = prn.readOut(fpreadout.FR_GT).strip()
-                prn.writeEncrypted("RW_GT", gt_printer)
-                show_info_message(pos_id, "Validando GT. Tente novamente.", msgtype="warning")
-                return True
-        except FPException as _:
-            logger.exception("Error reading/writing gt")
-            return True
-        except Exception as _:
-            logger.exception("Error reading/writing gt")
-            return True
-
-        handle_printer_validation_error(pos_id, "$GT_PRINTER_VALIDATION_ERROR")
-        return True
-
+    except ClearOptionException, e:
+        sys_log_exception("Could not clear option")
+        show_info_message(posid, "Error %s" % e, msgtype="error")
+    except OrderTakerException, e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
     return False
 
-
-class FpRetry(fp):
-    def readOut(self, readout_option, params = []):
-        """ fp.readOut(readout_option, params=[]) -> readout value
-        Performs a fiscal printer readout
-        @return: the readout data
-        @raise FPException on fiscal-printer error
-        """
-        error = None
-        for i in xrange(0, 3, 1):
-            try:
-                data = '\x00'.join(map(str, [fpcmds.FPRN_READOUT, readout_option] + params))
-                msg = self._mbctxt.MB_EasySendMessage(self.fpservice, TK_FISCAL_CMD, FM_PARAM, data)
-                self._checkErr(msg)
-                return msg.data
-            except FPException as ex:
-                error = ex
-                logger.exception("Erro lendo da impressora. readout_option=%d, Tentativa=%d" % (readout_option, i))
-                time.sleep(1)
-            except:
-                logger.exception("Erro lendo da impressora. readout_option=%d, Tentativa=%d" % (readout_option, i))
-                time.sleep(1)
-        if error:
-            sysactions.show_info_message(self._posid, str(error), msgtype="error")
-            raise error
-
-def _get_custom_property_value_by_key(property_key, custom_properties):
-    filtered_custom_properties = filter(lambda x: x[0] == property_key, custom_properties.items())
-    if len(filtered_custom_properties) == 1:
-        return filtered_custom_properties[0][1]
-    else:
-        return None
 
 @action
 def doModifier(posid, itemid, level, pcode, qty, linenumber, modtype):
@@ -5803,26 +5436,6 @@ def doModifier(posid, itemid, level, pcode, qty, linenumber, modtype):
 
     posot.blkopnotify = False
     posot.updateOrderProperties(posid)
-
-@action
-def doClearOptionItem(posid, linenumber="", itemid="", *args):
-    model = get_model(int(posid))
-    check_current_order(posid, model=model, need_order=True)
-    if not linenumber or not itemid:
-        show_info_message(posid, "Select the line to clear", msgtype="error")
-        return False  # Nothing to clear
-    # Clear the option
-    posot = get_posot(model)
-    try:
-        posot.clearOption(posid, linenumber, "", itemid)
-        return True
-    except ClearOptionException, e:
-        sys_log_exception("Could not clear option")
-        show_info_message(posid, "Error %s" % e, msgtype="error")
-    except OrderTakerException, e:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
-    return False
-
 
 
 @action

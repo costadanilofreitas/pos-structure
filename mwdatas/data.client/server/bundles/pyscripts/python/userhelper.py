@@ -30,11 +30,7 @@ case when FingerPrintMinutiae is NULL then 0 else 1 end as HasPrinterPrint
 
     def get_users_by_level(self, level):
         # type: () -> dict
-        return {x.get_entry(0): (x.get_entry(1), x.get_entry(2)) for x in self.conn.select("""select UserId, UserName, case when FingerPrintMinutiae is NULL then 0 else 1 end as HasPrinterPrint from Users where level='%s' and status=0""" % (level))}
-
-    def get_inactive_users_by_level(self, level):
-        # type: () -> dict
-        return {x.get_entry(0): (x.get_entry(1), x.get_entry(2)) for x in self.conn.select("""select UserId, UserName, case when FingerPrintMinutiae is NULL then 0 else 1 end as HasPrinterPrint from Users where level='%s' and status=1""" % (level))}
+        return {x.get_entry(0): (x.get_entry(1), x.get_entry(2)) for x in self.conn.select("""select UserId, UserName, case when FingerPrintMinutiae is NULL then 0 else 1 end as HasPrinterPrint from Users where level='%s' """ % (level))}
 
     def get_user_by_id(self, userid):
         return {x.get_entry(0): x.get_entry(1) for x in self.conn.select("select UserId, UserName from Users where UserId = '%s'" % userid)}
@@ -63,7 +59,7 @@ case when FingerPrintMinutiae is NULL then 0 else 1 end as HasPrinterPrint
 
     def remove_user(self, userid):
         return {self.conn.query("delete from Users where UserId = %s" % userid)}
-
+        
     def activate_user(self, userid, op):
         # op = 0 Activate - 1 Deactivate
         return {self.conn.query(
