@@ -46,6 +46,12 @@ class PMixReport(object):
         else:
             paid_orders = self.order_repository.get_paid_orders_by_business_period(initial_date, end_date)
         order_items = self.order_repository.get_orders_items(paid_orders)
+
+        count_pos_error = filter(lambda x:x == "error", order_items)
+        count_pos_error = len(count_pos_error)
+
+        order_items = filter(lambda x: x != "error", order_items)
+
         order_items = self.product_repository.get_order_items_names(order_items)
 
         grouped_order_items = {}
@@ -58,7 +64,7 @@ class PMixReport(object):
         order_items = grouped_order_items.values()
         order_items = sorted(order_items, key=lambda order_item: order_item.pcode)
 
-        header = self._build_header(pos_id, initial_date, end_date, report_type)
+        header = self._build_header(pos_id, initial_date, end_date, report_type, count_pos_error)
         body = self._build_body(order_items)
 
         report = header + body
@@ -66,7 +72,7 @@ class PMixReport(object):
 
         return report_bytes
 
-    def _build_header(self, pos_id, initial_date, end_date, report_type):
+    def _build_header(self, pos_id, initial_date, end_date, report_type, count_pos_error=0):
         # type: (int, datetime, datetime) -> unicode
         """
         ======================================
@@ -87,6 +93,8 @@ class PMixReport(object):
         header += u" Dia Util.....: {0} - {1}\n".format(initial_date.strftime("%d/%m/%y"), end_date.strftime("%d/%m/%y"))
         header += u" ID Operador..: " + u"{0} (Reg # {1})\n".format(operator, str(pos_id).zfill(2))
         header += u" POS incluido.: " + u"{0}\n".format(pos_list)
+        if count_pos_error > 0:
+            header += u" POS excluidos: " + u"{0}\n".format(count_pos_error)
         header += u"======================================\n"
 
         return header

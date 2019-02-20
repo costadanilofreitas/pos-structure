@@ -38,42 +38,47 @@ class OrderRepository(BaseRepository):
         # type: (unicode, Optional[datetime], Optional[datetime], Optional[unicode], Optional[unicode], Optional[unicode]) -> List[Order]
         def inner_func(conn):
             # type: (Connection) -> List[Order]
-            if report_type == self.TypeRealDate:
-                query = self._VoidedOrdersByRealDateQuery
-                date_format = "%Y-%m-%d"
-                query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
-            elif report_type == self.TypeBusinessPeriod:
-                query = self._VoidedOrdersByBusinessPeriodQuery
-                date_format = "%Y%m%d"
-                query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
-            else:
-                query = self._VoidedOrdersBySessionIdQuery
-                query = query.format(session_id)
 
-            if report_type == self.TypeRealDate or report_type == self.TypeBusinessPeriod:
-                if operator_id is not None:
-                    query += " and o.SessionId like '%user={0},%'".format(operator_id)
+            try:
+                if report_type == self.TypeRealDate:
+                    query = self._VoidedOrdersByRealDateQuery
+                    date_format = "%Y-%m-%d"
+                    query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
+                elif report_type == self.TypeBusinessPeriod:
+                    query = self._VoidedOrdersByBusinessPeriodQuery
+                    date_format = "%Y%m%d"
+                    query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
+                else:
+                    query = self._VoidedOrdersBySessionIdQuery
+                    query = query.format(session_id)
 
-            order_with_payments = [(int(x.get_entry(0)),
-                                    unicode(x.get_entry(1).split(" - ")[-1]),
-                                    int(re.search(r"(?:user=)(.\d*)", x.get_entry(2)).group(1)),
-                                    x.get_entry(3),
-                                    convert_from_utf_to_localtime(datetime.strptime(x.get_entry(4), "%Y-%m-%dT%H:%M:%S.%f")),
-                                    float(x.get_entry(5))) for x in conn.select(query)]
+                if report_type == self.TypeRealDate or report_type == self.TypeBusinessPeriod:
+                    if operator_id is not None:
+                        query += " and o.SessionId like '%user={0},%'".format(operator_id)
 
-            all_orders = []  # type: List[Order]
-            for order_tuple in order_with_payments:
-                order_id = order_tuple[0]
-                order_reason = order_tuple[1]
-                order_operator_id = order_tuple[2]
-                order_authorizer = order_tuple[3]
-                order_datetime = order_tuple[4]
-                order_total = order_tuple[5]
+                order_with_payments = [(int(x.get_entry(0)),
+                                        unicode(x.get_entry(1).split(" - ")[-1]),
+                                        int(re.search(r"(?:user=)(.\d*)", x.get_entry(2)).group(1)),
+                                        x.get_entry(3),
+                                        convert_from_utf_to_localtime(datetime.strptime(x.get_entry(4), "%Y-%m-%dT%H:%M:%S.%f")),
+                                        float(x.get_entry(5))) for x in conn.select(query)]
 
-                order = Order(order_id, order_reason, order_operator_id, order_authorizer, order_datetime, order_total)
-                all_orders.append(order)
+                all_orders = []  # type: List[Order]
+                for order_tuple in order_with_payments:
+                    order_id = order_tuple[0]
+                    order_reason = order_tuple[1]
+                    order_operator_id = order_tuple[2]
+                    order_authorizer = order_tuple[3]
+                    order_datetime = order_tuple[4]
+                    order_total = order_tuple[5]
 
-            return all_orders
+                    order = Order(order_id, order_reason, order_operator_id, order_authorizer, order_datetime, order_total)
+                    all_orders.append(order)
+
+                return all_orders
+            except:
+                return list({"error": "error"}.values())
+
 
         report_pos_list = self.pos_list if report_pos is None else (report_pos, )
         return self.execute_in_all_databases_returning_flat_list(inner_func, report_pos_list)

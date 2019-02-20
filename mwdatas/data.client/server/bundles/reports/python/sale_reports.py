@@ -1,15 +1,6 @@
 # -*- coding: utf-8 -*-
-# Module name: sale_reports.py
-# Module Description: Format sale reports
-#
-# Copyright © 2008 MWneo Corporation
-#
-# $Id$
-# $Revision$
-# $Date$
-# $Author$
 
-# Python standard modules
+# --- DO NOT CHANGE THE IMPORT ORDER --- #
 import time
 import json
 import qrcode
@@ -19,6 +10,8 @@ import xml.sax
 import xml.sax.handler
 import helper
 import re
+import os
+import sys
 
 from constants import *
 from xml.etree import ElementTree as eTree
@@ -30,21 +23,17 @@ from production import SystemOrderParser
 from prodpersist import OrderXml
 from persistence import Driver as DBDriver
 
-# COMMENT HERE
-# import sys
-# import os
-#
-# debugPath = '../python/pycharm-debug.egg'
-# if os.path.exists(debugPath):
-#     try:
-#         sys.path.index(debugPath)
-#     except:
-#         sys.path.append(debugPath)
-#     import pydevd
+debug_path = '../python/pycharm-debug.egg'
+if os.path.exists(debug_path):
+    try:
+        sys.path.index(debug_path)
+    except ValueError:
+        sys.path.append(debug_path)
+    # noinspection PyUnresolvedReferences
+    import pydevd
 
-# Use the line below in the function you want to debug
-# pydevd.settrace('localhost', port=9123, stdoutToServer=True, stderrToServer=True, suspend=False)
-# UNTIL HERE
+# Copy the line bellow and paste inside your function to debug
+# pydevd.settrace('localhost', port=9123, stdoutToServer=True, stderrToServer=True, suspend=True)
 
 sysactions.mbcontext = mbcontext
 COLS = 42
@@ -54,7 +43,7 @@ SMALL_SEPARATOR = ("=" * SMALL_COLS)
 DATE_TIME_FMT = "%d/%m/%Y %H:%M:%S"
 DATE_FMT = "%d/%m/%Y"
 TIME_FMT = "%H:%M:%S"
-RECEIPTS_HEADER = config.find_value("Receipts.Header", "BEM-VINDO AO POPEYES\\#00007971\\\\").split("\\")
+RECEIPTS_HEADER = config.find_value("Receipts.Header", "BEM-VINDO AO BURGER KING\\#00007971\\\\").split("\\")
 pick_up_type = None
 list_coupons = None
 products_ordination = None
@@ -237,7 +226,7 @@ N Parceiro..: {1}
         qty, default_qty, item_type, name, label, only_flag, min_qty, item_level, line_number, part_code = map(item.get, items_keys)
 
         only = (only_flag == "true")
-        item_level = float(item_level) if item_level else 0
+        item_level = int(item_level) if item_level else 0
 
         if item_level == 0 and qty == "0":
             return  # Ignore Removed Items
@@ -284,11 +273,7 @@ N Parceiro..: {1}
                     else:
                         report.write("%s\n" % line.encode("utf-8"))
             else:
-                pattern = re.compile('(FL|PD|SV|VB)')
-                if pattern.search(line) is not None:
-                    data = "%(TXT_BOLD_ON)s%(line)s%(TXT_BOLD_OFF)s\n" % _join(globals(), locals())
-                else :
-                    data = "%(line)s\n" % _join(globals(), locals())
+                data = "%(TXT_BOLD_ON)s%(line)s%(TXT_BOLD_OFF)s\n" % _join(globals(), locals())
                 report.write(data.encode("utf-8"))
 
             for comment in item.findall('Comment'):
@@ -380,7 +365,7 @@ N Parceiro..: {1}
 
     pod_type = order.get("pod_type")
     if pod_type == "KK":
-        return
+        return Exception()
 
     report.write("%(TXT_ALIGN_LT)s" % _join(globals(), locals()))
     report.write("%(TXT_BOLD_ON)s" % _join(globals(), locals()))
@@ -421,7 +406,7 @@ N Parceiro..: {1}
             item_type = sale_line.get('item_type')
             if item_type not in ('COMBO', 'OPTION', 'CANADD'):
                 search_results = re.search(r'Category=(.*?)"', sale_line.get("json_tags") or "")
-                category = search_results.group(1) if search_results else "OUTROS"
+                category = search_results.group(1) if search_results else ""
                 if category in standalone_products_exception:
                     products_in_exception.append(sale_line)
                 else:
@@ -480,7 +465,7 @@ N Parceiro..: {1}
             qty = float(sale_line.get('real_qty'))
             product_type = sale_line.get('item_type')
             modification = (sale_line.get('modification') or 'false') == 'true'
-            is_option = (sale_line.get('isOption') or 'false') == 'true'
+            is_option = (sale_line.get('is_option') or 'false') == 'true'
             if product_type == 'CANADD':
                 qty = max(qty - int(sale_line.get("default_qty")), 0)
 
@@ -508,17 +493,31 @@ N Parceiro..: {1}
         base_category = ''
         options = {}
         base_level = int(active_sale_lines[0].get('level'))
+        ignore_combo = False
 
         for sale_line in active_sale_lines:
-
             level = int(sale_line.get('level'))
             item_type = sale_line.get('item_type')
+
+            if level == 0 and float(sale_line.get('qty')) == 0 and item_type == "COMBO":
+                ignore_combo = True
+                continue
+            elif level == 0 and float(sale_line.get('qty')) != 0:
+                ignore_combo = False
+
+            if ignore_combo and level > 0:
+                continue
+
+            if float(sale_line.get('default_qty')) == 0 \
+                    and float(sale_line.get('qty')) == 0 \
+                    and float(sale_line.get('qty_added')) == 0:
+                continue
 
             if item_type not in ('COMBO', 'OPTION'):
                 if float(sale_line.get('real_qty')) <= 0 and int(sale_line.get('default_qty') or 0) == 0:
                     continue
                 search_result = re.search(r'Category=(.*?)"', sale_line.get("json_tags") or "")
-                category = search_result.group(1) if search_result else "OUTROS"
+                category = search_result.group(1) if search_result else ""
 
                 search_results = re.search(r'"QtyOptions=(.*?)"', sale_line.get("json_tags") or "")
                 if search_results:
@@ -557,7 +556,7 @@ N Parceiro..: {1}
                 sale_line.set('modification', 'true')
                 last_context_id = sale_line.get('item_id').split('.')[-1]
                 if last_context_id in options and options[last_context_id] > 0:
-                    sale_line.set('isOption', 'true')
+                    sale_line.set('is_option', 'true')
                     options[last_context_id] -= float(sale_line.get('real_qty'))
                 sale_line_dict[base_category][-1].append(sale_line)
 
@@ -570,13 +569,11 @@ N Parceiro..: {1}
         def fix_production_xml_qty(item, parent_qty=None):
             is_combo = item.get('item_type') == "OPTION"
             is_ingredient = False
-            is_cfh = False
             for tag in json.loads(item.get('json_tags')):
                 if "Category=EXTRA" == tag:
                     is_ingredient = True
                     break
                 elif "CFH=true" == tag:
-                    is_cfh = True
                     break
 
             if parent_qty is not None and not is_combo:
@@ -595,12 +592,13 @@ N Parceiro..: {1}
         if order_sum:
             report.write(order_sum)
         else:
-            return
+            return Exception()
     else:
         map(add_item, order.findall("Items/Item"))
 
     if sz == report.tell():
-        return
+        return Exception()
+
     report.write("%(TXT_BOLD_OFF)s\n" % _join(globals(), locals()))
     add_sale_type(order)
 
@@ -626,8 +624,7 @@ def get_store_id(pos_id):
     if not store_id:
         conn = None
         try:
-            conn = dbd.open(mbcontext)
-            conn.set_dbname(str(pos_id))
+            conn = dbd.open(mbcontext, dbname=str(pos_id))
             cursor = conn.select("SELECT KeyValue FROM storecfg.Configuration WHERE KeyPath = 'Store.Id'")
             for row in cursor:
                 store_id = row.get_entry(0)

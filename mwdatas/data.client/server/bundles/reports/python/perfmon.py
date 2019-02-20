@@ -46,13 +46,17 @@ def perfmon(*args):
         raise Exception("Could not retrieve PosList")
     poslist = sorted(map(int, msg.data.split("\0")))
     # create database connection
-    conn = dbd.open(mbcontext)
+    conn = None
+    try:
+        conn = dbd.open(mbcontext)
 
-    # get the business period, consulting the biggest businessPeriod was found in the table PosState
-    sql = "SELECT MAX(BusinessPeriod) AS BusinessPeriod FROM PosCtrl.PosState;"
-    cursor = conn.select(sql)
-    period = cursor.get_row(0).get_entry("BusinessPeriod")
-    conn.close()
+        # get the business period, consulting the biggest businessPeriod was found in the table PosState
+        sql = "SELECT MAX(BusinessPeriod) AS BusinessPeriod FROM PosCtrl.PosState;"
+        cursor = conn.select(sql)
+        period = cursor.get_row(0).get_entry("BusinessPeriod")
+    finally:
+        if conn:
+            conn.close()
     # --------------------
     # get configuration bundles
     # --------------------
@@ -142,92 +146,94 @@ def perfmon(*args):
             # loop for all instances querying the current period
             # --------------------
             for posid in poslist:
-                conn = dbd.open(mbcontext)
-                conn.set_dbname(str(posid))
-                conn.transaction_start()
-                # set interval period in the temporary table report
-                conn.query("DELETE FROM temp.ReportsPeriod")
-                conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,endPeriod) VALUES(%s,%s)" % (period, period))
-                # SQL part with interval
-                sqlPeriod = "strftime('%%Y-%%m-%%dT%%H:%%M:%%S',CreatedAt,'localtime') BETWEEN '%s' AND '%s'" % (perBegin, perEnd)
-                lastCachedId = 0
-                # consulting Sales for FC and DT
-                if (queryType == "sales"):
-                    for pod in dataMockup:
-                        sql = """
-                        CREATE TABLE IF NOT EXISTS cache.PerfMon (
-                            PosId              INTEGER,
-                            OrderId            INTEGER,
-                            DistributionPoint  VARCHAR,
-                            BusinessPeriod     INTEGER,
-                            CreatedAt          DATETIME,
-                            MultiOrderId       INTEGER,
-                            totTime            INTEGER
-                        );
-                        """
-                        conn.query(sql)
-                        sql = """
-                        INSERT INTO cache.PerfMon (PosId, OrderId, DistributionPoint, BusinessPeriod, CreatedAt, MultiOrderId, totTime)
-                          SELECT
-                             %(posid)s AS PosId, OrderId, DistributionPoint, BusinessPeriod, CreatedAt, MultiOrderId,
-                             (
-                                strftime('%%s', PaidTime) || substr(strftime('%%f', PaidTime), 4)
-                                -
-                                strftime('%%s', StartTime) || substr(strftime('%%f', StartTime), 4)
-                             ) AS totTime
-                          FROM
-                             (
-                             SELECT
-                                  O.OrderId AS OrderId,
-                                  O.DistributionPoint AS DistributionPoint,
-                                  O.BusinessPeriod AS BusinessPeriod,
-                                  O.CreatedAt AS CreatedAt,
-                                  O.MultiOrderId AS MultiOrderId,
-                                  (
-                                       SELECT MIN(Timestamp) FROM Orderdb.OrderStateHistory WHERE OrderId=O.OrderId AND StateId=1 AND BusinessPeriod='%(period)s'
-                                  ) AS StartTime,
-                                  (
-                                       SELECT MAX(Timestamp) FROM Orderdb.OrderStateHistory WHERE OrderId=O.OrderId AND StateId=5 AND BusinessPeriod='%(period)s'
-                                  ) AS PaidTime
-                               FROM
-                                  Orderdb.Orders O
-                               WHERE O.StateId=5 AND O.OrderType=0 AND BusinessPeriod='%(period)s'
-                             )
-                          WHERE totTime<>0 AND (
-                              OrderId > (SELECT MAX(MaxID) FROM (SELECT MAX(OrderId) AS MaxID FROM cache.PerfMon WHERE PosId=%(posid)s UNION SELECT 0 AS MaxID))
-                          )
-                        """ % {"period": period, "lastCachedId": lastCachedId, "posid": posid}
-                        conn.query(sql)
-                        sql = """
-                        SELECT
-                           COUNT() AS Qty, SUM(totTime) AS TotServiceTime
-                        FROM cache.PerfMon
-                        WHERE PosId=%(posid)s AND DistributionPoint='%(pod)s' AND %(sqlPeriod)s;
-                        """ % {"posid": posid, "period": period, "pod": pod, "sqlPeriod": sqlPeriod}
+                conn = None
+                try:
+                    conn = dbd.open(mbcontext, dbname=str(posid))
+                    conn.transaction_start()
+                    # set interval period in the temporary table report
+                    conn.query("DELETE FROM temp.ReportsPeriod")
+                    conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,endPeriod) VALUES(%s,%s)" % (period, period))
+                    # SQL part with interval
+                    sqlPeriod = "strftime('%%Y-%%m-%%dT%%H:%%M:%%S',CreatedAt,'localtime') BETWEEN '%s' AND '%s'" % (perBegin, perEnd)
+                    lastCachedId = 0
+                    # consulting Sales for FC and DT
+                    if (queryType == "sales"):
+                        for pod in dataMockup:
+                            sql = """
+                            CREATE TABLE IF NOT EXISTS cache.PerfMon (
+                                PosId              INTEGER,
+                                OrderId            INTEGER,
+                                DistributionPoint  VARCHAR,
+                                BusinessPeriod     INTEGER,
+                                CreatedAt          DATETIME,
+                                MultiOrderId       INTEGER,
+                                totTime            INTEGER
+                            );
+                            """
+                            conn.query(sql)
+                            sql = """
+                            INSERT INTO cache.PerfMon (PosId, OrderId, DistributionPoint, BusinessPeriod, CreatedAt, MultiOrderId, totTime)
+                              SELECT
+                                 %(posid)s AS PosId, OrderId, DistributionPoint, BusinessPeriod, CreatedAt, MultiOrderId,
+                                 (
+                                    strftime('%%s', PaidTime) || substr(strftime('%%f', PaidTime), 4)
+                                    -
+                                    strftime('%%s', StartTime) || substr(strftime('%%f', StartTime), 4)
+                                 ) AS totTime
+                              FROM
+                                 (
+                                 SELECT
+                                      O.OrderId AS OrderId,
+                                      O.DistributionPoint AS DistributionPoint,
+                                      O.BusinessPeriod AS BusinessPeriod,
+                                      O.CreatedAt AS CreatedAt,
+                                      O.MultiOrderId AS MultiOrderId,
+                                      (
+                                           SELECT MIN(Timestamp) FROM Orderdb.OrderStateHistory WHERE OrderId=O.OrderId AND StateId=1 AND BusinessPeriod='%(period)s'
+                                      ) AS StartTime,
+                                      (
+                                           SELECT MAX(Timestamp) FROM Orderdb.OrderStateHistory WHERE OrderId=O.OrderId AND StateId=5 AND BusinessPeriod='%(period)s'
+                                      ) AS PaidTime
+                                   FROM
+                                      Orderdb.Orders O
+                                   WHERE O.StateId=5 AND O.OrderType=0 AND BusinessPeriod='%(period)s'
+                                 )
+                              WHERE totTime<>0 AND (
+                                  OrderId > (SELECT MAX(MaxID) FROM (SELECT MAX(OrderId) AS MaxID FROM cache.PerfMon WHERE PosId=%(posid)s UNION SELECT 0 AS MaxID))
+                              )
+                            """ % {"period": period, "lastCachedId": lastCachedId, "posid": posid}
+                            conn.query(sql)
+                            sql = """
+                            SELECT
+                               COUNT() AS Qty, SUM(totTime) AS TotServiceTime
+                            FROM cache.PerfMon
+                            WHERE PosId=%(posid)s AND DistributionPoint='%(pod)s' AND %(sqlPeriod)s;
+                            """ % {"posid": posid, "period": period, "pod": pod, "sqlPeriod": sqlPeriod}
+                            cursor = conn.select(sql)
+                            for row in cursor:
+                                dataMockup[pod]['Qty'] += int(row.get_entry("Qty") or 0)
+                                dataMockup[pod]['ServiceTime'] += int(row.get_entry("TotServiceTime") or 0)
+                    # Consult Promotion
+                    elif (queryType == "promotion"):
+                        sql = "SELECT sum(OrderedQty) AS qty FROM OrderItem WHERE PartCode = %s AND OrderId IN ( SELECT OrderId AS qty FROM cache.PerfMon WHERE BusinessPeriod=%s AND %s )" % (promoItem, period, sqlPeriod)
                         cursor = conn.select(sql)
                         for row in cursor:
-                            dataMockup[pod]['Qty'] += int(row.get_entry("Qty") or 0)
-                            dataMockup[pod]['ServiceTime'] += int(row.get_entry("TotServiceTime") or 0)
-                # Consult Promotion
-                elif (queryType == "promotion"):
-                    sql = "SELECT sum(OrderedQty) AS qty FROM OrderItem WHERE PartCode = %s AND OrderId IN ( SELECT OrderId AS qty FROM cache.PerfMon WHERE BusinessPeriod=%s AND %s )" % (promoItem, period, sqlPeriod)
-                    cursor = conn.select(sql)
-                    for row in cursor:
-                        promoItemQty += int(row.get_entry("qty") or 0)
-                    # get Product Name
-                    sql = "Select ProductName from product WHERE ProductCode='%s'" % promoItem
-                    cursor = conn.select(sql)
-                    for row in cursor:
-                        productName = row.get_entry("ProductName")
-                # Consult cars
-                elif (queryType == "cars"):
-                    sql = "SELECT count() AS qty FROM cache.PerfMon WHERE BusinessPeriod=%s AND DistributionPoint='DT' AND MultiOrderId is NULL AND %s" % (period, sqlPeriod)
-                    cursor = conn.select(sql)
-                    for row in cursor:
-                        carQty += int(row.get_entry("qty") or 0)
+                            promoItemQty += int(row.get_entry("qty") or 0)
+                        # get Product Name
+                        sql = "Select ProductName from product WHERE ProductCode='%s'" % promoItem
+                        cursor = conn.select(sql)
+                        for row in cursor:
+                            productName = row.get_entry("ProductName")
+                    # Consult cars
+                    elif (queryType == "cars"):
+                        sql = "SELECT count() AS qty FROM cache.PerfMon WHERE BusinessPeriod=%s AND DistributionPoint='DT' AND MultiOrderId is NULL AND %s" % (period, sqlPeriod)
+                        cursor = conn.select(sql)
+                        for row in cursor:
+                            carQty += int(row.get_entry("qty") or 0)
 
-                conn.transaction_end()
-                conn.close()
+                finally:
+                    if conn:
+                        conn.close()
 
         # --------------------
         # Write data of current period in the XML

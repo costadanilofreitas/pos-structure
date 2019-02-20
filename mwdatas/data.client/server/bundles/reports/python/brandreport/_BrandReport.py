@@ -1,7 +1,8 @@
 import locale
 from datetime import datetime
 
-from typing import Dict, List, Optional
+from pos_model import TenderType
+from typing import Dict, List, Optional, Tuple
 
 from repository import OrderRepository, FiscalRepository, TenderRepository
 from .model import Order, TotalTender
@@ -46,7 +47,7 @@ class BrandReport(object):
         return self._generate_brand_report(self.TypeBusinessPeriod, pos_id, report_pos, initial_date, end_date, operator_id, None)
 
     def generate_brand_report_by_session_id(self, pos_id, session_id):
-        # type: (int, Optional[unicode], unicode) -> str
+        # type: (int, unicode) -> str
         return self._generate_brand_report(self.TypeSessionId, pos_id, None, None, None, None, session_id)
 
     def _generate_brand_report(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id, session_id):
@@ -67,12 +68,16 @@ class BrandReport(object):
             initial_date = end_date = datetime.strptime(session_id[start_index + 7:], "%Y%m%d")
 
         else:
-            paid_orders = self.order_repository.get_paid_orders_by_xml(initial_date, end_date)
-            operator_id = None
+            raise NotImplementedError()
+
+        count_pos_error = filter(lambda x:x == "error", paid_orders)
+        count_pos_error = len(count_pos_error)
+
+        paid_orders = filter(lambda x: x != "error", paid_orders)
 
         card_brands = self.fiscal_repository.get_card_brands(paid_orders)
 
-        header = self._build_header(report_type, pos_id, report_pos, initial_date, end_date, operator_id)
+        header = self._build_header(report_type, pos_id, report_pos, initial_date, end_date, operator_id, count_pos_error)
         body = self._build_body(paid_orders, card_brands)
 
         report = header + body
@@ -80,7 +85,7 @@ class BrandReport(object):
 
         return report_bytes
 
-    def _build_header(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id):
+    def _build_header(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id, count_pos_error=0):
         # type: (unicode, int, Optional[unicode], datetime, datetime, unicode) -> unicode
         """
         ======================================
@@ -113,11 +118,15 @@ class BrandReport(object):
         header += u" {0:.<13}: {1} - {2}\n".format(report_type_text, initial_date.strftime("%d/%m/%y"), end_date.strftime("%d/%m/%y"))
         header += u" ID Operador..: " + u"{0} (Reg # {1})\n".format(operator, str(pos_id).zfill(2))
         header += u" POS incluido.: " + u"{0}\n".format(pos_list)
+        if count_pos_error > 0:
+            header += u" POS excluidos: " + u"{0}\n".format(count_pos_error)
         header += u"======================================\n"
 
         return header
 
     def _build_body(self, paid_orders, card_brands):
+        # type: (List[Order], List[Tuple[unicode, int, float, int]]) -> unicode
+
         """
         Descricao          Qtd    Total
           DINHEIRO.......: [XXXX] R$ 00.000,00
@@ -130,7 +139,6 @@ class BrandReport(object):
         :param transfers: the list of all transfers
         :return: the report bytes encoded with UTF-8
         """
-        # type: (List[Order], List[Order], List[Transfer]) -> unicode
 
         total_tender = ""
         value_paid_orders = 0.0
@@ -170,16 +178,22 @@ class BrandReport(object):
         body = u"Descricao          Qtd    Total\n"
         if card_brands is None:
             for total_tender in total_tender_by_type_list:
-                body += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name, total_tender.quantity, locale.format("%.2f", total_tender.value, True))
+                body += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name,
+                                                                   total_tender.quantity,
+                                                                   locale.format("%.2f", total_tender.value, True))
         else:
             for total_tender in total_tender_by_type_list:
-                if total_tender.tender_type == 0:
-                    body += u" {0:.<16}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name, total_tender.quantity, locale.format("%.2f", total_tender.value, True))
+                if total_tender.tender_type not in (TenderType.credit, TenderType.debit):
+                    body += u" {0:.<16}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name,
+                                                                      total_tender.quantity,
+                                                                      locale.format("%.2f", total_tender.value, True))
                 else:
                     body += u" {0:.<16}:\n".format(total_tender.tender_name)
                     for brand in card_brands:
                         if total_tender.tender_type == brand[1]:
-                            body += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(brand[0][:15], brand[3], locale.format("%.2f", brand[2], True))
+                            body += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(brand[0][:15],
+                                                                               brand[3],
+                                                                               locale.format("%.2f", brand[2], True))
         body += u"======================================\n"
 
         return body

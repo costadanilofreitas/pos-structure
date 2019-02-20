@@ -32,7 +32,7 @@ class OrderRepository(BaseRepository):
         return self._get_paid_orders(self.TypeSessionId, None, None, None, session_id, None)
 
     def _get_paid_orders(self, report_type, initial_date, end_date, operator_id, session_id, report_pos):
-        # type: (unicode, Optional[datetime], Optional[datetime], Optional[unicode], Optional[unicode]) -> List[Order]
+        # type: (unicode, Optional[datetime], Optional[datetime], Optional[unicode], Optional[unicode], Optional[unicode]) -> List[Order]
         def inner_func(conn):
             # type: (Connection) -> List[Order]
             try:
@@ -81,7 +81,7 @@ class OrderRepository(BaseRepository):
 
                 return list(all_orders.values())
             except Exception as _:
-                return list()
+                return list({"error": "error"}.values())
 
         report_pos_list = self.pos_list if report_pos is None else (report_pos,)
         return self.execute_in_all_databases_returning_flat_list(inner_func, report_pos_list)

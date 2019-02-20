@@ -33,33 +33,25 @@
     </Procedure>
 
     <Procedure name="fiscal_getBKOfficeToSend_asc">
-		SELECT fd.OrderId, fd.PosId, fd.NumeroSat, fd.XmlRequest, group_concat(coalesce(pd.AuthCode, ' ')), group_concat(coalesce(pd.idAuth, ' ')), fd.OrderPicture, fd.NumeroNota, fd.XMLResponse, group_concat(coalesce(pd.Type, ' ')), group_concat(coalesce(pd.Bandeira, ' '))
-		FROM FiscalData fd
-		LEFT OUTER JOIN PaymentData pd
-		ON fd.OrderId = pd.OrderId
-		WHERE ( (SentToBKOffice = 0 AND SentToNfce = 1)
-		OR (SentToBKOffice BETWEEN -100 AND -2 AND (NextDateToSend &lt; strftime('%s', 'now') OR NextDateToSend IS NULL) ) )
-		AND (pd.Amount > 0)
-		GROUP BY fd.OrderId
-		ORDER BY fd.OrderId asc
-		LIMIT 500
+        SELECT fd.OrderId, fd.PosId, fd.NumeroSat, fd.XmlRequest, fd.OrderPicture, fd.NumeroNota, fd.XMLResponse
+        FROM FiscalData fd
+        WHERE SentToNfce = 1 AND (SentToBKOffice = 0 OR (SentToBKOffice BETWEEN -100 AND -2 AND (NextDateToSend &lt; strftime('%s', 'now') OR NextDateToSend IS NULL) ) )
+        GROUP BY fd.OrderId
+        ORDER BY fd.OrderId asc
+        LIMIT 500
 	</Procedure>
 
     <Procedure name="fiscal_getBKOfficeToSend_desc">
-		SELECT fd.OrderId, fd.PosId, fd.NumeroSat, fd.XmlRequest, group_concat(coalesce(pd.AuthCode, ' ')), group_concat(coalesce(pd.idAuth, ' ')), fd.OrderPicture, fd.NumeroNota, fd.XMLResponse, group_concat(coalesce(pd.Type, ' ')), group_concat(coalesce(pd.Bandeira, ' '))
-		FROM FiscalData fd
-		LEFT OUTER JOIN PaymentData pd
-		ON fd.OrderId = pd.OrderId
-		WHERE ( (SentToBKOffice = 0 AND SentToNfce = 1)
-		OR (SentToBKOffice BETWEEN -100 AND -2 AND (NextDateToSend &lt; strftime('%s', 'now') OR NextDateToSend IS NULL) ) )
-		AND (pd.Amount > 0)
-		GROUP BY fd.OrderId
-		ORDER BY fd.OrderId desc
-		LIMIT 500
+        SELECT fd.OrderId, fd.PosId, fd.NumeroSat, fd.XmlRequest, fd.OrderPicture, fd.NumeroNota, fd.XMLResponse
+        FROM FiscalData fd
+        WHERE SentToNfce = 1 AND (SentToBKOffice = 0 OR (SentToBKOffice BETWEEN -100 AND -2 AND (NextDateToSend &lt; strftime('%s', 'now') OR NextDateToSend IS NULL) ) )
+        GROUP BY fd.OrderId
+        ORDER BY fd.OrderId desc
+        LIMIT 500
 	</Procedure>
 
 	<Procedure name="fiscal_getBKOfficeToSendOrderID">
-		SELECT fd.OrderId, fd.PosId, fd.NumeroSat, fd.XmlRequest, group_concat(coalesce(pd.AuthCode, ' ')), group_concat(coalesce(pd.idAuth, ' ')), fd.OrderPicture, fd.NumeroNota, fd.XMLResponse, group_concat(coalesce(pd.Type, ' ')), group_concat(coalesce(pd.Bandeira, ' '))
+		SELECT fd.OrderId, fd.PosId, fd.NumeroSat, fd.XmlRequest, fd.OrderPicture, fd.NumeroNota, fd.XMLResponse
 		FROM FiscalData fd
 		LEFT OUTER JOIN PaymentData pd
 		ON fd.OrderId = pd.OrderId
@@ -115,13 +107,6 @@
 		FROM FiscalData
 		WHERE DataNota = 1
 		ORDER BY OrderId DESC LIMIT 500 OFFSET CAST(:offset AS integer)
-    </Procedure>
-
-    <Procedure name="fiscal_getBKCToFixOrderPicture">
-		SELECT PosId, OrderId, XmlRequest
-		FROM FiscalData
-		WHERE OrderPicture = 1
-		ORDER BY PosId, OrderId LIMIT 500 OFFSET CAST(:offset AS integer)
     </Procedure>
 
 	<Procedure name="fiscal_setOrderIgnoredBKC">

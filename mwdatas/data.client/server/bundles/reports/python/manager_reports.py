@@ -1,15 +1,5 @@
 # -*- coding: utf-8 -*-
-# Module name: manager_reports.py
-# Module Description: Format manager reports
-#
-# Copyright (C) 2008-2010 MWneo Corporation
-#
-# $Id$
-# $Revision$
-# $Date$
-# $Author$
 
-# Python standard modules
 import datetime
 import time
 import json
@@ -18,13 +8,13 @@ import ast
 import re
 import cfgtools
 import os
+import sys
 
 from xml.etree import cElementTree as etree
 from cStringIO import StringIO
 from collections import defaultdict
 from decimal import Decimal as D
 
-# Our modules
 from systools import sys_log_error, sys_log_exception
 from reports import dbd, mbcontext, Report
 from msgbus import TK_POS_GETPOSLIST, TK_SYS_NAK, TK_SYS_ACK
@@ -41,16 +31,14 @@ from voidedreport import VoidedReport
 from voidedreport.repository import OrderRepository as VoidedOrderRepository
 
 
-# # region Use the lines below in the function you want to debug
-import sys
-debugPath = '../python/pycharm-debug.egg'
-if os.path.exists(debugPath):
+debug_path = '../python/pycharm-debug.egg'
+if os.path.exists(debug_path):
     try:
-        sys.path.index(debugPath)
-    except Exception as _:
-        sys.path.append(debugPath)
+        sys.path.index(debug_path)
+    except ValueError:
+        sys.path.append(debug_path)
+    # noinspection PyUnresolvedReferences
     import pydevd
-# endregion
 
 
 COLS = 38
@@ -127,8 +115,8 @@ def _fmt_number(number, decimalPlaces=2, decimalSep='.', thousandsSep=','):
     return sign + number
 
 
-def hourlySales(posid, period, pos, store_id="", *args):
-    #pydevd.settrace('localhost', port=9123, stdoutToServer=True, stderrToServer=True, suspend=False)
+def hourlySales(pos_id, period, pos, store_id="", *args):
+
     if pos == '0':
         # get a pos list
         msg = mbcontext.MB_EasySendMessage("PosController", TK_POS_GETPOSLIST)
@@ -136,79 +124,93 @@ def hourlySales(posid, period, pos, store_id="", *args):
             sys_log_error("Could not retrieve PosList")
             raise Exception("Could not retrieve PosList")
 
-        pos_list = sorted(map(int, msg.data.split("\0")))
+        poslist = sorted(map(int, msg.data.split("\0")))
     else:
-        pos_list = [pos]
+        poslist = [pos]
 
-    order_repository = OrderRepository(mbcontext, pos_list, u"")
-    account_repository = AccountRepository(mbcontext)
-    tender_repository = TenderRepository(mbcontext)
-    fiscal_repository = FiscalRepository(mbcontext)
-    pos_ctrl_repository = PosCtrlRepository(mbcontext)
-    operator_id = None
-    report_pos = None
+    hourly = defaultdict(lambda: {
+        'Transactions': 0, 'TotalGross': ZERO, 'TotalNet': ZERO, 'TotalDiscount': ZERO, 'GiftCardsTotalAmount': ZERO,
+        'EatIn_Transactions': 0, 'EatIn_TotalGross': ZERO, 'EatIn_TotalNet': ZERO, 'EatIn_TotalDiscount': ZERO, 'EatIn_GiftCardsTotalAmount': ZERO,
+        'TakeOut_Transactions': 0, 'TakeOut_TotalGross': ZERO, 'TakeOut_TotalNet': ZERO, 'TakeOut_TotalDiscount': ZERO, 'TakeOut_GiftCardsTotalAmount': ZERO,
+        'DriveThru_Transactions': 0, 'DriveThru_TotalGross': ZERO, 'DriveThru_TotalNet': ZERO, 'DriveThru_TotalDiscount': ZERO, 'DriveThru_GiftCardsTotalAmount': ZERO
+    })
 
-    cash_report = CashReport(order_repository, account_repository, tender_repository, fiscal_repository,
-                             pos_ctrl_repository, store_id)
-    pos_id = int(posid)
+    # copy struct hourly
+    kiosk_hourly = copy.copy(hourly)
+    delivery_hourly = copy.copy(hourly)
+    drive_hourly = copy.copy(hourly)
 
-    report_query = cash_report.generate_hourly_sale(report_pos, period, period)
-    hourly = defaultdict(lambda: {'Store_Transaction': ZERO,
-                                  'DriveThru_Transaction': ZERO,
-                                  'Kiosk_Transaction': ZERO,
-                                  'Store_Total': ZERO,
-                                  'DriveThru_Total': ZERO,
-                                  'Kiosk_Total': ZERO,
-                                  'Store_Transaction_Accumulated': ZERO,
-                                  'DriveThru_Transaction_Accumulated': ZERO,
-                                  'Kiosk_Transaction_Accumulated': ZERO,
-                                  'Store_Total_Accumulated': ZERO,
-                                  'DriveThru_Total_Accumulated': ZERO,
-                                  'Kiosk_Total_Accumulated': ZERO})
-
-    store_transaction_accumulated = ZERO
-    drive_thru_transaction_accumulated = ZERO
-    kiosk_transaction_accumulated = ZERO
-
-    store_total_accumulated = ZERO
-    drive_thru_total_accumulated = ZERO
-    kiosk_total_accumulated = ZERO
-
-    for row in report_query:
-        store_type = row[0]
-        order_date = row[1]
-        order_hour = row[2]
-        order_minute = row[3]
-        total_hour = row[4]
-        total_transaction = row[5]
+    pos_error = []
+    cursor = None
+    for pos_db_id in poslist:
+        conn = None
         try:
-            slot = hourly[order_date, str(order_hour) + ":" + str(order_minute).zfill(2)]
-            if store_type == 'STORE':
-                store_transaction_accumulated += int(total_transaction or 0)
-                store_total_accumulated += D(total_hour or 0)
-                slot['Store_Transaction'] = int(total_transaction or 0)
-                slot['Store_Total'] = D(total_hour or 0)
-                slot['Store_Transaction_Accumulated'] = store_transaction_accumulated
-                slot['Store_Total_Accumulated'] = store_total_accumulated
-            elif store_type == "DT":
-                drive_thru_transaction_accumulated += int(total_transaction or 0)
-                drive_thru_total_accumulated += D(total_hour or 0)
-                slot['DriveThru_Transaction'] = int(total_transaction or 0)
-                slot['DriveThru_TotalGross'] = D(total_hour or 0)
-                slot['DriveThru_Transaction_Accumulated'] = drive_thru_transaction_accumulated
-                slot['DriveThru_Total_Accumulated'] = drive_thru_total_accumulated
-            else:
-                kiosk_transaction_accumulated += int(total_transaction or 0)
-                kiosk_total_accumulated += D(total_hour or 0)
-                slot['Kiosk_Transaction'] = int(total_transaction or 0)
-                slot['Kiosk_TotalGross'] = D(total_hour or 0)
-                slot['Kiosk_Transaction_Accumulated'] = kiosk_transaction_accumulated
-                slot['Kiosk_Total_Accumulated'] = kiosk_total_accumulated
+            # opens the database connection
+            conn = dbd.open(mbcontext, dbname=str(pos_db_id))
+
+            # reserve the database connection
+            conn.transaction_start()
+
+            # set the period
+            conn.query("DELETE FROM temp.ReportsPeriod")
+            conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,EndPeriod) VALUES(%s,%s)" % (period, period))
+
+            # get the data
+            cursor = conn.select("Select * from temp.HourlySalesReportView WHERE PosId='%s' AND BusinessPeriod='%s';" % (pos_db_id, period))
+            for row in cursor:
+                Day, Time, Transactions, TotalGross, TotalNet, TotalDiscount, GiftCardsTotalAmount, EIT, EIG, EIN, EID, EIGC, TOT, TOG, TON, TOD, TOGC, DTT, DTG, DTN, DTD, DTGC, PodType = map(row.get_entry, ("SlotDay", "SlotTime", "Transactions", "TotalGross", "TotalNet", "TotalDiscount", "GiftCardsTotalAmount", "EatIn_Transactions", "EatIn_TotalGross", "EatIn_TotalNet", "EatIn_TotalDiscount", "EatIn_GiftCardsTotalAmount", "TakeOut_Transactions", "TakeOut_TotalGross", "TakeOut_TotalNet", "TakeOut_TotalDiscount", "TakeOut_GiftCardsTotalAmount", "DriveThru_Transactions", "DriveThru_TotalGross", "DriveThru_TotalNet", "DriveThru_TotalDiscount", "DriveThru_GiftCardsTotalAmount", "PODType"))
+
+                slot = hourly[Day, Time]
+
+                if PodType == 'KK':
+                    kiosk_slot = kiosk_hourly[Day, Time]
+                    kiosk_slot['EatIn_Transactions'] += D(EIT or 0)
+                    kiosk_slot['EatIn_TotalGross'] += D(EIG or 0)
+                    kiosk_slot['TakeOut_Transactions'] += D(TOT or 0)
+                    kiosk_slot['TakeOut_TotalGross'] += D(TOG or 0)
+
+                elif PodType == 'DL':
+                    delivery_slot = delivery_hourly[Day, Time]
+                    delivery_slot['Transactions'] += int(Transactions or 0)
+                    delivery_slot['TotalGross'] += D(TotalGross or 0)
+
+                elif PodType == 'DT':
+                    drive_slot = drive_hourly[Day, Time]
+                    drive_slot['DriveThru_Transactions'] += D(DTT or 0)
+                    drive_slot['DriveThru_TotalGross'] += D(DTG or 0)
+                    drive_slot['DriveThru_TotalNet'] += D(DTN or 0)
+                    drive_slot['DriveThru_TotalDiscount'] += D(DTD or 0)
+                    drive_slot['DriveThru_GiftCardsTotalAmount'] += D(DTGC or 0)
+
+                else:
+                    slot['Transactions'] += int(Transactions or 0)
+                    slot['TotalGross'] += D(TotalGross or 0)
+                    slot['TotalNet'] += D(TotalNet or 0)
+                    slot['TotalDiscount'] += D(TotalDiscount or 0)
+                    slot['GiftCardsTotalAmount'] += D(GiftCardsTotalAmount or 0)
+                    slot['EatIn_Transactions'] += D(EIT or 0)
+                    slot['EatIn_TotalGross'] += D(EIG or 0)
+                    slot['EatIn_TotalNet'] += D(EIN or 0)
+                    slot['EatIn_TotalDiscount'] += D(EID or 0)
+                    slot['EatIn_GiftCardsTotalAmount'] += D(EIGC or 0)
+                    slot['TakeOut_Transactions'] += D(TOT or 0)
+                    slot['TakeOut_TotalGross'] += D(TOG or 0)
+                    slot['TakeOut_TotalNet'] += D(TON or 0)
+                    slot['TakeOut_TotalDiscount'] += D(TOD or 0)
+                    slot['TakeOut_GiftCardsTotalAmount'] += D(TOGC or 0)
+
         except Exception as ex:
-            pass
+            pos_error.append(pos_db_id)
+            sys_log_exception("Erro POS: " + str(pos_db_id) + " Mensagem: " + ex.message)
+        finally:
+            # close database connection
+            if conn:
+                conn.close()
 
     # create string I/O to append the report info
     report = StringIO()
+    if not cursor:
+        return
 
     #         11        21        31      |
     # 12345678901234567890123456789012345678
@@ -231,35 +233,38 @@ def hourlySales(posid, period, pos, store_id="", *args):
 
     store_id = store_id.zfill(5)
     # header
-    print_poslist = 'Todos' if len(pos_list) > 1 else pos_list
-    # if pos_error:
-    #     title = _center("Relatorio Horario de Vendas (Parcial)")
-    # else:
-    #     title = _center("Relatorio Horario de Vendas")
-    title = _center("Relatorio Horario de Vendas")
+    print_poslist = 'Todos' if len(poslist) > 1 else poslist
+    if pos_error:
+        title = _center("Relatorio Horario de Vendas (Parcial)")
+    else:
+        title = _center("Relatorio Horario de Vendas")
     current_datetime = time.strftime(DATE_TIME_FMT)
     business_period = "%02d/%02d/%04d" % (int(period[6:8]), int(period[4:6]), int(period[:4]))
     report.write(
         """%(SEPARATOR)s
-%(title)s
-  Loja..........: %(store_id)s
-  Data/hora.....: %(current_datetime)s
-  Dia Util......: %(business_period)s
-  POS incluido..: %(print_poslist)s
-""" % _join(globals(), locals()))
-    # if pos_error:
-    #     report.write("  POS erro......: %s\n" % pos_error)
+        %(title)s
+          Loja..........: %(store_id)s
+          Data/hora.....: %(current_datetime)s
+          Dia Util......: %(business_period)s
+          POS incluido..: %(print_poslist)s
+        """ % _join(globals(), locals()))
+    if pos_error:
+        report.write("  POS erro......: %s\n" % pos_error)
     report.write("%s\n" % (SEPARATOR))
     # report.write("Data\n")
     report.write(" Tipo  Hora  NT    Total  NT Acumulado\n")
     report.write("%s\n" % (SINGLE_SEPARATOR))
 
     listDT = hourly.keys()
-    lastDay = ""
     listDT.sort()
-    dt_lanes = int(read_swconfig(mbcontext, "Store.DTLanes") or 0)
-    kiosk = int(read_swconfig(mbcontext, "Store.Kiosk") or 0)
+    lastDay = ""
+    running_totals = {'Transactions': 0, 'TotalDiscount': ZERO, 'TotalNet': ZERO, 'TotalGross': ZERO, 'StoreTransactions': ZERO, 'StoreTotalGross': ZERO}
+    # Copy struct running_totals
+    kiosk_running_totals = copy.copy(running_totals)
+    delivery_running_totals = copy.copy(running_totals)
+    drive_running_totals = copy.copy(running_totals)
 
+    show_total = False
     for key in listDT:
         Day, Time = key
 
@@ -268,49 +273,77 @@ def hourlySales(posid, period, pos, store_id="", *args):
             lastDay = Day
 
         v = hourly[key]
+        kiosk_v = kiosk_hourly[key]
+        delivery_v = delivery_hourly[key]
+        drive_v = drive_hourly[key]
 
-        store_transaction = v['Store_Transaction']
-        drive_thru_transaction = v['DriveThru_Transaction']
-        kiosk_transaction = v['Kiosk_Transaction']
+        # eLanes request - remove GC sold from net&gross amounts
+        v["TotalNet"] -= v["GiftCardsTotalAmount"]
+        v["TotalGross"] -= v["GiftCardsTotalAmount"]
+        v["EatIn_TotalNet"] -= v["EatIn_GiftCardsTotalAmount"]
+        v["EatIn_TotalGross"] -= v["EatIn_GiftCardsTotalAmount"]
+        v["TakeOut_TotalNet"] -= v["TakeOut_GiftCardsTotalAmount"]
+        v["TakeOut_TotalGross"] -= v["TakeOut_GiftCardsTotalAmount"]
 
-        store_total = v['Store_Total']
-        drive_thru_total = v['DriveThru_Total']
-        kiosk_total = v['Kiosk_Total']
+        drive_v["DriveThru_TotalNet"] -= drive_v["DriveThru_GiftCardsTotalAmount"]
+        drive_v["DriveThru_TotalGross"] -= drive_v["DriveThru_GiftCardsTotalAmount"]
 
-        store_transaction_accumulated = v['Store_Transaction_Accumulated']
-        drive_thru_transaction_accumulated = v['DriveThru_Transaction_Accumulated']
-        kiosk_transaction_accumulated = v['Kiosk_Transaction_Accumulated']
+        store_transactions = v['EatIn_Transactions'] + v['TakeOut_Transactions']
+        store_total_gross = v['EatIn_TotalGross'] + v['TakeOut_TotalGross']
 
-        store_total_accumulated = v['Store_Total_Accumulated']
-        drive_thru_total_accumulated = v['DriveThru_Total_Accumulated']
-        kiosk_total_accumulated = v['Kiosk_Total_Accumulated']
+        kiosk_store_transactions = kiosk_v['EatIn_Transactions'] + kiosk_v['TakeOut_Transactions']
+        kiosk_store_total_gross = kiosk_v['EatIn_TotalGross'] + kiosk_v['TakeOut_TotalGross']
 
-        report.write(" LOJA  %s %03d %8.2f %03d %8.2f\n" % (Time,
-                                                            store_transaction,
-                                                            store_total,
-                                                            store_transaction_accumulated,
-                                                            store_total_accumulated))
+        running_totals['TotalDiscount'] += v['TotalDiscount']
+        running_totals['TotalNet'] += v['TotalNet']
 
-        if dt_lanes > 0:
-            report.write(" DRIVE %s %03d %8.2f %03d %8.2f\n" % (Time,
-                                                                drive_thru_transaction,
-                                                                drive_thru_total,
-                                                                drive_thru_transaction_accumulated,
-                                                                drive_thru_total_accumulated))
+        running_totals['StoreTransactions'] += store_transactions
+        running_totals['StoreTotalGross'] += store_total_gross
 
-        if kiosk > 0:
-            report.write(" KIOSK %s %03d %8.2f %03d %8.2f\n" % (Time,
-                                                                kiosk_transaction,
-                                                                kiosk_total,
-                                                                kiosk_transaction_accumulated,
-                                                                kiosk_total_accumulated))
+        kiosk_running_totals['StoreTransactions'] += kiosk_store_transactions
+        kiosk_running_totals['StoreTotalGross'] += kiosk_store_total_gross
 
-        if dt_lanes > 0 or kiosk > 0:
-            report.write(" TOTAL %s %03d %8.2f %03d %8.2f\n\n" % (Time,
-                                                                  store_transaction + drive_thru_transaction + kiosk_transaction,
-                                                                  store_total + drive_thru_total + kiosk_total,
-                                                                  store_transaction_accumulated + drive_thru_transaction_accumulated + kiosk_transaction_accumulated,
-                                                                  store_total_accumulated + drive_thru_total_accumulated + kiosk_total_accumulated))
+        delivery_running_totals['StoreTransactions'] += delivery_v['Transactions']
+        delivery_running_totals['StoreTotalGross'] += delivery_v['TotalGross']
+
+        drive_running_totals['StoreTransactions'] += drive_v['DriveThru_Transactions']
+        drive_running_totals['StoreTotalGross'] += drive_v['DriveThru_TotalGross']
+
+        running_totals['Transactions'] = running_totals['StoreTransactions'] \
+                                         + kiosk_running_totals['StoreTransactions'] \
+                                         + delivery_running_totals['StoreTransactions'] \
+                                         + drive_running_totals['StoreTransactions']
+        running_totals['TotalGross'] = running_totals['StoreTotalGross'] \
+                                       + kiosk_running_totals['StoreTotalGross'] \
+                                       + delivery_running_totals['StoreTotalGross'] \
+                                       + drive_running_totals['StoreTotalGross']
+
+        totals_list = [store_transactions, drive_v['DriveThru_Transactions'], kiosk_store_transactions, delivery_v['Transactions']]
+        count_totals = sum(i > 0 for i in totals_list)
+
+        show_total = True if count_totals > 1 else show_total
+        report.write("\n") if show_total else None
+
+        if running_totals['StoreTransactions'] > 0:
+            report.write(" LOJA  %s %03d %8.2f %03d %8.2f\n" % (Time, store_transactions, store_total_gross, running_totals['StoreTransactions'], running_totals['StoreTotalGross']))
+
+        if drive_running_totals['StoreTransactions'] > 0:
+            report.write(" DRIVE %s %03d %8.2f %03d %8.2f\n" % (Time, drive_v['DriveThru_Transactions'], drive_v['DriveThru_TotalGross'], drive_running_totals['StoreTransactions'], drive_running_totals['StoreTotalGross']))
+            v['Transactions'] += drive_v['DriveThru_Transactions']
+            v['TotalGross'] += drive_v['DriveThru_TotalGross']
+
+        if kiosk_running_totals['StoreTransactions'] > 0:
+            report.write(" KIOSK %s %03d %8.2f %03d %8.2f\n" % (Time, kiosk_store_transactions, kiosk_store_total_gross, kiosk_running_totals['StoreTransactions'], kiosk_running_totals['StoreTotalGross']))
+            v['Transactions'] += kiosk_store_transactions
+            v['TotalGross'] += kiosk_store_total_gross
+
+        if delivery_running_totals['StoreTransactions'] > 0:
+            report.write(" DLY   %s %03d %8.2f %03d %8.2f\n" % (Time, delivery_v['Transactions'], delivery_v['TotalGross'], delivery_running_totals['StoreTransactions'], delivery_running_totals['StoreTotalGross']))
+            v['Transactions'] += delivery_v['Transactions']
+            v['TotalGross'] += delivery_v['TotalGross']
+
+        if show_total:
+            report.write(" TOTAL %s %03d %8.2f %03d %8.2f\n" % (Time, v['Transactions'], v['TotalGross'], running_totals['Transactions'], running_totals['TotalGross']))
 
     report.write("%s\n" % (SEPARATOR))
     return report.getvalue()
@@ -369,336 +402,335 @@ def cash(posid, period, operatorid, store_wide, posnumbers, report_type="0", ses
         pos_included.append(posno)
 
         # create database connection
+        conn = None
         try:
-            conn = dbd.open(mbcontext, posno)
-        except:
-            sys_log_exception("Excecao abrindo conexao com pos: " + str(posno))
-            continue
+            try:
+                conn = dbd.open(mbcontext, dbname=str(posno))
+            except:
+                sys_log_exception("Excecao abrindo conexao com pos: " + str(posno))
+                continue
 
-        # reserve a database connection
-        conn.transaction_start()
+            # reserve a database connection
+            conn.transaction_start()
 
-        # set the period
-        conn.query("DELETE FROM temp.ReportsPeriod")
-        conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,EndPeriod) VALUES(%s,%s)" % (period, period))
+            # set the period
+            conn.query("DELETE FROM temp.ReportsPeriod")
+            conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,EndPeriod) VALUES(%s,%s)" % (period, period))
 
-        if (report_type == "Relatorio Surpresa") and int(operatorid):
-            # Retrieve only the latest session id (eLanes ticket #15)
-            cursor = conn.select("SELECT SessionId FROM posctrl.UserSession WHERE BusinessPeriod='%s' AND PosId=%s AND OperatorId=%s ORDER BY OpenTime DESC LIMIT 1" % (period, posid, operatorid))
-            if cursor.rows():
-                session_id = cursor.get_row(0).get_entry(0)
-            cursor = None
+            if (report_type == "Relatorio Surpresa") and int(operatorid):
+                # Retrieve only the latest session id (eLanes ticket #15)
+                cursor = conn.select("SELECT SessionId FROM posctrl.UserSession WHERE BusinessPeriod='%s' AND PosId=%s AND OperatorId=%s ORDER BY OpenTime DESC LIMIT 1" % (period, posid, operatorid))
+                if cursor.rows():
+                    session_id = cursor.get_row(0).get_entry(0)
 
-        # select temporary table
-        if session_id:
-            cursor = conn.select("SELECT * from temp.CASHView WHERE BusinessPeriod='%s' AND SessionId='%s';" % (period, session_id))
-        elif int(operatorid):
-            cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s' AND OperatorId='%s';" % (posno, period, operatorid))
-        else:
-            cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s';" % (posno, period))
+            # select temporary table
+            if session_id:
+                cursor = conn.select("SELECT * from temp.CASHView WHERE BusinessPeriod='%s' AND SessionId='%s';" % (period, session_id))
+            elif int(operatorid):
+                cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s' AND OperatorId='%s';" % (posno, period, operatorid))
+            else:
+                cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s';" % (posno, period))
 
-        # for col in cursor.get_names():
-        #     report.write("%*s "%(25, col))
-        # report.write("\n")
+            # for col in cursor.get_names():
+            #     report.write("%*s "%(25, col))
+            # report.write("\n")
 
-        # for row in cursor:
-        #     for entry in row:
-        #        report.write("%*s "%(25, entry))
-        #     report.write("\n")
-        for row in cursor:
-            any_data = True
-            operator_id = row.get_entry("OperatorId")  # ID Operador
-            operator_name = row.get_entry("OperatorName")  # Operator Name
+            # for row in cursor:
+            #     for entry in row:
+            #        report.write("%*s "%(25, entry))
+            #     report.write("\n")
+            for row in cursor:
+                any_data = True
+                operator_id = row.get_entry("OperatorId")  # ID Operador
+                operator_name = row.get_entry("OperatorName")  # Operator Name
 
-            # Get the Initial Coupon for the Day
-            if row.get_entry("InitialOrderId"):
-                initial_coupon = min((initial_coupon, int(row.get_entry("InitialOrderId"))))
+                # Get the Initial Coupon for the Day
+                if row.get_entry("InitialOrderId"):
+                    initial_coupon = min((initial_coupon, int(row.get_entry("InitialOrderId"))))
 
-            # List all operators # for the Day
-            operators.append(row.get_entry("OperatorId"))
+                # List all operators # for the Day
+                operators.append(row.get_entry("OperatorId"))
 
-            # Sum all initial float for the Day
-            initialfloat = initialfloat + D(row.get_entry("InitialFloat"))
+                # Sum all initial float for the Day
+                initialfloat = initialfloat + D(row.get_entry("InitialFloat"))
 
-            # Sum all gross sales for the Day
-            gross_sales = gross_sales + D(row.get_entry("PaidGrossAmt"))
+                # Sum all gross sales for the Day
+                gross_sales = gross_sales + D(row.get_entry("PaidGrossAmt"))
 
-            # Sum all net sales for the Day
-            net_sales = net_sales + D(row.get_entry("PaidNetAmt"))
+                # Sum all net sales for the Day
+                net_sales = net_sales + D(row.get_entry("PaidNetAmt"))
 
-            # Sum all paid quantities for the Day
-            paid_qty = paid_qty + int(row.get_entry("PaidCount"))
+                # Sum all paid quantities for the Day
+                paid_qty = paid_qty + int(row.get_entry("PaidCount"))
 
-            # Sum all gross voided sales for the day
-            voided_gross_coupon = voided_gross_coupon + D(row.get_entry("VoidGrossAmt"))
+                # Sum all gross voided sales for the day
+                voided_gross_coupon = voided_gross_coupon + D(row.get_entry("VoidGrossAmt"))
 
-            # Sum all net voided sales for the day
-            voided_net_coupon = voided_net_coupon + D(row.get_entry("VoidNetAmt"))
+                # Sum all net voided sales for the day
+                voided_net_coupon = voided_net_coupon + D(row.get_entry("VoidNetAmt"))
 
-            # Sum all voided quantities for the day
-            voided_coupon_qtd = voided_coupon_qtd + int(row.get_entry("VoidCount"))
+                # Sum all voided quantities for the day
+                voided_coupon_qtd = voided_coupon_qtd + int(row.get_entry("VoidCount"))
 
-            # Sum all coupon quantities (transactions) for the day
-            total_coupon = total_coupon + int(row.get_entry("TransactCount"))
+                # Sum all coupon quantities (transactions) for the day
+                total_coupon = total_coupon + int(row.get_entry("TransactCount"))
 
-            # Get the last order ID (coupon number) for the Day
-            # if row.get_entry("FinalOrderId"):
-            #     final_coupon = int(row.get_entry("FinalOrderId"))
+                # Get the last order ID (coupon number) for the Day
+                # if row.get_entry("FinalOrderId"):
+                #     final_coupon = int(row.get_entry("FinalOrderId"))
 
-            # Sum all refund gross amount for the Day
-            refund_gross_amount = refund_gross_amount + D(row.get_entry("RefundGrossAmt"))
+                # Sum all refund gross amount for the Day
+                refund_gross_amount = refund_gross_amount + D(row.get_entry("RefundGrossAmt"))
 
-            # Sum all refund net amount for the Day
-            refund_net_amount = refund_net_amount + D(row.get_entry("RefundNetAmt"))
+                # Sum all refund net amount for the Day
+                refund_net_amount = refund_net_amount + D(row.get_entry("RefundNetAmt"))
 
-            # Sum all refund quantities for the Day
-            refund_qty_count = refund_qty_count + int(row.get_entry("RefundCount"))
+                # Sum all refund quantities for the Day
+                refund_qty_count = refund_qty_count + int(row.get_entry("RefundCount"))
 
-            # Sum all waste gross amount for the Day
-            waste_gross_amount = waste_gross_amount + D(row.get_entry("WasteGrossAmt"))
+                # Sum all waste gross amount for the Day
+                waste_gross_amount = waste_gross_amount + D(row.get_entry("WasteGrossAmt"))
 
-            # Sum all waste net amount for the Day
-            waste_net_amount = waste_net_amount + D(row.get_entry("WasteNetAmt"))
+                # Sum all waste net amount for the Day
+                waste_net_amount = waste_net_amount + D(row.get_entry("WasteNetAmt"))
 
-            # Sum all waste quantities for the Day
-            waste_qty_count = waste_qty_count + int(row.get_entry("WasteCount"))
+                # Sum all waste quantities for the Day
+                waste_qty_count = waste_qty_count + int(row.get_entry("WasteCount"))
 
-            # Sum all CASH refund amounts
-            cash_refund_amount += D(row.get_entry("CashRefundAmount") or 0)
+                # Sum all CASH refund amounts
+                cash_refund_amount += D(row.get_entry("CashRefundAmount") or 0)
 
-            # Sum all CASH gross sales amounts
-            cash_gross_amount += D(row.get_entry("CashGrossAmount") or 0)
+                # Sum all CASH gross sales amounts
+                cash_gross_amount += D(row.get_entry("CashGrossAmount") or 0)
 
-            # Get the Initial GT(Gran Total) Gross
-            # if row.get_entry("InitialPOSForeverTotalGross"):
-            #     initial_GT_gross = D(row.get_entry("InitialPOSForeverTotalGross"))
+                # Get the Initial GT(Gran Total) Gross
+                # if row.get_entry("InitialPOSForeverTotalGross"):
+                #     initial_GT_gross = D(row.get_entry("InitialPOSForeverTotalGross"))
 
-            # Sum all voided items quantities for the Day
-            if row.get_entry("ReducedItemsQty"):
-                voided_item_qty = voided_item_qty + int(row.get_entry("ReducedItemsQty"))
+                # Sum all voided items quantities for the Day
+                if row.get_entry("ReducedItemsQty"):
+                    voided_item_qty = voided_item_qty + int(row.get_entry("ReducedItemsQty"))
 
-            # Sum all voided items amount for the Day
-            if row.get_entry("ReducedAmount"):
-                voided_item_amount = voided_item_amount + D(row.get_entry("ReducedAmount"))
+                # Sum all voided items amount for the Day
+                if row.get_entry("ReducedAmount"):
+                    voided_item_amount = voided_item_amount + D(row.get_entry("ReducedAmount"))
 
-            # Sum all Transfer IN quantities for the Day
-            if row.get_entry("TransferInQty"):
-                transfer_in_qty = transfer_in_qty + int(row.get_entry("TransferInQty"))
+                # Sum all Transfer IN quantities for the Day
+                if row.get_entry("TransferInQty"):
+                    transfer_in_qty = transfer_in_qty + int(row.get_entry("TransferInQty"))
 
-            # Sum all Transfer IN Amount for the Day
-            if row.get_entry("TransferInAmount"):
-                transfer_in_amount = transfer_in_amount + D(row.get_entry("TransferInAmount"))
+                # Sum all Transfer IN Amount for the Day
+                if row.get_entry("TransferInAmount"):
+                    transfer_in_amount = transfer_in_amount + D(row.get_entry("TransferInAmount"))
 
-            # Sum all Transfer OUT quantities for the Day
-            if row.get_entry("TransferOutQty"):
-                transfer_out_qty = transfer_out_qty + int(row.get_entry("TransferOutQty"))
+                # Sum all Transfer OUT quantities for the Day
+                if row.get_entry("TransferOutQty"):
+                    transfer_out_qty = transfer_out_qty + int(row.get_entry("TransferOutQty"))
 
-            # Sum all Transfer OUT Amount for the Day
-            if row.get_entry("TransferOutAmount"):
-                transfer_out_amount = transfer_out_amount + D(row.get_entry("TransferOutAmount"))
+                # Sum all Transfer OUT Amount for the Day
+                if row.get_entry("TransferOutAmount"):
+                    transfer_out_amount = transfer_out_amount + D(row.get_entry("TransferOutAmount"))
 
-            # Sum all Skim quantities for the Day
-            if row.get_entry("SkimQty"):
-                skim_qty = skim_qty + int(row.get_entry("SkimQty"))
+                # Sum all Skim quantities for the Day
+                if row.get_entry("SkimQty"):
+                    skim_qty = skim_qty + int(row.get_entry("SkimQty"))
 
-            # Sum all Skim Amount for the Day
-            if row.get_entry("SkimAmount"):
-                skim_amount = skim_amount + D(row.get_entry("SkimAmount"))
+                # Sum all Skim Amount for the Day
+                if row.get_entry("SkimAmount"):
+                    skim_amount = skim_amount + D(row.get_entry("SkimAmount"))
 
-            if row.get_entry("DiscountSessionInfo"):
-                discountInfo = eval(row.get_entry("DiscountSessionInfo"))
-                for discount in discountInfo:
-                    consolidated = discountInfos[discount["Code"]]
-                    amt = D(discount["Amt"])
-                    consolidated["Descr"] = discount["Descr"]
-                    consolidated["Qty"] += int(discount["Qty"])
-                    consolidated["Amt"] += amt
-                    total_discount_amount += amt
+                if row.get_entry("DiscountSessionInfo"):
+                    discountInfo = eval(row.get_entry("DiscountSessionInfo"))
+                    for discount in discountInfo:
+                        consolidated = discountInfos[discount["Code"]]
+                        amt = D(discount["Amt"])
+                        consolidated["Descr"] = discount["Descr"]
+                        consolidated["Qty"] += int(discount["Qty"])
+                        consolidated["Amt"] += amt
+                        total_discount_amount += amt
 
-            if row.get_entry("TenderSessionInfo"):
-                tenderInfo = eval(row.get_entry("TenderSessionInfo"))
-                for tender in tenderInfo:
-                    consolidated = tenderInfos[tender["TenderId"]]
-                    consolidated["TenderId"] = tender["TenderId"]
-                    consolidated["TenderDescr"] = tender["TenderDescr"]
-                    consolidated["TenderTotal"] += D(tender["TenderTotal"])
+                if row.get_entry("TenderSessionInfo"):
+                    tenderInfo = eval(row.get_entry("TenderSessionInfo"))
+                    for tender in tenderInfo:
+                        consolidated = tenderInfos[tender["TenderId"]]
+                        consolidated["TenderId"] = tender["TenderId"]
+                        consolidated["TenderDescr"] = tender["TenderDescr"]
+                        consolidated["TenderTotal"] += D(tender["TenderTotal"])
 
 
-            # Gift Cards
-            #giftcard_sales_qty += int(row.get_entry("GiftCardSales") or 0)
-            #giftcard_sales_amount += D(row.get_entry("GiftCardsAmount") or 0)
-            #giftcard_refunds_qty += int(row.get_entry("GiftCardRefunds") or 0)
-            #giftcard_refunds_amount += D(row.get_entry("GiftCardsRefundsAmount") or 0)
-            #giftcard_paidOrders += int(row.get_entry("PaidOrdersWithGiftCard") or 0)
-            #giftCardsActivityInfo = row.get_entry("GiftCardsActivityInfo")
+                # Gift Cards
+                #giftcard_sales_qty += int(row.get_entry("GiftCardSales") or 0)
+                #giftcard_sales_amount += D(row.get_entry("GiftCardsAmount") or 0)
+                #giftcard_refunds_qty += int(row.get_entry("GiftCardRefunds") or 0)
+                #giftcard_refunds_amount += D(row.get_entry("GiftCardsRefundsAmount") or 0)
+                #giftcard_paidOrders += int(row.get_entry("PaidOrdersWithGiftCard") or 0)
+                #giftCardsActivityInfo = row.get_entry("GiftCardsActivityInfo")
 
-            #if giftCardsActivityInfo:
-            #    for gcInfo in eval(giftCardsActivityInfo):
-            #        giftcardInfos[gcInfo["Type"]]["Qty"] += int(gcInfo["Qty"])
-            #        giftcardInfos[gcInfo["Type"]]["Amt"] += D(gcInfo["Amt"])
+                #if giftCardsActivityInfo:
+                #    for gcInfo in eval(giftCardsActivityInfo):
+                #        giftcardInfos[gcInfo["Type"]]["Qty"] += int(gcInfo["Qty"])
+                #        giftcardInfos[gcInfo["Type"]]["Amt"] += D(gcInfo["Amt"])
 
-        # Select declared cash information
-        cursor = conn.select("""SELECT
-                    COALESCE(sum(tr.amount), 0) AS "Declared"
-                 FROM posctrl.UserSession us
-                  LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId AND tr.Description = 'DECLARED_AMOUNT'
-                 WHERE tr.Period = %s AND tr.PosId = %s %s;""" % (period, posno, '' if int(operatorid) == 0 else ('AND us.OperatorId = %s' % operatorid)))
+            # Select declared cash information
+            cursor = conn.select("""SELECT
+                        COALESCE(sum(tr.amount), 0) AS "Declared"
+                     FROM posctrl.UserSession us
+                      LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId AND tr.Description = 'DECLARED_AMOUNT'
+                     WHERE tr.Period = %s AND tr.PosId = %s %s;""" % (period, posno, '' if int(operatorid) == 0 else ('AND us.OperatorId = %s' % operatorid)))
 
-        for row in cursor:
-            total_declared += D(row.get_entry('Declared'))
+            for row in cursor:
+                total_declared += D(row.get_entry('Declared'))
 
-        # Select the donations information
-        if session_id:
-            where_clause = "WHERE O.BusinessPeriod='%s' AND U.SessionId='%s'" % (period, session_id)
-        elif int(operatorid):
-            where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s' AND U.OperatorId='%s'" % (posno, period, operatorid)
-        else:
-            where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s'" % (posno, period)
+            # Select the donations information
+            if session_id:
+                where_clause = "WHERE O.BusinessPeriod='%s' AND U.SessionId='%s'" % (period, session_id)
+            elif int(operatorid):
+                where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s' AND U.OperatorId='%s'" % (posno, period, operatorid)
+            else:
+                where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s'" % (posno, period)
 
-        sql = """
-        SELECT
-        ProductCode AS DonationCode,
-        ProductName AS DonationName,
-        tdsum(CASE WHEN X.IsRefund THEN '0.00' ELSE TotalPrice END) AS DonatedAmount,
-        tdsum(CASE WHEN X.IsRefund THEN TotalPrice ELSE '0.00' END) AS RefundedAmount,
-        sum(DonatedQty) AS DonatedQty
-        FROM (
-            SELECT
-                OI.PartCode AS ProductCode,
-                tdsum(tdmul(COALESCE(OI.OverwrittenUnitPrice, PR.DefaultUnitPrice, '0.00'), OI.OrderedQty)) AS TotalPrice,
-                P.ProductName AS ProductName,
-                (CASE WHEN O.OrderType=0 THEN 1 ELSE 0 END) AS DonatedQty,
-                (CASE WHEN O.OrderType=1 THEN 1 ELSE 0 END) AS IsRefund
-            FROM orderdb.Orders O
-            JOIN orderdb.OrderItem OI
-                ON OI.OrderId=O.OrderId AND O.StateId=5 AND OI.OrderedQty>0
-            JOIN productdb.ProductCustomParams PCP
-                ON OI.PartCode=PCP.ProductCode AND LOWER(PCP.CustomParamId)='familygroup' AND LOWER(PCP.CustomParamValue)='donation'
-            JOIN productdb.Product P
-                ON P.ProductCode=OI.PartCode
-            JOIN posctrl.UserSession U
-                ON O.BusinessPeriod=U.BusinessPeriod AND O.SessionId=U.SessionId
-            LEFT JOIN productdb.Price PR
-                ON PR.PriceKey=OI.PriceKey
-            %(where_clause)s AND O.OrderType IN (0,1)
-            GROUP BY OI.OrderId,OI.PartCode
-        ) X
-        GROUP BY X.ProductCode
-        """ % ({"where_clause": where_clause})
-
-        cursor = conn.select(sql)
-        for row in cursor:
-            consolidated = donationInfos[str(row.get_entry("DonationCode"))]
-            consolidated["Descr"] = str(row.get_entry("DonationName"))
-            consolidated["Qty"] += int(row.get_entry("DonatedQty"))
-            consolidated["Amt"] += D(row.get_entry("DonatedAmount"))
-            donations_qty += int(row.get_entry("DonatedQty"))
-            donations_amount += D(row.get_entry("DonatedAmount"))
-            donations_refunds_amount += D(row.get_entry("RefundedAmount"))
-
-        # Failed SAF transactions
-        if store_wide:
             sql = """
             SELECT
-                CT.CardNumberMasked AS CardNumberMasked,
-                CT.Amount AS Amount,
-                CT.ApprovedAmount AS ApprovedAmount,
-                CT.ResultText AS ResultText
-            FROM cashless.CashlessTransactions CT
-            LEFT JOIN orderdb.Orders O ON O.OrderId=CT.OrderId
-            WHERE
-                CT.Status IN (2, 6) AND CT.PosId=%s AND
-                CAST(COALESCE(O.BusinessPeriod,strftime(DATE(CT.DateStr),'%%Y%%m%%d')) AS INTEGER)=%s AND
-                tdcmp(CT.Amount,CT.ApprovedAmount) != 0 AND
-                CT.StatusHistory LIKE "%%|4|%%"
-            ORDER BY
-                CT.DateTime;
-            """ % (posno, period)
+            ProductCode AS DonationCode,
+            ProductName AS DonationName,
+            tdsum(CASE WHEN X.IsRefund THEN '0.00' ELSE TotalPrice END) AS DonatedAmount,
+            tdsum(CASE WHEN X.IsRefund THEN TotalPrice ELSE '0.00' END) AS RefundedAmount,
+            sum(DonatedQty) AS DonatedQty
+            FROM (
+                SELECT
+                    OI.PartCode AS ProductCode,
+                    tdsum(tdmul(COALESCE(OI.OverwrittenUnitPrice, PR.DefaultUnitPrice, '0.00'), OI.OrderedQty)) AS TotalPrice,
+                    P.ProductName AS ProductName,
+                    (CASE WHEN O.OrderType=0 THEN 1 ELSE 0 END) AS DonatedQty,
+                    (CASE WHEN O.OrderType=1 THEN 1 ELSE 0 END) AS IsRefund
+                FROM orderdb.Orders O
+                JOIN orderdb.OrderItem OI
+                    ON OI.OrderId=O.OrderId AND O.StateId=5 AND OI.OrderedQty>0
+                JOIN productdb.ProductCustomParams PCP
+                    ON OI.PartCode=PCP.ProductCode AND LOWER(PCP.CustomParamId)='familygroup' AND LOWER(PCP.CustomParamValue)='donation'
+                JOIN productdb.Product P
+                    ON P.ProductCode=OI.PartCode
+                JOIN posctrl.UserSession U
+                    ON O.BusinessPeriod=U.BusinessPeriod AND O.SessionId=U.SessionId
+                LEFT JOIN productdb.Price PR
+                    ON PR.PriceKey=OI.PriceKey
+                %(where_clause)s AND O.OrderType IN (0,1)
+                GROUP BY OI.OrderId,OI.PartCode
+            ) X
+            GROUP BY X.ProductCode
+            """ % ({"where_clause": where_clause})
 
-            # create database connection
             cursor = conn.select(sql)
             for row in cursor:
-                failed_saf.append({
-                    'CardNo': row.get_entry("CardNumberMasked"),
-                    'Amount': row.get_entry("Amount"),
-                    'Approved': row.get_entry("ApprovedAmount"),
-                    'Text': "Partially approved" if float(row.get_entry("ApprovedAmount")) > 0.0 else row.get_entry("ResultText"),
-                })
+                consolidated = donationInfos[str(row.get_entry("DonationCode"))]
+                consolidated["Descr"] = str(row.get_entry("DonationName"))
+                consolidated["Qty"] += int(row.get_entry("DonatedQty"))
+                consolidated["Amt"] += D(row.get_entry("DonatedAmount"))
+                donations_qty += int(row.get_entry("DonatedQty"))
+                donations_amount += D(row.get_entry("DonatedAmount"))
+                donations_refunds_amount += D(row.get_entry("RefundedAmount"))
 
-        if session_id:
-            cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
-                                    INNER JOIN Orders o 
-                                    ON o.OrderId = ocp.OrderId 
-                                    WHERE ocp.Key = 'DONATION_VALUE' 
-                                    AND o.BusinessPeriod = '%s' 
-                                    AND o.SessionId = '%s'""" % (period, session_id))
-        else:
-            cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
-                                    INNER JOIN Orders o 
-                                    ON o.OrderId = ocp.OrderId 
-                                    WHERE ocp.Key = 'DONATION_VALUE' 
-                                    AND o.BusinessPeriod = '%s'""" % period)
-        row = cursor.get_row(0)
+            # Failed SAF transactions
+            if store_wide:
+                sql = """
+                SELECT
+                    CT.CardNumberMasked AS CardNumberMasked,
+                    CT.Amount AS Amount,
+                    CT.ApprovedAmount AS ApprovedAmount,
+                    CT.ResultText AS ResultText
+                FROM cashless.CashlessTransactions CT
+                LEFT JOIN orderdb.Orders O ON O.OrderId=CT.OrderId
+                WHERE
+                    CT.Status IN (2, 6) AND CT.PosId=%s AND
+                    CAST(COALESCE(O.BusinessPeriod,strftime(DATE(CT.DateStr),'%%Y%%m%%d')) AS INTEGER)=%s AND
+                    tdcmp(CT.Amount,CT.ApprovedAmount) != 0 AND
+                    CT.StatusHistory LIKE "%%|4|%%"
+                ORDER BY
+                    CT.DateTime;
+                """ % (posno, period)
 
-        donated_amount = D(row.get_entry("DonatedAmount") or 0)
-        donated_qty = D(row.get_entry("DonatedQty") or 0)
+                # create database connection
+                cursor = conn.select(sql)
+                for row in cursor:
+                    failed_saf.append({
+                        'CardNo': row.get_entry("CardNumberMasked"),
+                        'Amount': row.get_entry("Amount"),
+                        'Approved': row.get_entry("ApprovedAmount"),
+                        'Text': "Partially approved" if float(row.get_entry("ApprovedAmount")) > 0.0 else row.get_entry("ResultText"),
+                    })
 
-        # release reserved a database connection
-        conn.transaction_end()
+            if session_id:
+                cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
+                                        INNER JOIN Orders o 
+                                        ON o.OrderId = ocp.OrderId 
+                                        WHERE ocp.Key = 'DONATION_VALUE' 
+                                        AND o.BusinessPeriod = '%s' 
+                                        AND o.SessionId = '%s'""" % (period, session_id))
+            else:
+                cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
+                                        INNER JOIN Orders o 
+                                        ON o.OrderId = ocp.OrderId 
+                                        WHERE ocp.Key = 'DONATION_VALUE' 
+                                        AND o.BusinessPeriod = '%s'""" % period)
+            row = cursor.get_row(0)
 
-        # close database connection
-        conn.close()
+            donated_amount = D(row.get_entry("DonatedAmount") or 0)
+            donated_qty = D(row.get_entry("DonatedQty") or 0)
+
+        finally:
+            if conn:
+                conn.close()
 
         # create database connection
-        conn = dbd.open(mbcontext, posno)
+        conn = None
+        try:
+            conn = dbd.open(mbcontext, dbname=str(posno))
 
-        # reserve a database connection
-        conn.transaction_start()
+            # reserve a database connection
+            conn.transaction_start()
 
-        originatorid = "POS%04d" % int(posno)
+            originatorid = "POS%04d" % int(posno)
 
-        if int(operatorid):
-            sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
-                 FROM orderdb.OrderTender OT
-                 JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
-                 JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
-                 WHERE O.BusinessPeriod='%s'
-                 AND O.OriginatorId = '%s'
-                 AND O.StateId IN (5,4)
-                 AND O.SessionId LIKE '%%user=%s%%'
-                """ % (period, originatorid, operatorid)
-        else:
-            sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
-                 FROM orderdb.OrderTender OT
-                 JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
-                 JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
-                 WHERE O.BusinessPeriod='%s'
-                 AND O.OriginatorId = '%s'
-                 AND O.StateId IN (5,4)
-                """ % (period, originatorid)
+            if int(operatorid):
+                sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
+                     FROM orderdb.OrderTender OT
+                     JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
+                     JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
+                     WHERE O.BusinessPeriod='%s'
+                     AND O.OriginatorId = '%s'
+                     AND O.StateId IN (5,4)
+                     AND O.SessionId LIKE '%%user=%s%%'
+                    """ % (period, originatorid, operatorid)
+            else:
+                sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
+                     FROM orderdb.OrderTender OT
+                     JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
+                     JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
+                     WHERE O.BusinessPeriod='%s'
+                     AND O.OriginatorId = '%s'
+                     AND O.StateId IN (5,4)
+                    """ % (period, originatorid)
 
-        if session_id:
-            sql += "AND O.SessionId = '%s'" % session_id
+            if session_id:
+                sql += "AND O.SessionId = '%s'" % session_id
 
-        cursor = conn.select(sql)
+            cursor = conn.select(sql)
 
-        for row in cursor:
-            list_orderid_fiscal.append(row.get_entry("OrderId"))
+            for row in cursor:
+                list_orderid_fiscal.append(row.get_entry("OrderId"))
 
-            if int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 5:
-                total_tip += D(row.get_entry("TipAmount"))
-                if row.get_entry("TenderId") == "0":
-                    cash_tips += D(row.get_entry("TipAmount"))
-            elif int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 4:
-                voided_tips += D(row.get_entry("TipAmount"))
-            elif int(row.get_entry("OrderType")) == 1 and int(row.get_entry("StateId")) == 5:
-                refunded_tips += D(row.get_entry("TipAmount"))
+                if int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 5:
+                    total_tip += D(row.get_entry("TipAmount"))
+                    if row.get_entry("TenderId") == "0":
+                        cash_tips += D(row.get_entry("TipAmount"))
+                elif int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 4:
+                    voided_tips += D(row.get_entry("TipAmount"))
+                elif int(row.get_entry("OrderType")) == 1 and int(row.get_entry("StateId")) == 5:
+                    refunded_tips += D(row.get_entry("TipAmount"))
 
-        # release reserved a database connection
-        conn.transaction_end()
-
-        # close database connection
-        conn.close()
+        finally:
+            if conn:
+                conn.close()
 
     # Tax calculation
     tax_sales = (gross_sales - net_sales)
@@ -960,10 +992,10 @@ fiscal_sent_dir = None
 
 
 def new_cash_report(date_type, pos_id, report_pos, initial_date, end_date, operator_id, session_id, store_id, business_period=None, codigo_centro=None, close_time=None):
-    #pydevd.settrace('localhost', port=9123, stdoutToServer=True, stderrToServer=True, suspend=False)
     global new_pos_list, fiscal_sent_dir
+    # pydevd.settrace('localhost', port=9191, stdoutToServer=True, stderrToServer=True)
 
-    if date_type != "JsonRealDate":
+    if date_type != "JsonBusinessPeriod":
         if new_pos_list is None:
             msg = mbcontext.MB_EasySendMessage("PosController", TK_POS_GETPOSLIST)
             if msg.token != TK_SYS_ACK:
@@ -1001,13 +1033,39 @@ def new_cash_report(date_type, pos_id, report_pos, initial_date, end_date, opera
         report = cash_report.generate_cash_report_by_business_period(pos_id, report_pos, initial_date, end_date, operator_id)
     elif date_type == "SessionId":
         report = cash_report.generate_cash_report_by_session_id(pos_id, session_id)
-    elif date_type == "JsonRealDate":
-        report = cash_report.generate_cash_report_by_real_date(pos_id, report_pos, initial_date, end_date, operator_id, business_period, codigo_centro, close_time)
+    elif date_type == "JsonBusinessPeriod":
+        report = cash_report.generate_cash_report_by_business_period(pos_id, report_pos, initial_date, end_date, operator_id, business_period, codigo_centro, close_time)
     else:
         report = cash_report.generate_cash_report_by_xml(pos_id, initial_date, end_date)
 
     return report
 
+
+def generate_paid_order_cash_report_by_date(initial_date, end_date):
+    global new_pos_list, fiscal_sent_dir
+
+    if new_pos_list is None:
+        msg = mbcontext.MB_EasySendMessage("PosController", TK_POS_GETPOSLIST)
+        if msg.token != TK_SYS_ACK:
+            sys_log_error("Could not retrieve PosList")
+            raise Exception("Could not retrieve PosList")
+
+        new_pos_list = sorted(map(int, msg.data.split("\0")))
+
+    if fiscal_sent_dir is None:
+        config = cfgtools.read(os.environ["LOADERCFG"])
+        fiscal_sent_dir = config.find_value("CashReport.FiscalSentDir").strip()
+
+    order_repository = OrderRepository(mbcontext, new_pos_list, fiscal_sent_dir)
+    tender_repository = TenderRepository(mbcontext)
+    cash_report = CashReport(order_repository, None, tender_repository, None, None, None)
+    formatted_initial_date = datetime.datetime.strptime(initial_date, "%Y%m%d")
+    formatted_end_date = datetime.datetime.strptime(end_date, "%Y%m%d")
+    orders = cash_report.generate_paid_order_cash_report_by_date(formatted_initial_date, formatted_end_date)
+
+    order_id_and_totals = [{"orderId": str(order.order_id), "total": order.total} for order in orders]
+
+    return json.dumps(order_id_and_totals)
 
 def sales_by_brand(date_type, pos_id, report_pos, initial_date, end_date, operator_id, session_id, store_id):
     # type: (unicode, int, unicode, unicode, unicode, unicode, unicode, unicode) -> str
@@ -1087,6 +1145,7 @@ def voided_orders_report(date_type, pos_id, report_pos, initial_date, end_date, 
 
 def new_pmix_report(date_type, pos_id, selected_pos_id, initial_date, end_date, store_id):
     # type: (unicode, int, str, unicode, unicode, unicode) -> str
+
     global new_pos_list
 
     if new_pos_list is None:
@@ -1116,6 +1175,7 @@ def new_pmix_report(date_type, pos_id, selected_pos_id, initial_date, end_date, 
 
 def checkout_report(posid, period, operatorid, store_wide, posnumbers, report_type="0", session_id="", *args):
     # create string I/O to append the report info
+
     report = StringIO()
     posnumbers = posnumbers.split('|') if posnumbers else []
     store_wide = (store_wide.lower() == "true")
@@ -1166,387 +1226,384 @@ def checkout_report(posid, period, operatorid, store_wide, posnumbers, report_ty
         # create database connection
         conn = None
         try:
-            conn = dbd.open(mbcontext, posno)
-        except:
-            sys_log_exception("Erro abrindo conexao do pos: " + str(posno))
-            if conn:
-                conn.close()
-            continue
+            try:
+                conn = dbd.open(mbcontext, dbname=str(posno))
+            except:
+                sys_log_exception("Erro abrindo conexao do pos: " + str(posno))
+                if conn:
+                    conn.close()
+                continue
 
-        # reserve a database connection
-        conn.transaction_start()
+            # reserve a database connection
+            conn.transaction_start()
 
-        # set the period
-        conn.query("DELETE FROM temp.ReportsPeriod")
-        conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,EndPeriod) VALUES(%s,%s)" % (period, period))
+            # set the period
+            conn.query("DELETE FROM temp.ReportsPeriod")
+            conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,EndPeriod) VALUES(%s,%s)" % (period, period))
 
-        if (report_type == "Relatorio Surpresa") and int(operatorid):
-            # Retrieve only the latest session id (eLanes ticket #15)
-            cursor = conn.select("SELECT SessionId FROM posctrl.UserSession WHERE BusinessPeriod='%s' AND PosId=%s AND OperatorId=%s ORDER BY OpenTime DESC LIMIT 1" % (period, posid, operatorid))
-            if cursor.rows():
-                session_id = cursor.get_row(0).get_entry(0)
-            cursor = None
+            if (report_type == "Relatorio Surpresa") and int(operatorid):
+                # Retrieve only the latest session id (eLanes ticket #15)
+                cursor = conn.select("SELECT SessionId FROM posctrl.UserSession WHERE BusinessPeriod='%s' AND PosId=%s AND OperatorId=%s ORDER BY OpenTime DESC LIMIT 1" % (period, posid, operatorid))
+                if cursor.rows():
+                    session_id = cursor.get_row(0).get_entry(0)
+                cursor = None
 
-        # select temporary table
-        if session_id:
-            cursor = conn.select("SELECT * from temp.CASHView WHERE BusinessPeriod='%s' AND SessionId='%s';" % (period, session_id))
-        elif int(operatorid):
-            cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s' AND OperatorId='%s';" % (posno, period, operatorid))
-        else:
-            cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s';" % (posno, period))
+            # select temporary table
+            if session_id:
+                cursor = conn.select("SELECT * from temp.CASHView WHERE BusinessPeriod='%s' AND SessionId='%s';" % (period, session_id))
+            elif int(operatorid):
+                cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s' AND OperatorId='%s';" % (posno, period, operatorid))
+            else:
+                cursor = conn.select("SELECT * from temp.CASHView WHERE PosId='%s' AND BusinessPeriod='%s';" % (posno, period))
 
-        # for col in cursor.get_names():
-        #     report.write("%*s "%(25, col))
-        # report.write("\n")
+            # for col in cursor.get_names():
+            #     report.write("%*s "%(25, col))
+            # report.write("\n")
 
-        # for row in cursor:
-        #     for entry in row:
-        #        report.write("%*s "%(25, entry))
-        #     report.write("\n")
-        for row in cursor:
-            any_data = True
-            operator_id = row.get_entry("OperatorId")  # ID Operador
-            operator_name = row.get_entry("OperatorName")  # Operator Name
-
-            # Get the Initial Coupon for the Day
-            if row.get_entry("InitialOrderId"):
-                initial_coupon = min((initial_coupon, int(row.get_entry("InitialOrderId"))))
-
-            # List all operators # for the Day
-            operators.append(row.get_entry("OperatorId"))
-
-            # Sum all initial float for the Day
-            initialfloat = initialfloat + D(row.get_entry("InitialFloat"))
-
-            # Sum all gross sales for the Day
-            gross_sales = gross_sales + D(row.get_entry("PaidGrossAmt"))
-
-            # Sum all net sales for the Day
-            net_sales = net_sales + D(row.get_entry("PaidNetAmt"))
-
-            # Sum all paid quantities for the Day
-            paid_qty = paid_qty + int(row.get_entry("PaidCount"))
-
-            # Sum all gross voided sales for the day
-            voided_gross_coupon = voided_gross_coupon + D(row.get_entry("VoidGrossAmt"))
-
-            # Sum all net voided sales for the day
-            voided_net_coupon = voided_net_coupon + D(row.get_entry("VoidNetAmt"))
-
-            # Sum all voided quantities for the day
-            voided_coupon_qtd = voided_coupon_qtd + int(row.get_entry("VoidCount"))
-
-            # Sum all coupon quantities (transactions) for the day
-            total_coupon = total_coupon + int(row.get_entry("TransactCount"))
-
-            # Get the last order ID (coupon number) for the Day
-            # if row.get_entry("FinalOrderId"):
-            #     final_coupon = int(row.get_entry("FinalOrderId"))
-
-            # Sum all refund gross amount for the Day
-            refund_gross_amount = refund_gross_amount + D(row.get_entry("RefundGrossAmt"))
-
-            # Sum all refund net amount for the Day
-            refund_net_amount = refund_net_amount + D(row.get_entry("RefundNetAmt"))
-
-            # Sum all refund quantities for the Day
-            refund_qty_count = refund_qty_count + int(row.get_entry("RefundCount"))
-
-            # Sum all waste gross amount for the Day
-            waste_gross_amount = waste_gross_amount + D(row.get_entry("WasteGrossAmt"))
-
-            # Sum all waste net amount for the Day
-            waste_net_amount = waste_net_amount + D(row.get_entry("WasteNetAmt"))
-
-            # Sum all waste quantities for the Day
-            waste_qty_count = waste_qty_count + int(row.get_entry("WasteCount"))
-
-            # Sum all CASH refund amounts
-            cash_refund_amount += D(row.get_entry("CashRefundAmount") or 0)
-
-            # Sum all CASH gross sales amounts
-            cash_gross_amount += D(row.get_entry("CashGrossAmount") or 0)
-
-            # Get the Initial GT(Gran Total) Gross
-            # if row.get_entry("InitialPOSForeverTotalGross"):
-            #     initial_GT_gross = D(row.get_entry("InitialPOSForeverTotalGross"))
-
-            # Sum all voided items quantities for the Day
-            if row.get_entry("ReducedItemsQty"):
-                voided_item_qty = voided_item_qty + int(row.get_entry("ReducedItemsQty"))
-
-            # Sum all voided items amount for the Day
-            if row.get_entry("ReducedAmount"):
-                voided_item_amount = voided_item_amount + D(row.get_entry("ReducedAmount"))
-
-            # Sum all Transfer IN quantities for the Day
-            if row.get_entry("TransferInQty"):
-                transfer_in_qty = transfer_in_qty + int(row.get_entry("TransferInQty"))
-
-            # Sum all Transfer IN Amount for the Day
-            if row.get_entry("TransferInAmount"):
-                transfer_in_amount = transfer_in_amount + D(row.get_entry("TransferInAmount"))
-
-            # Sum all Transfer OUT quantities for the Day
-            if row.get_entry("TransferOutQty"):
-                transfer_out_qty = transfer_out_qty + int(row.get_entry("TransferOutQty"))
-
-            # Sum all Transfer OUT Amount for the Day
-            if row.get_entry("TransferOutAmount"):
-                transfer_out_amount = transfer_out_amount + D(row.get_entry("TransferOutAmount"))
-
-            # Sum all Skim quantities for the Day
-            if row.get_entry("SkimQty"):
-                skim_qty = skim_qty + int(row.get_entry("SkimQty"))
-
-            # Sum all Skim Amount for the Day
-            if row.get_entry("SkimAmount"):
-                skim_amount = skim_amount + D(row.get_entry("SkimAmount"))
-
-            if row.get_entry("DiscountSessionInfo"):
-                discountInfo = eval(row.get_entry("DiscountSessionInfo"))
-                for discount in discountInfo:
-                    consolidated = discountInfos[discount["Code"]]
-                    amt = D(discount["Amt"])
-                    consolidated["Descr"] = discount["Descr"]
-                    consolidated["Qty"] += int(discount["Qty"])
-                    consolidated["Amt"] += amt
-                    total_discount_amount += amt
-
-            if row.get_entry("TenderSessionInfo"):
-                tenderInfo = eval(row.get_entry("TenderSessionInfo"))
-                for tender in tenderInfo:
-                    consolidated = tenderInfos[tender["TenderId"]]
-                    consolidated["TenderId"] = tender["TenderId"]
-                    consolidated["TenderDescr"] = tender["TenderDescr"]
-                    consolidated["TenderTotal"] += D(tender["TenderTotal"])
-
-                    '''
-                    if int(tender["TenderId"]) == 1:
-                        giftcard_amount += D(tender["TenderTotal"])
-                    elif int(tender["TenderId"]) == 2:
-                        creditcard_amount += D(tender["TenderTotal"])
-                    '''
-
-                    # if int(tender["TenderId"]) > 1:
-                    #     params_fiscal = {
-                    #         "pos_id": posid,
-                    #         "order_id": tender["OrderId"],
-                    #     }
-                    #
-                    #     cartao = None
-                    #     cursor_card = None
-                    #     fiscal_conn = None
-                    #     try:
-                    #         fiscal_conn = dbd.open(mbcontext, service_name="FiscalPersistence")
-                    #         cursor_card = fiscal_conn.pselect("fiscal_getEFTData", **params_fiscal)
-                    #         cartao = [dict([(cursor_card.get_name(col_id), row.get_entry(col_id)) for col_id in range(cursor_card.cols())]) for row in cursor_card]
-                    #     except:
-                    #         sys_log_exception("Excecao getEFTData")
-                    #     finally:
-                    #         if fiscal_conn:
-                    #             fiscal_conn.close()
-                    #
-                    #     if cartao is None or len(cartao) == 0:
-                    #         sys_log_info("Dados do cartão não encontrado!")
-                    #     else:
-                    #         for extra_data in cartao:
-                    #             consolidated = tenderInfos[int(extra_data['Bandeira'])]
-                    #             consolidated["TenderTotal"] += D(tender["TenderTotal"])
-
-            # Gift Cards
-            #giftcard_sales_qty += int(row.get_entry("GiftCardSales") or 0)
-            #giftcard_sales_amount += D(row.get_entry("GiftCardsAmount") or 0)
-            #giftcard_refunds_qty += int(row.get_entry("GiftCardRefunds") or 0)
-            #giftcard_refunds_amount += D(row.get_entry("GiftCardsRefundsAmount") or 0)
-            #giftcard_paidOrders += int(row.get_entry("PaidOrdersWithGiftCard") or 0)
-            #giftCardsActivityInfo = row.get_entry("GiftCardsActivityInfo")
-            #if giftCardsActivityInfo:
-            #    for gcInfo in eval(giftCardsActivityInfo):
-            #        giftcardInfos[gcInfo["Type"]]["Qty"] += int(gcInfo["Qty"])
-            #        giftcardInfos[gcInfo["Type"]]["Amt"] += D(gcInfo["Amt"])
-
-        # Select declared cash information
-        cursor = conn.select("""SELECT
-                    COALESCE(sum(tr.amount), 0) AS "Declared"
-                 FROM posctrl.UserSession us
-                  LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId AND tr.Description = 'DECLARED_AMOUNT'
-                 WHERE tr.Period = %s AND tr.PosId = %s %s;""" % (period, posno, '' if int(operatorid) == 0 else ('AND us.OperatorId = %s' % operatorid)))
-
-        for row in cursor:
-            total_declared += D(row.get_entry('Declared'))
-
-        # Select the donations information
-        if session_id:
-            where_clause = "WHERE O.BusinessPeriod='%s' AND U.SessionId='%s'" % (period, session_id)
-        elif int(operatorid):
-            where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s' AND U.OperatorId='%s'" % (posno, period, operatorid)
-        else:
-            where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s'" % (posno, period)
-
-        sql = """
-        SELECT
-            ProductCode AS DonationCode,
-            ProductName AS DonationName,
-            tdsum(CASE WHEN X.IsRefund THEN '0.00' ELSE TotalPrice END) AS DonatedAmount,
-            tdsum(CASE WHEN X.IsRefund THEN TotalPrice ELSE '0.00' END) AS RefundedAmount,
-            sum(DonatedQty) AS DonatedQty
-        FROM (
-            SELECT
-                OI.PartCode AS ProductCode,
-                tdsum(tdmul(COALESCE(OI.OverwrittenUnitPrice, PR.DefaultUnitPrice, '0.00'), OI.OrderedQty)) AS TotalPrice,
-                P.ProductName AS ProductName,
-                (CASE WHEN O.OrderType=0 THEN 1 ELSE 0 END) AS DonatedQty,
-                (CASE WHEN O.OrderType=1 THEN 1 ELSE 0 END) AS IsRefund
-            FROM orderdb.Orders O
-            JOIN orderdb.OrderItem OI
-                ON OI.OrderId=O.OrderId AND O.StateId=5 AND OI.OrderedQty>0
-            JOIN productdb.ProductCustomParams PCP
-                ON OI.PartCode=PCP.ProductCode AND LOWER(PCP.CustomParamId)='familygroup' AND LOWER(PCP.CustomParamValue)='donation'
-            JOIN productdb.Product P
-                ON P.ProductCode=OI.PartCode
-            JOIN posctrl.UserSession U
-                ON O.BusinessPeriod=U.BusinessPeriod AND O.SessionId=U.SessionId
-            LEFT JOIN productdb.Price PR
-                ON PR.PriceKey=OI.PriceKey
-            %(where_clause)s AND O.OrderType IN (0,1)
-            GROUP BY OI.OrderId,OI.PartCode
-        ) X
-        GROUP BY X.ProductCode
-        """ % ({"where_clause": where_clause})
-
-        cursor = conn.select(sql)
-        for row in cursor:
-            consolidated = donationInfos[str(row.get_entry("DonationCode"))]
-            consolidated["Descr"] = str(row.get_entry("DonationName"))
-            consolidated["Qty"] += int(row.get_entry("DonatedQty"))
-            consolidated["Amt"] += D(row.get_entry("DonatedAmount"))
-            donations_qty += int(row.get_entry("DonatedQty"))
-            donations_amount += D(row.get_entry("DonatedAmount"))
-            donations_refunds_amount += D(row.get_entry("RefundedAmount"))
-
-        if session_id:
-            cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
-                                    INNER JOIN Orders o 
-                                    ON o.OrderId = ocp.OrderId 
-                                    WHERE ocp.Key = 'DONATION_VALUE' 
-                                    AND o.BusinessPeriod = '%s' 
-                                    AND o.SessionId = '%s'""" % (period, session_id))
-        else:
-            cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
-                                    INNER JOIN Orders o 
-                                    ON o.OrderId = ocp.OrderId 
-                                    WHERE ocp.Key = 'DONATION_VALUE' 
-                                    AND o.BusinessPeriod = '%s'""" % period)
-        row = cursor.get_row(0)
-
-        donated_amount = D(row.get_entry("DonatedAmount") or 0)
-        donated_qty = D(row.get_entry("DonatedQty") or 0)
-
-        # Failed SAF transactions
-        if store_wide:
-            sql = """
-            SELECT
-                CT.CardNumberMasked AS CardNumberMasked,
-                CT.Amount AS Amount,
-                CT.ApprovedAmount AS ApprovedAmount,
-                CT.ResultText AS ResultText
-            FROM cashless.CashlessTransactions CT
-            LEFT JOIN orderdb.Orders O ON O.OrderId=CT.OrderId
-            WHERE
-                CT.Status IN (2, 6) AND CT.PosId=%s AND
-                CAST(COALESCE(O.BusinessPeriod,strftime(DATE(CT.DateStr),'%%Y%%m%%d')) AS INTEGER)=%s AND
-                tdcmp(CT.Amount,CT.ApprovedAmount) != 0 AND
-                CT.StatusHistory LIKE "%%|4|%%"
-            ORDER BY
-                CT.DateTime;
-            """ % (posno, period)
-
-            # create database connection
-            cursor = conn.select(sql)
+            # for row in cursor:
+            #     for entry in row:
+            #        report.write("%*s "%(25, entry))
+            #     report.write("\n")
             for row in cursor:
-                failed_saf.append({
-                    'CardNo': row.get_entry("CardNumberMasked"),
-                    'Amount': row.get_entry("Amount"),
-                    'Approved': row.get_entry("ApprovedAmount"),
-                    'Text': "Partially approved" if float(row.get_entry("ApprovedAmount")) > 0.0 else row.get_entry("ResultText"),
-                })
+                any_data = True
+                operator_id = row.get_entry("OperatorId")  # ID Operador
+                operator_name = row.get_entry("OperatorName")  # Operator Name
 
-        if report_type == 'Logout Operador':
+                # Get the Initial Coupon for the Day
+                if row.get_entry("InitialOrderId"):
+                    initial_coupon = min((initial_coupon, int(row.get_entry("InitialOrderId"))))
+
+                # List all operators # for the Day
+                operators.append(row.get_entry("OperatorId"))
+
+                # Sum all initial float for the Day
+                initialfloat = initialfloat + D(row.get_entry("InitialFloat"))
+
+                # Sum all gross sales for the Day
+                gross_sales = gross_sales + D(row.get_entry("PaidGrossAmt"))
+
+                # Sum all net sales for the Day
+                net_sales = net_sales + D(row.get_entry("PaidNetAmt"))
+
+                # Sum all paid quantities for the Day
+                paid_qty = paid_qty + int(row.get_entry("PaidCount"))
+
+                # Sum all gross voided sales for the day
+                voided_gross_coupon = voided_gross_coupon + D(row.get_entry("VoidGrossAmt"))
+
+                # Sum all net voided sales for the day
+                voided_net_coupon = voided_net_coupon + D(row.get_entry("VoidNetAmt"))
+
+                # Sum all voided quantities for the day
+                voided_coupon_qtd = voided_coupon_qtd + int(row.get_entry("VoidCount"))
+
+                # Sum all coupon quantities (transactions) for the day
+                total_coupon = total_coupon + int(row.get_entry("TransactCount"))
+
+                # Get the last order ID (coupon number) for the Day
+                # if row.get_entry("FinalOrderId"):
+                #     final_coupon = int(row.get_entry("FinalOrderId"))
+
+                # Sum all refund gross amount for the Day
+                refund_gross_amount = refund_gross_amount + D(row.get_entry("RefundGrossAmt"))
+
+                # Sum all refund net amount for the Day
+                refund_net_amount = refund_net_amount + D(row.get_entry("RefundNetAmt"))
+
+                # Sum all refund quantities for the Day
+                refund_qty_count = refund_qty_count + int(row.get_entry("RefundCount"))
+
+                # Sum all waste gross amount for the Day
+                waste_gross_amount = waste_gross_amount + D(row.get_entry("WasteGrossAmt"))
+
+                # Sum all waste net amount for the Day
+                waste_net_amount = waste_net_amount + D(row.get_entry("WasteNetAmt"))
+
+                # Sum all waste quantities for the Day
+                waste_qty_count = waste_qty_count + int(row.get_entry("WasteCount"))
+
+                # Sum all CASH refund amounts
+                cash_refund_amount += D(row.get_entry("CashRefundAmount") or 0)
+
+                # Sum all CASH gross sales amounts
+                cash_gross_amount += D(row.get_entry("CashGrossAmount") or 0)
+
+                # Get the Initial GT(Gran Total) Gross
+                # if row.get_entry("InitialPOSForeverTotalGross"):
+                #     initial_GT_gross = D(row.get_entry("InitialPOSForeverTotalGross"))
+
+                # Sum all voided items quantities for the Day
+                if row.get_entry("ReducedItemsQty"):
+                    voided_item_qty = voided_item_qty + int(row.get_entry("ReducedItemsQty"))
+
+                # Sum all voided items amount for the Day
+                if row.get_entry("ReducedAmount"):
+                    voided_item_amount = voided_item_amount + D(row.get_entry("ReducedAmount"))
+
+                # Sum all Transfer IN quantities for the Day
+                if row.get_entry("TransferInQty"):
+                    transfer_in_qty = transfer_in_qty + int(row.get_entry("TransferInQty"))
+
+                # Sum all Transfer IN Amount for the Day
+                if row.get_entry("TransferInAmount"):
+                    transfer_in_amount = transfer_in_amount + D(row.get_entry("TransferInAmount"))
+
+                # Sum all Transfer OUT quantities for the Day
+                if row.get_entry("TransferOutQty"):
+                    transfer_out_qty = transfer_out_qty + int(row.get_entry("TransferOutQty"))
+
+                # Sum all Transfer OUT Amount for the Day
+                if row.get_entry("TransferOutAmount"):
+                    transfer_out_amount = transfer_out_amount + D(row.get_entry("TransferOutAmount"))
+
+                # Sum all Skim quantities for the Day
+                if row.get_entry("SkimQty"):
+                    skim_qty = skim_qty + int(row.get_entry("SkimQty"))
+
+                # Sum all Skim Amount for the Day
+                if row.get_entry("SkimAmount"):
+                    skim_amount = skim_amount + D(row.get_entry("SkimAmount"))
+
+                if row.get_entry("DiscountSessionInfo"):
+                    discountInfo = eval(row.get_entry("DiscountSessionInfo"))
+                    for discount in discountInfo:
+                        consolidated = discountInfos[discount["Code"]]
+                        amt = D(discount["Amt"])
+                        consolidated["Descr"] = discount["Descr"]
+                        consolidated["Qty"] += int(discount["Qty"])
+                        consolidated["Amt"] += amt
+                        total_discount_amount += amt
+
+                if row.get_entry("TenderSessionInfo"):
+                    tenderInfo = eval(row.get_entry("TenderSessionInfo"))
+                    for tender in tenderInfo:
+                        consolidated = tenderInfos[tender["TenderId"]]
+                        consolidated["TenderId"] = tender["TenderId"]
+                        consolidated["TenderDescr"] = tender["TenderDescr"]
+                        consolidated["TenderTotal"] += D(tender["TenderTotal"])
+
+                        '''
+                        if int(tender["TenderId"]) == 1:
+                            giftcard_amount += D(tender["TenderTotal"])
+                        elif int(tender["TenderId"]) == 2:
+                            creditcard_amount += D(tender["TenderTotal"])
+                        '''
+
+                        # if int(tender["TenderId"]) > 1:
+                        #     params_fiscal = {
+                        #         "pos_id": posid,
+                        #         "order_id": tender["OrderId"],
+                        #     }
+                        #
+                        #     cartao = None
+                        #     cursor_card = None
+                        #     fiscal_conn = None
+                        #     try:
+                        #         fiscal_conn = dbd.open(mbcontext, service_name="FiscalPersistence")
+                        #         cursor_card = fiscal_conn.pselect("fiscal_getEFTData", **params_fiscal)
+                        #         cartao = [dict([(cursor_card.get_name(col_id), row.get_entry(col_id)) for col_id in range(cursor_card.cols())]) for row in cursor_card]
+                        #     except:
+                        #         sys_log_exception("Excecao getEFTData")
+                        #     finally:
+                        #         if fiscal_conn:
+                        #             fiscal_conn.close()
+                        #
+                        #     if cartao is None or len(cartao) == 0:
+                        #         sys_log_info("Dados do cartão não encontrado!")
+                        #     else:
+                        #         for extra_data in cartao:
+                        #             consolidated = tenderInfos[int(extra_data['Bandeira'])]
+                        #             consolidated["TenderTotal"] += D(tender["TenderTotal"])
+
+                # Gift Cards
+                #giftcard_sales_qty += int(row.get_entry("GiftCardSales") or 0)
+                #giftcard_sales_amount += D(row.get_entry("GiftCardsAmount") or 0)
+                #giftcard_refunds_qty += int(row.get_entry("GiftCardRefunds") or 0)
+                #giftcard_refunds_amount += D(row.get_entry("GiftCardsRefundsAmount") or 0)
+                #giftcard_paidOrders += int(row.get_entry("PaidOrdersWithGiftCard") or 0)
+                #giftCardsActivityInfo = row.get_entry("GiftCardsActivityInfo")
+                #if giftCardsActivityInfo:
+                #    for gcInfo in eval(giftCardsActivityInfo):
+                #        giftcardInfos[gcInfo["Type"]]["Qty"] += int(gcInfo["Qty"])
+                #        giftcardInfos[gcInfo["Type"]]["Amt"] += D(gcInfo["Amt"])
+
             # Select declared cash information
             cursor = conn.select("""SELECT
-                            tr.amount, tr.Description, tr.GLAccount
-                         FROM posctrl.UserSession us
-                          LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId
-                         WHERE tr.SessionId = '%s' AND tr.PosId = %s %s ORDER BY tr.Timestamp ASC;""" % (
-            session_id, posno, '' if int(operatorid) == 0 else ('AND us.OperatorId = %s' % operatorid)))
+                        COALESCE(sum(tr.amount), 0) AS "Declared"
+                     FROM posctrl.UserSession us
+                      LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId AND tr.Description = 'DECLARED_AMOUNT'
+                     WHERE tr.Period = %s AND tr.PosId = %s %s;""" % (period, posno, '' if int(operatorid) == 0 else ('AND us.OperatorId = %s' % operatorid)))
 
-            skims = []
             for row in cursor:
-                skims.append((row.get_entry('Description'), row.get_entry('Amount'), row.get_entry('GLAccount') or ""))
-        # release reserved a database connection
-        conn.transaction_end()
+                total_declared += D(row.get_entry('Declared'))
 
-        # close database connection
-        conn.close()
+            # Select the donations information
+            if session_id:
+                where_clause = "WHERE O.BusinessPeriod='%s' AND U.SessionId='%s'" % (period, session_id)
+            elif int(operatorid):
+                where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s' AND U.OperatorId='%s'" % (posno, period, operatorid)
+            else:
+                where_clause = "WHERE U.PosId='%s' AND O.BusinessPeriod='%s'" % (posno, period)
+
+            sql = """
+            SELECT
+                ProductCode AS DonationCode,
+                ProductName AS DonationName,
+                tdsum(CASE WHEN X.IsRefund THEN '0.00' ELSE TotalPrice END) AS DonatedAmount,
+                tdsum(CASE WHEN X.IsRefund THEN TotalPrice ELSE '0.00' END) AS RefundedAmount,
+                sum(DonatedQty) AS DonatedQty
+            FROM (
+                SELECT
+                    OI.PartCode AS ProductCode,
+                    tdsum(tdmul(COALESCE(OI.OverwrittenUnitPrice, PR.DefaultUnitPrice, '0.00'), OI.OrderedQty)) AS TotalPrice,
+                    P.ProductName AS ProductName,
+                    (CASE WHEN O.OrderType=0 THEN 1 ELSE 0 END) AS DonatedQty,
+                    (CASE WHEN O.OrderType=1 THEN 1 ELSE 0 END) AS IsRefund
+                FROM orderdb.Orders O
+                JOIN orderdb.OrderItem OI
+                    ON OI.OrderId=O.OrderId AND O.StateId=5 AND OI.OrderedQty>0
+                JOIN productdb.ProductCustomParams PCP
+                    ON OI.PartCode=PCP.ProductCode AND LOWER(PCP.CustomParamId)='familygroup' AND LOWER(PCP.CustomParamValue)='donation'
+                JOIN productdb.Product P
+                    ON P.ProductCode=OI.PartCode
+                JOIN posctrl.UserSession U
+                    ON O.BusinessPeriod=U.BusinessPeriod AND O.SessionId=U.SessionId
+                LEFT JOIN productdb.Price PR
+                    ON PR.PriceKey=OI.PriceKey
+                %(where_clause)s AND O.OrderType IN (0,1)
+                GROUP BY OI.OrderId,OI.PartCode
+            ) X
+            GROUP BY X.ProductCode
+            """ % ({"where_clause": where_clause})
+
+            cursor = conn.select(sql)
+            for row in cursor:
+                consolidated = donationInfos[str(row.get_entry("DonationCode"))]
+                consolidated["Descr"] = str(row.get_entry("DonationName"))
+                consolidated["Qty"] += int(row.get_entry("DonatedQty"))
+                consolidated["Amt"] += D(row.get_entry("DonatedAmount"))
+                donations_qty += int(row.get_entry("DonatedQty"))
+                donations_amount += D(row.get_entry("DonatedAmount"))
+                donations_refunds_amount += D(row.get_entry("RefundedAmount"))
+
+            if session_id:
+                cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
+                                        INNER JOIN Orders o 
+                                        ON o.OrderId = ocp.OrderId 
+                                        WHERE ocp.Key = 'DONATION_VALUE' 
+                                        AND o.BusinessPeriod = '%s' 
+                                        AND o.SessionId = '%s'""" % (period, session_id))
+            else:
+                cursor = conn.select("""SELECT COALESCE(COUNT(ocp.value), 0) AS DonatedQty, COALESCE(SUM(ocp.Value), 0) AS DonatedAmount FROM OrderCustomProperties ocp 
+                                        INNER JOIN Orders o 
+                                        ON o.OrderId = ocp.OrderId 
+                                        WHERE ocp.Key = 'DONATION_VALUE' 
+                                        AND o.BusinessPeriod = '%s'""" % period)
+            row = cursor.get_row(0)
+
+            donated_amount = D(row.get_entry("DonatedAmount") or 0)
+            donated_qty = D(row.get_entry("DonatedQty") or 0)
+
+            # Failed SAF transactions
+            if store_wide:
+                sql = """
+                SELECT
+                    CT.CardNumberMasked AS CardNumberMasked,
+                    CT.Amount AS Amount,
+                    CT.ApprovedAmount AS ApprovedAmount,
+                    CT.ResultText AS ResultText
+                FROM cashless.CashlessTransactions CT
+                LEFT JOIN orderdb.Orders O ON O.OrderId=CT.OrderId
+                WHERE
+                    CT.Status IN (2, 6) AND CT.PosId=%s AND
+                    CAST(COALESCE(O.BusinessPeriod,strftime(DATE(CT.DateStr),'%%Y%%m%%d')) AS INTEGER)=%s AND
+                    tdcmp(CT.Amount,CT.ApprovedAmount) != 0 AND
+                    CT.StatusHistory LIKE "%%|4|%%"
+                ORDER BY
+                    CT.DateTime;
+                """ % (posno, period)
+
+                # create database connection
+                cursor = conn.select(sql)
+                for row in cursor:
+                    failed_saf.append({
+                        'CardNo': row.get_entry("CardNumberMasked"),
+                        'Amount': row.get_entry("Amount"),
+                        'Approved': row.get_entry("ApprovedAmount"),
+                        'Text': "Partially approved" if float(row.get_entry("ApprovedAmount")) > 0.0 else row.get_entry("ResultText"),
+                    })
+
+            if report_type == 'Logout Operador':
+                # Select declared cash information
+                cursor = conn.select("""SELECT
+                                tr.amount, tr.Description, tr.GLAccount
+                             FROM posctrl.UserSession us
+                              LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId
+                             WHERE tr.SessionId = '%s' AND tr.PosId = %s %s ORDER BY tr.Timestamp ASC;""" % (
+                session_id, posno, '' if int(operatorid) == 0 else ('AND us.OperatorId = %s' % operatorid)))
+
+                skims = []
+                for row in cursor:
+                    skims.append((row.get_entry('Description'), row.get_entry('Amount'), row.get_entry('GLAccount') or ""))
+        finally:
+            if conn:
+                conn.close()
 
         # create database connection
         conn = None
         try:
-            conn = dbd.open(mbcontext, posno)
-        except:
-            sys_log_exception("Erro abrindo conexao do pos: " + str(posno))
+            try:
+                conn = dbd.open(mbcontext, dbname=str(posno))
+            except:
+                sys_log_exception("Erro abrindo conexao do pos: " + str(posno))
+                if conn:
+                    conn.close()
+                continue
+
+            # reserve a database connection
+            conn.transaction_start()
+
+            originatorid = "POS%04d" % int(posno)
+
+            if int(operatorid):
+                sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
+                     FROM orderdb.OrderTender OT
+                     JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
+                     JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
+                     WHERE O.BusinessPeriod='%s'
+                     AND O.OriginatorId = '%s'
+                     AND O.StateId IN (5,4)
+                     AND O.SessionId LIKE '%%user=%s%%'
+                    """ % (period, originatorid, operatorid)
+            else:
+                sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
+                     FROM orderdb.OrderTender OT
+                     JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
+                     JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
+                     WHERE O.BusinessPeriod='%s'
+                     AND O.OriginatorId = '%s'
+                     AND O.StateId IN (5,4)
+                    """ % (period, originatorid)
+
+            if session_id:
+                sql += "AND O.SessionId = '%s'" % session_id
+
+            cursor = conn.select(sql)
+
+            for row in cursor:
+                if int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 5:
+                    total_tip += D(row.get_entry("TipAmount"))
+                    if row.get_entry("TenderId") == "0":
+                        cash_tips += D(row.get_entry("TipAmount"))
+                    if row.get_entry("TenderId") == "9":
+                        cc_tips += D(row.get_entry("TipAmount"))
+                elif int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 4:
+                    voided_tips += D(row.get_entry("TipAmount"))
+                elif int(row.get_entry("OrderType")) == 1 and int(row.get_entry("StateId")) == 5:
+                    refunded_tips += D(row.get_entry("TipAmount"))
+        finally:
             if conn:
                 conn.close()
-            continue
-
-        # reserve a database connection
-        conn.transaction_start()
-
-        originatorid = "POS%04d" % int(posno)
-
-        if int(operatorid):
-            sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
-                 FROM orderdb.OrderTender OT
-                 JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
-                 JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
-                 WHERE O.BusinessPeriod='%s'
-                 AND O.OriginatorId = '%s'
-                 AND O.StateId IN (5,4)
-                 AND O.SessionId LIKE '%%user=%s%%'
-                """ % (period, originatorid, operatorid)
-        else:
-            sql = """SELECT OT.OrderId, O.OrderType, O.StateId, OT.OrderTenderId, COALESCE(OT.TipAmount,'0.00') AS TipAmount, TT.TenderId, TT.TenderDescr
-                 FROM orderdb.OrderTender OT
-                 JOIN productdb.TenderType TT ON TT.TenderId=OT.TenderId
-                 JOIN orderdb.Orders O ON O.OrderId=OT.OrderId
-                 WHERE O.BusinessPeriod='%s'
-                 AND O.OriginatorId = '%s'
-                 AND O.StateId IN (5,4)
-                """ % (period, originatorid)
-
-        if session_id:
-            sql += "AND O.SessionId = '%s'" % session_id
-
-        cursor = conn.select(sql)
-
-        for row in cursor:
-            if int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 5:
-                total_tip += D(row.get_entry("TipAmount"))
-                if row.get_entry("TenderId") == "0":
-                    cash_tips += D(row.get_entry("TipAmount"))
-                if row.get_entry("TenderId") == "9":
-                    cc_tips += D(row.get_entry("TipAmount"))
-            elif int(row.get_entry("OrderType")) == 0 and int(row.get_entry("StateId")) == 4:
-                voided_tips += D(row.get_entry("TipAmount"))
-            elif int(row.get_entry("OrderType")) == 1 and int(row.get_entry("StateId")) == 5:
-                refunded_tips += D(row.get_entry("TipAmount"))
-
-        # release reserved a database connection
-        conn.transaction_end()
-
-        # close database connection
-        conn.close()
 
     # Tax calculation
     tax_sales = (gross_sales - net_sales)
@@ -1804,22 +1861,17 @@ def cash_over_short_report(posid, business_period, pos, *args):
     report = StringIO()
 
     conn = None
-    trans = False
     StoreId = ""
 
     try:
-        conn = dbd.open(mbcontext)
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         conn.transaction_start()
-        trans = True
         cursor = conn.select("SELECT KeyValue FROM storecfg.Configuration WHERE KeyPath = 'Store.Id'")
         for row in cursor:
             StoreId = row.get_entry(0)
             break
     finally:
-        if conn is not None:
-            if trans:
-                conn.transaction_end()
+        if conn:
             conn.close()
 
     title = _center("Relatorio Resumido")
@@ -1849,13 +1901,10 @@ def cash_over_short_report(posid, business_period, pos, *args):
                  WHERE us.BusinessPeriod = %s AND us.PosId = %s;""" % (business_period, posid)
 
         conn = None
-        trans = False
 
         try:
-            conn = dbd.open(mbcontext)
-            conn.set_dbname(str(posid))
+            conn = dbd.open(mbcontext, dbname=str(posid))
             conn.transaction_start()
-            trans = True
             cursor = conn.select(sql)
 
             for row in cursor:
@@ -1869,9 +1918,7 @@ def cash_over_short_report(posid, business_period, pos, *args):
                 total_declared = total_declared + D(float_declared)
                 total_cash_tenders = (total_cash_tenders + D(cash_tenders)) - D(cash_refund)
         finally:
-            if conn is not None:
-                if trans:
-                    conn.transaction_end()
+            if conn:
                 conn.close()
 
     total_overshort = total_declared - total_calculated
@@ -1905,13 +1952,10 @@ def cash_over_short_report(posid, business_period, pos, *args):
                   GROUP BY us.SessionId, us.OperatorName, us.PosId;""" % (business_period, posid)
 
         conn = None
-        trans = False
 
         try:
-            conn = dbd.open(mbcontext)
-            conn.set_dbname(str(posid))
+            conn = dbd.open(mbcontext, dbname=str(posid))
             conn.transaction_start()
-            trans = True
             cursor = conn.select(sql)
 
             for row in cursor:
@@ -1936,9 +1980,7 @@ def cash_over_short_report(posid, business_period, pos, *args):
                 report.write("\n")
                 report.write("%s\n" % SINGLE_SEPARATOR)
         finally:
-            if conn is not None:
-                if trans:
-                    conn.transaction_end()
+            if conn:
                 conn.close()
 
     return report.getvalue()
@@ -2015,52 +2057,52 @@ def cash_over_short_op_report(posid, business_period, userid, *args):
     report.write("Dia Util....: %s\n" % business_day)
     report.write("%s\n" % (SEPARATOR))
 
-    conn = dbd.open(mbcontext)
-    conn.set_dbname(str(posid))
-    conn.transaction_start()
+    conn = None
+    try:
+        conn = dbd.open(mbcontext, dbname=str(posid))
+        conn.transaction_start()
 
-    sql = """ SELECT us.OperatorName,
-      us.PosId,
-      strftime("%%H:%%M", us.OpenTime) AS "Check-in",
-      strftime("%%H:%%M", us.CloseTime) AS "Check-out",
-      us.InitialFloat AS "InitialFloat",
-      tr.amount AS "Declared",
-      tr.SessionId AS "SessionId"
-      FROM posctrl.UserSession us
-      LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId AND tr.Description = 'DECLARED_AMOUNT'
-      WHERE us.BusinessPeriod = '%s'
-      AND us.PosId = '%s'
-      AND us.OperatorId = '%s'
-      GROUP BY us.SessionId, us.OperatorName, us.PosId;""" % (business_period, posid, userid)
+        sql = """ SELECT us.OperatorName,
+          us.PosId,
+          strftime("%%H:%%M", us.OpenTime) AS "Check-in",
+          strftime("%%H:%%M", us.CloseTime) AS "Check-out",
+          us.InitialFloat AS "InitialFloat",
+          tr.amount AS "Declared",
+          tr.SessionId AS "SessionId"
+          FROM posctrl.UserSession us
+          LEFT JOIN account.Transfer tr ON us.SessionId = tr.SessionId AND tr.Description = 'DECLARED_AMOUNT'
+          WHERE us.BusinessPeriod = '%s'
+          AND us.PosId = '%s'
+          AND us.OperatorId = '%s'
+          GROUP BY us.SessionId, us.OperatorName, us.PosId;""" % (business_period, posid, userid)
 
-    cursor = conn.select(sql)
-    if not cursor:
-        return
+        cursor = conn.select(sql)
+        if not cursor:
+            return
 
-    for row in cursor:
-        OpName, PosId, Checkin, Checkout, InitialFloat, Declared, SessionId = map(row.get_entry, ('OperatorName', 'PosId', 'Check-in', 'Check-out', 'InitialFloat', 'Declared', 'SessionId'))
-        tender_info = generate_tender_info(conn, PosId, business_period, session_id=SessionId)
-        cash_tenders = tender_info[0]["TenderTotal"]
-        transfer_in = tender_info[0]["transfer_in"]
-        transfer_out = tender_info[0]["transfer_out"]
-        cash_refund = tender_info[0]["cash_refund"]
-        total_calculated = cash_tenders + D(InitialFloat) + D(transfer_in) - (D(transfer_out) + D(cash_refund))
-        total_overshort = D(Declared) - total_calculated
+        for row in cursor:
+            OpName, PosId, Checkin, Checkout, InitialFloat, Declared, SessionId = map(row.get_entry, ('OperatorName', 'PosId', 'Check-in', 'Check-out', 'InitialFloat', 'Declared', 'SessionId'))
+            tender_info = generate_tender_info(conn, PosId, business_period, session_id=SessionId)
+            cash_tenders = tender_info[0]["TenderTotal"]
+            transfer_in = tender_info[0]["transfer_in"]
+            transfer_out = tender_info[0]["transfer_out"]
+            cash_refund = tender_info[0]["cash_refund"]
+            total_calculated = cash_tenders + D(InitialFloat) + D(transfer_in) - (D(transfer_out) + D(cash_refund))
+            total_overshort = D(Declared) - total_calculated
 
-        report.write("%s / %s\n" % (OpName, PosId))
-        report.write("%s\n" % SINGLE_SEPARATOR)
-        report.write("Periodo: %s - %s\n" % (Checkin, Checkout))
-        report.write("Dinheiro Calculado:        R$%6.2f\n" % (float(total_calculated)))
-        report.write("Dinheiro Declarado:        R$%6.2f\n" % (float(Declared)))
-        report.write("Sobra / Falta:             R$%6.2f\n" % (float(total_overshort)))
-        report.write("Deposito Banco:            R$%6.2f\n" % float(float(cash_tenders if cash_tenders > 0 else 0) + float(total_overshort)))
-        report.write("\n")
-        report.write("%s\n" % SINGLE_SEPARATOR)
+            report.write("%s / %s\n" % (OpName, PosId))
+            report.write("%s\n" % SINGLE_SEPARATOR)
+            report.write("Periodo: %s - %s\n" % (Checkin, Checkout))
+            report.write("Dinheiro Calculado:        R$%6.2f\n" % (float(total_calculated)))
+            report.write("Dinheiro Declarado:        R$%6.2f\n" % (float(Declared)))
+            report.write("Sobra / Falta:             R$%6.2f\n" % (float(total_overshort)))
+            report.write("Deposito Banco:            R$%6.2f\n" % float(float(cash_tenders if cash_tenders > 0 else 0) + float(total_overshort)))
+            report.write("\n")
+            report.write("%s\n" % SINGLE_SEPARATOR)
 
-    conn.transaction_end()
-
-    # close database connection
-    conn.close()
+    finally:
+        if conn:
+            conn.close()
 
     return report.getvalue()
 
@@ -2099,51 +2141,55 @@ def transferReport(posid, operatorid, transfer_type, amount, period, banana="", 
 
 def productListReport(posid, period, show_inactive="true"):
     show_inactive = True if (show_inactive.lower() == "true") else False
-    conn = dbd.open(mbcontext)
-    sql = """
-    SELECT P.ProductCode as ProductCode,
-           P.ProductName as ProductName,
-           COALESCE(PR.DefaultUnitPrice, '0.00') as Price
-    FROM
-        productdb.Product P
-    JOIN productdb.ProductKernelParams PKP ON PKP.ProductCode=P.ProductCode
-    LEFT JOIN
-        productdb.Price PR
-        ON  PR.ProductCode=P.ProductCode AND
-            PR.Context IN (
-                SELECT DISTINCT ProductCode
-                FROM productdb.ProductKernelParams
-                WHERE ProductType=3
-            ) AND
-            DATE('%s-%s-%s') BETWEEN PR.ValidFrom AND PR.ValidThru
-    WHERE
-        P.ProductCode NOT IN (SELECT DISTINCT ClassCode FROM productdb.ProductClassification)
-        AND PKP.Enabled IN (1, %s)
-    GROUP BY ProductCode, Price
-    ORDER BY P.ProductCode
-    """ % (period[:4], period[4:6], period[6:8], ('0' if show_inactive else "NULL"))
+    conn = None
+    try:
+        conn = dbd.open(mbcontext)
+        sql = """
+        SELECT P.ProductCode as ProductCode,
+               P.ProductName as ProductName,
+               COALESCE(PR.DefaultUnitPrice, '0.00') as Price
+        FROM
+            productdb.Product P
+        JOIN productdb.ProductKernelParams PKP ON PKP.ProductCode=P.ProductCode
+        LEFT JOIN
+            productdb.Price PR
+            ON  PR.ProductCode=P.ProductCode AND
+                PR.Context IN (
+                    SELECT DISTINCT ProductCode
+                    FROM productdb.ProductKernelParams
+                    WHERE ProductType=3
+                ) AND
+                DATE('%s-%s-%s') BETWEEN PR.ValidFrom AND PR.ValidThru
+        WHERE
+            P.ProductCode NOT IN (SELECT DISTINCT ClassCode FROM productdb.ProductClassification)
+            AND PKP.Enabled IN (1, %s)
+        GROUP BY ProductCode, Price
+        ORDER BY P.ProductCode
+        """ % (period[:4], period[4:6], period[6:8], ('0' if show_inactive else "NULL"))
 
-    cursor = conn.select(sql)
-    report = StringIO()
+        cursor = conn.select(sql)
+        report = StringIO()
 
-    if show_inactive:
-        title = "Lista de Produtos (Todos os itens)"
-    else:
-        title = "Lista de Produtos (Apenas ativos)"
+        if show_inactive:
+            title = "Lista de Produtos (Todos os itens)"
+        else:
+            title = "Lista de Produtos (Apenas ativos)"
 
-    report.write(_manager_report_header(title, int(posid), 0, period))
-    report.write("%s\n" % (SEPARATOR))
-    report.write("\n")
-    #             12345678901234567890123456789012345678
-    report.write("  Codigo Descricao            Preco\n")
+        report.write(_manager_report_header(title, int(posid), 0, period))
+        report.write("%s\n" % (SEPARATOR))
+        report.write("\n")
+        #             12345678901234567890123456789012345678
+        report.write("  Codigo Descricao            Preco\n")
 
-    for row in cursor:
-        code, descr, price = map(row.get_entry, ("ProductCode", "ProductName", "Price"))
-        report.write("%8s %-20.20s  R$ %-7.7s\n" % (code, descr, _fmt_number(float(price))))
+        for row in cursor:
+            code, descr, price = map(row.get_entry, ("ProductCode", "ProductName", "Price"))
+            report.write("%8s %-20.20s  R$ %-7.7s\n" % (code, descr, _fmt_number(float(price))))
 
-    report.write("%s\n" % (SEPARATOR))
-    report.write("\n")
-    conn.close()
+        report.write("%s\n" % (SEPARATOR))
+        report.write("\n")
+    finally:
+        if conn:
+            conn.close()
 
     return report.getvalue()
 
@@ -2167,26 +2213,29 @@ def dayOpen_report(posid, period, posnumbers, store_wide="false", *args):
         pos_included.append(posno)
 
         # create database connection
-        conn = dbd.open(mbcontext)
-        sql = """
-        SELECT T.POSId, T.Period, T.TotalNet, T.TotalGross, T.CouponNumber
-        FROM account.Totals T
-        JOIN (SELECT POSId AS POSId, MAX(Period) AS Period
-              FROM account.Totals
-              GROUP BY POSId) P
-        ON P.POSId=T.POSId AND P.Period=T.Period
-        WHERE T.POSId=%s
-        """ % (posno)
+        conn = None
+        try:
+            conn = dbd.open(mbcontext)
+            sql = """
+            SELECT T.POSId, T.Period, T.TotalNet, T.TotalGross, T.CouponNumber
+            FROM account.Totals T
+            JOIN (SELECT POSId AS POSId, MAX(Period) AS Period
+                  FROM account.Totals
+                  GROUP BY POSId) P
+            ON P.POSId=T.POSId AND P.Period=T.Period
+            WHERE T.POSId=%s
+            """ % (posno)
 
-        cursor = conn.select(sql)
+            cursor = conn.select(sql)
 
-        for row in cursor:
-            if row.get_entry("TotalGross"):
-                init_get_array.append((posno, float(row.get_entry("TotalGross"))))
-            else:
-                init_get_array.append((posno, float(0)))
-
-        conn.close()
+            for row in cursor:
+                if row.get_entry("TotalGross"):
+                    init_get_array.append((posno, float(row.get_entry("TotalGross"))))
+                else:
+                    init_get_array.append((posno, float(0)))
+        finally:
+            if conn:
+                conn.close()
 
     report.write("\n")
     report.write("%s\n" % (SEPARATOR))
@@ -2434,70 +2483,75 @@ def timePunchReport(xml_TP, *args):
 
 
 def giftcardReport(posid, period, *args):
-    conn = dbd.open(mbcontext)
-    cursor = conn.select("Select Type,Timestamp,Amount,AuthNumber,CardNumber from account.GiftCardActivity WHERE Period='%s' ORDER BY Type;" % period)
+    conn = None
+    try:
+        conn = dbd.open(mbcontext)
+        cursor = conn.select("Select Type,Timestamp,Amount,AuthNumber,CardNumber from account.GiftCardActivity WHERE Period='%s' ORDER BY Type;" % period)
 
-    #         11        21        31      |
-    # 12345678901234567890123456789012345678
-    # ======================================
-    #            Gift Card Report
-    #   Data/hora.....: 03/28/2009 13:06:12
-    #   Period........: 03/26/2009
-    # ======================================
-    #  Timestamp                 Amount
-    #  CardNumber          AuthNumber
-    # --------------------------------------
-    #  GiftCard Activation
-    #  2009-04-08t17:40:03       $ 123456.89
-    #  1234567890123456789 12345678901234567
-    #  2009-04-08t17:40:03       $ 123456.89
-    #  1234567890123456789 12345678901234567
-    # ======================================
+        #         11        21        31      |
+        # 12345678901234567890123456789012345678
+        # ======================================
+        #            Gift Card Report
+        #   Data/hora.....: 03/28/2009 13:06:12
+        #   Period........: 03/26/2009
+        # ======================================
+        #  Timestamp                 Amount
+        #  CardNumber          AuthNumber
+        # --------------------------------------
+        #  GiftCard Activation
+        #  2009-04-08t17:40:03       $ 123456.89
+        #  1234567890123456789 12345678901234567
+        #  2009-04-08t17:40:03       $ 123456.89
+        #  1234567890123456789 12345678901234567
+        # ======================================
 
-    # create string I/O to append the report info
-    report = StringIO()
-    title = _center("Relatorio Gift Card")
-    current_datetime = datetime.datetime.now().strftime(DATE_TIME_FMT)
-    business_period = "%02d/%02d/%04d" % (int(period[4:6]), int(period[6:8]), int(period[:4]))
+        # create string I/O to append the report info
+        report = StringIO()
+        title = _center("Relatorio Gift Card")
+        current_datetime = datetime.datetime.now().strftime(DATE_TIME_FMT)
+        business_period = "%02d/%02d/%04d" % (int(period[4:6]), int(period[6:8]), int(period[:4]))
 
-    report.write(
-        """%(SEPARATOR)s
-%(title)s
-  Data/hora.....: %(current_datetime)s
-  Periodo.......: %(business_period)s
-""" % _join(globals(), locals()))
+        report.write(
+            """%(SEPARATOR)s
+    %(title)s
+      Data/hora.....: %(current_datetime)s
+      Periodo.......: %(business_period)s
+    """ % _join(globals(), locals()))
 
-    report.write("%s\n" % (SEPARATOR))
-    report.write(" Timestamp                      Amount\n")
-    report.write(" CardNumber                 AuthNumber\n")
-    report.write("%s\n" % (SINGLE_SEPARATOR))
+        report.write("%s\n" % (SEPARATOR))
+        report.write(" Timestamp                      Amount\n")
+        report.write(" CardNumber                 AuthNumber\n")
+        report.write("%s\n" % (SINGLE_SEPARATOR))
 
-    lastType = ""
-    for row in cursor:
-        gcType, gcTimestamp, gcAmount, gcAuthNumber, gcCardNumber = map(row.get_entry, ("Type", "Timestamp", "Amount", "AuthNumber", "CardNumber"))
-        gcType = int(gcType)
-        gcTimestamp = datetime.datetime.strptime(gcTimestamp[:19], "%Y-%m-%dT%H:%M:%S").strftime(DATE_TIME_FMT)
-        if lastType != gcType:
-            gcDescr = ""
-            if gcType == eft.EFT_GIFTACTIVATE:
-                gcDescr = "GiftCard Activation"
-            if gcType == eft.EFT_GIFTREDEEM:
-                gcDescr = "GiftCard Redemption"
-            if gcType == eft.EFT_GIFTADDVALUE:
-                gcDescr = "GiftCard Increment"
-            if gcDescr:
-                report.write("%s\n" % gcDescr)
-            lastType = gcType
-        if gcDescr:  # if Type is valid
-            report.write(" %19s      R$ %9.2f\n" % (gcTimestamp, float(gcAmount)))
-            report.write(" %19s %+14s\n" % (gcCardNumber or "", gcAuthNumber or ""))
+        lastType = ""
+        for row in cursor:
+            gcType, gcTimestamp, gcAmount, gcAuthNumber, gcCardNumber = map(row.get_entry, ("Type", "Timestamp", "Amount", "AuthNumber", "CardNumber"))
+            gcType = int(gcType)
+            gcTimestamp = datetime.datetime.strptime(gcTimestamp[:19], "%Y-%m-%dT%H:%M:%S").strftime(DATE_TIME_FMT)
+            if lastType != gcType:
+                gcDescr = ""
+                if gcType == eft.EFT_GIFTACTIVATE:
+                    gcDescr = "GiftCard Activation"
+                if gcType == eft.EFT_GIFTREDEEM:
+                    gcDescr = "GiftCard Redemption"
+                if gcType == eft.EFT_GIFTADDVALUE:
+                    gcDescr = "GiftCard Increment"
+                if gcDescr:
+                    report.write("%s\n" % gcDescr)
+                lastType = gcType
+            if gcDescr:  # if Type is valid
+                report.write(" %19s      R$ %9.2f\n" % (gcTimestamp, float(gcAmount)))
+                report.write(" %19s %+14s\n" % (gcCardNumber or "", gcAuthNumber or ""))
 
-    if not lastType:
-        report.write(" Data nao encontrada\n")
+        if not lastType:
+            report.write(" Data nao encontrada\n")
 
-    report.write("%s\n" % (SEPARATOR))
+        report.write("%s\n" % (SEPARATOR))
 
-    return report.getvalue()
+        return report.getvalue()
+    finally:
+        if conn:
+            conn.close()
 
 
 def employeesClockedInReport(posid, business_day, timesheets, *args):
@@ -2632,15 +2686,13 @@ def laborReport(period, *args):
     for posid in poslist:
         conn = None
         try:
-            conn = dbd.open(mbcontext)
-            conn.set_dbname(str(posid))
-        except:
-            if conn:
-                conn.close()
-            continue
-
-        conn.transaction_start()
-        try:
+            try:
+                conn = dbd.open(mbcontext, dbname=str(posid))
+            except:
+                if conn:
+                    conn.close()
+                continue
+            conn.transaction_start()
             cursor = conn.pselect("laborReportStartEnd", period=period)
             start, end = None, None
 
@@ -2681,14 +2733,13 @@ def laborReport(period, *args):
 
                     segment["sales"] += D(row.get_entry("SalesAmount"))
         finally:
-            conn.transaction_end()
-            conn.close()
+            if conn:
+                conn.close()
 
     # Get the time-punch data to calculate labor hours
     conn = None
     try:
-        conn = dbd.open(mbcontext)
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         cursor = conn.select("""
             SELECT
                 T.UserId AS UserId,
@@ -2825,26 +2876,31 @@ def tenderGiftCardReport(posid, operatorid, period, *args):
     report.write(_manager_report_header("Relatorio Gift Card", int(posid), 0, period))
 
     # Get gift card numbers for given period
-    conn = dbd.open(mbcontext)
-    cursor = conn.select("""
-        SELECT OCP.Value, O.CreatedAt, O.SessionId, O.OrderId
-        FROM orderdb.OrderCustomProperties OCP
-        JOIN orderdb.Orders O
-        ON O.OrderId = OCP.OrderId
-        WHERE O.BusinessPeriod = %s AND OCP.Key='GIFT_CARD_JSON'
-    """ % period)
+    conn = None
+    try:
+        conn = dbd.open(mbcontext)
+        cursor = conn.select("""
+            SELECT OCP.Value, O.CreatedAt, O.SessionId, O.OrderId
+            FROM orderdb.OrderCustomProperties OCP
+            JOIN orderdb.Orders O
+            ON O.OrderId = OCP.OrderId
+            WHERE O.BusinessPeriod = %s AND OCP.Key='GIFT_CARD_JSON'
+        """ % period)
 
-    report.writeln("GIFT CARD N.   TIME  Check N R$       ")
+        report.writeln("GIFT CARD N.   TIME  Check N R$       ")
 
-    for order in cursor:
-        cards = json.loads(order.get_entry("Value"))
-        for card in cards:
-            created_at = order.get_entry("CreatedAt").split('.')[0]
-            created_at = datetime.datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%S").strftime('%H:%M')
-            order_id = str(order.get_entry("OrderId"))
-            report.write("%14s %5s %7s %6.2f\n" % (card['card_number'], created_at, order_id, float(card['card_amount'])))
+        for order in cursor:
+            cards = json.loads(order.get_entry("Value"))
+            for card in cards:
+                created_at = order.get_entry("CreatedAt").split('.')[0]
+                created_at = datetime.datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%S").strftime('%H:%M')
+                order_id = str(order.get_entry("OrderId"))
+                report.write("%14s %5s %7s %6.2f\n" % (card['card_number'], created_at, order_id, float(card['card_amount'])))
 
-    return report.getvalue()
+        return report.getvalue()
+    finally:
+        if conn:
+            conn.close()
 
 
 def itemAvailabilityReport(posid, operatorid, period, *args):
@@ -2859,20 +2915,25 @@ def itemAvailabilityReport(posid, operatorid, period, *args):
     report.write(_manager_report_header("Relatorio de Disponibilidade de Itens", int(posid), 0, period))
 
     # Get gift card numbers for given period
-    conn = dbd.open(mbcontext)
-    cursor = conn.select("""
-        SELECT * FROM cache.GenericStorage WHERE DataKey LIKE 'ITEM_AVAILABILITY_%s%%'
-    """ % period)
+    conn = None
+    try:
+        conn = dbd.open(mbcontext)
+        cursor = conn.select("""
+            SELECT * FROM cache.GenericStorage WHERE DataKey LIKE 'ITEM_AVAILABILITY_%s%%'
+        """ % period)
 
-    report.writeln("P. Code  P. Name          Disponibilidade")
+        report.writeln("P. Code  P. Name          Disponibilidade")
 
-    for order in cursor:
-        pcode = order.get_entry('DataKey').split('_')[-1]
-        availability = order.get_entry('DataValue')
-        pcode, pname = get_item(pcode)
-        report.write("%-8s %-20s %8s\n" % (pcode, pname, availability))
+        for order in cursor:
+            pcode = order.get_entry('DataKey').split('_')[-1]
+            availability = order.get_entry('DataValue')
+            pcode, pname = get_item(pcode)
+            report.write("%-8s %-20s %8s\n" % (pcode, pname, availability))
 
-    return report.getvalue()
+        return report.getvalue()
+    finally:
+        if conn:
+            conn.close()
 
 
 def cashSalesReport(posid, posnumbers, operatorid, period, session_id):
@@ -3020,12 +3081,17 @@ def cashSalesReport(posid, posnumbers, operatorid, period, session_id):
     day_part = {}
 
     for posno in posnumbers:
-        # create database connection
-        conn = dbd.open(mbcontext, posno)
+        conn = None
+        try:
+            # create database connection
+            conn = dbd.open(mbcontext, dbname=str(posno))
 
-        # reserve a database connection
-        conn.transaction_start()
-        order_hourly_info(conn, hourly_info, day_part)
+            # reserve a database connection
+            conn.transaction_start()
+            order_hourly_info(conn, hourly_info, day_part)
+        finally:
+            if conn:
+                conn.close()
 
     gross_total = D(0)
     void_total = D(0)
@@ -3275,12 +3341,17 @@ def pos_extended_report(posid, period, operatorid, store_wide, posnumbers, repor
     day_part = {}
 
     for posno in posnumbers:
-        # create database connection
-        conn = dbd.open(mbcontext, posno)
+        conn = None
+        try:
+            # create database connection
+            conn = dbd.open(mbcontext, dbname=str(posno))
 
-        # reserve a database connection
-        conn.transaction_start()
-        order_hourly_info(conn, hourly_info, day_part)
+            # reserve a database connection
+            conn.transaction_start()
+            order_hourly_info(conn, hourly_info, day_part)
+        finally:
+            if conn:
+                conn.close()
 
     gross_total = D(0)
     void_total = D(0)

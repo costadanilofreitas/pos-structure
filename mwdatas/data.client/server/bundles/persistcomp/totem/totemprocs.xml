@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Module Name: totemprocs.xml
+	Module Description: BK Totem Procedures
+
+	Created by: garaujo
+-->
+<Procedures>
+	<Procedure name="getCategories">
+		SELECT
+			cat.ID,
+			cat.Name,
+			cat.Enabled,
+			cat.Color,
+			locName.Value,
+			locURL.Value,
+			cat.IsPromo
+		FROM totemdb.Category cat
+		LEFT JOIN totemdb.Locale locName
+			ON locName.Key = cat.LocalizedNameKey
+			AND locName.Language = CAST(:lang AS TEXT)
+		LEFT JOIN totemdb.Locale locURL
+			ON locURL.Key = cat.LocalizedUrlKey
+			AND locURL.Language = CAST(:lang AS TEXT)
+		ORDER BY cat.Weight;
+	</Procedure>
+	<Procedure name="getProductsByCategory">
+		SELECT
+			prod.ProductCode,
+			locName.Value,
+			locURL.Value
+		FROM totemdb.CategoryProduct prod
+		LEFT JOIN totemdb.ProductInfo prodInfo
+			ON prodInfo.PartCode = prod.ProductCode
+		LEFT JOIN totemdb.Locale locName
+			ON locName.Key = prodInfo.LocalizedNameKey
+			AND locName.Language = CAST(:lang AS TEXT)
+		LEFT JOIN totemdb.Locale locURL
+			ON locURL.Key = prodInfo.LocalizedUrlKey
+			AND locURL.Language = CAST(:lang AS TEXT)
+		WHERE prod.CategoryID = CAST(:category AS INTEGER)
+		ORDER BY prod.Weight;
+	</Procedure>
+	<Procedure name="getProductSaleOptions">
+		SELECT
+			ProductOption,
+			Size
+		FROM totemdb.ProductSaleOptions
+		WHERE ProductCode = CAST(:partcode AS INTEGER)
+	</Procedure>
+	<Procedure name="getSuggestions">
+		SELECT
+			sug.ProductCode,
+			locName.Value,
+			locURL.Value
+		FROM totemdb.Suggestion sug
+		LEFT JOIN totemdb.ProductInfo prodInfo
+			ON prodInfo.PartCode = sug.ProductCode
+		LEFT JOIN totemdb.Locale locName
+			ON locName.Key = prodInfo.LocalizedNameKey
+			AND locName.Language = CAST(:lang AS TEXT)
+		LEFT JOIN totemdb.Locale locURL
+			ON locURL.Key = prodInfo.LocalizedUrlKey
+			AND locURL.Language = CAST(:lang AS TEXT)
+	</Procedure>
+	<Procedure name="getCouponInfo">
+		SELECT
+			coupon.Code,
+			coupon.Name,
+			coupon.Color,
+			locCouponName.Value,
+			locCouponUrl.Value,
+			GROUP_CONCAT(COALESCE(prod.ProductCode, ''), '|'),
+			GROUP_CONCAT(COALESCE(locProdName.Value, ''), '|'),
+			GROUP_CONCAT(COALESCE(locProdUrl.Value, ''), '|')
+		FROM totemdb.coupon coupon
+		LEFT JOIN totemdb.CouponProduct prod
+			ON prod.CouponID = coupon.ID
+		LEFT JOIN totemdb.ProductInfo prodInfo
+			ON prodInfo.partcode = prod.productcode
+		LEFT JOIN totemdb.Locale locProdName
+			ON locProdName.key = prodInfo.localizedNameKey
+			AND locProdName.language = CAST(:lang AS TEXT)
+		LEFT JOIN totemdb.Locale locProdUrl
+			ON locProdUrl.key = prodInfo.localizedUrlKey
+			AND locProdUrl.language = CAST(:lang AS TEXT)
+		LEFT JOIN totemdb.Locale locCouponName
+			ON locCouponName.key = coupon.localizedNameKey
+			AND locCouponName.language = CAST(:lang AS TEXT)
+		LEFT JOIN totemdb.Locale locCouponUrl
+			ON locCouponUrl.key = coupon.localizedUrlKey
+			AND locCouponUrl.language = CAST(:lang AS TEXT)
+		WHERE coupon.Code = CAST(:coupon_code AS TEXT)
+			AND DATE('now') BETWEEN coupon.StartDate AND coupon.EndDate
+		GROUP BY coupon.Code
+	</Procedure>
+	<Procedure name="getBanners">
+		SELECT
+			banner.Delay,
+			banner.ProductCode,
+			locUrl.Value
+		FROM totemdb.Banner banner
+		LEFT JOIN totemdb.Locale locUrl
+			ON locUrl.Key = banner.LocalizedUrlKey
+			AND locUrl.Language = CAST(:lang AS TEXT)
+		WHERE DATE('now') BETWEEN banner.StartDate AND banner.EndDate
+		AND banner.Local = 'TOPSCREEN'
+		ORDER BY banner.Weight
+	</Procedure>
+	<Procedure name="getMainBanners">
+		SELECT
+			locUrl.Value
+		FROM totemdb.Banner banner
+		LEFT JOIN totemdb.Locale locUrl
+			ON locUrl.Key = banner.LocalizedUrlKey
+			AND locUrl.Language = CAST(:lang AS TEXT)
+		WHERE DATE('now') BETWEEN banner.StartDate AND banner.EndDate
+		AND banner.Local = 'PRINCIPAL'
+		ORDER BY banner.Weight
+	</Procedure>
+	<Procedure name="getLocalizedProductData">
+		SELECT
+			locName.Value,
+			locUrl.Value
+		FROM totemdb.ProductInfo info
+		LEFT JOIN totemdb.Locale locName
+			ON locName.Key = info.localizedNameKey
+			AND locName.Language = CAST(:lang AS TEXT)
+		LEFT JOIN totemdb.Locale locUrl
+			ON locUrl.Key = info.localizedUrlKey
+			AND locUrl.Language = CAST(:lang AS TEXT)
+		WHERE info.PartCode = CAST(:partcode AS TEXT)
+		LIMIT 1
+	</Procedure>
+	<Procedure name="getLabelsTexts">
+		SELECT
+			label.PartCode,
+			label.Context,
+			locLabel.Value,
+			label.Color
+		FROM totemdb.OptionLabel label
+		LEFT JOIN totemdb.Locale locLabel
+			ON locLabel.Key = label.LocalizedLabelKey
+			AND locLabel.Language = CAST(:lang AS TEXT)
+	</Procedure>
+</Procedures>

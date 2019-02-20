@@ -83,6 +83,8 @@ def speedOfService(pos_id, period, pos, store_id="", *args):
 
     slot = {}
     cont = {}
+
+    pos_error_list = []
     for pos_id in pos_list:
         orders = {}
         conn = None
@@ -117,6 +119,7 @@ GROUP BY Orders.Orderid, OrderStateHistory.Stateid''' % locals())
                 if state == "END":
                     orders[order_id]['END'] = user_id = timestamp
         except Exception as e:
+            pos_error_list.append(pos_id)
             sys_log_error("Error openning database for POS %s - %s" % (pos_id, e.message))
         finally:
             if conn:
@@ -187,6 +190,8 @@ GROUP BY Orders.Orderid, OrderStateHistory.Stateid''' % locals())
   Dia Util......: %(business_period)s
   POS...........: %(pos_list)s
 """ % _join(globals(), locals()))
+    if len(pos_error_list) > 0:
+        report.write("  POS Erro......: %s\n" % pos_error_list)
     report.write("%s\n" % SEPARATOR)
     report.write("Operador         Vendas          Tempo\n")
     report.write("%s\n" % SINGLE_SEPARATOR)

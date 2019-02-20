@@ -975,9 +975,9 @@ def inventoryReport(posid, period, filters, serial, *args):
         companyName, federalRegister, stateRegister, municipalRegister = ("BK BRASIL OPERACAO E ASSESSORIA A RESTAURANTES S/A", 11111111111111, "222222222", "333333333")
 
     # open a database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
 
         sql_where = ""
         if len(filters) > 0:
@@ -1053,7 +1053,8 @@ def inventoryReport(posid, period, filters, serial, *args):
         sys_log_exception('[inventoryReport] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -1088,9 +1089,9 @@ def paf_sintegra(posid, period_begin, period_end, *args):
         reportPath = "./"
 
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # reserve the database connection
         conn.transaction_start()
         # set the period
@@ -1376,7 +1377,8 @@ def paf_sintegra(posid, period_begin, period_end, *args):
         sys_log_exception('[paf_sintegra] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -1423,9 +1425,9 @@ def paf_sped(posid, period_begin, period_end, *args):
         return re.sub(r"[^\d]", "", string)
 
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # reserve the database connection
         conn.transaction_start()
         # set the period
@@ -2228,7 +2230,8 @@ def paf_sped(posid, period_begin, period_end, *args):
         sys_log_exception('[paf_sped] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -2240,9 +2243,9 @@ def estoque(posid, period, *args):
         reportPath = "./"
 
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # reserve the database connection
         conn.transaction_start()
         # set the period
@@ -2267,7 +2270,8 @@ def estoque(posid, period, *args):
         sys_log_exception('[estoque] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -2278,9 +2282,9 @@ def paf_envio_fisco_reducao_z(posid, period, *args):
     paf_numero_credenciamento = PAF_ECF.get_paf_cert_number()
 
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # set the period
         companyName, federalRegister, stateRegister, DEV_FederalRegister, DEV_CompanyName, SW_Name, serial = readEncrypted(posid, "User_CompanyName", "User_FederalRegister", "User_StateRegister", "DEV_FederalRegister", "DEV_CompanyName", "SW_Name", "ECF_Serial")
         reducao_z = etree.Element("ReducaoZ", Versao="1.0")
@@ -2476,7 +2480,8 @@ def paf_envio_fisco_reducao_z(posid, period, *args):
         sys_log_exception('[paf_envio_fisco_reducao_z] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
     assinado = ""
     reduz_not_signed = ""
@@ -2499,9 +2504,9 @@ def paf_envio_fisco_estoque(posid, data_inicial, data_final, *args):
     paf_numero_credenciamento = PAF_ECF.get_paf_cert_number()
 
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # set the period
         companyName, federalRegister, stateRegister, DEV_FederalRegister, DEV_CompanyName, SW_Name, serial, = readEncrypted(posid, "User_CompanyName", "User_FederalRegister", "User_StateRegister", "DEV_FederalRegister", "DEV_CompanyName", "SW_Name", "ECF_Serial")
 
@@ -2609,7 +2614,8 @@ def paf_envio_fisco_estoque(posid, data_inicial, data_final, *args):
         sys_log_exception('[paf_envio_fisco_estoque] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -2742,9 +2748,9 @@ def merchandiseReport(posid, period, *args):
     '''
     report = Report()
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # reserve the database connection
         conn.transaction_start()
         # set the period
@@ -2828,7 +2834,8 @@ def merchandiseReport(posid, period, *args):
         sys_log_exception('[merchandiseReport] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 def pafEcfTableReport(posid, period_begin, period_end, *args):
@@ -2839,9 +2846,9 @@ def pafEcfTableReport(posid, period_begin, period_end, *args):
         companyName, federalRegister, stateRegister, municipalRegister = ("BK BRASIL OPERACAO E ASSESSORIA A RESTAURANTES S/A", 11111111111111, "222222222", "333333333")
 
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # reserve the database connection
         conn.transaction_start()
         # set the period
@@ -2914,7 +2921,8 @@ def pafEcfTableReport(posid, period_begin, period_end, *args):
         sys_log_exception('[pafEcfTableReport] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 def ordersCpfCnpjReport(posid, period, cpf_cnpj, *args):
@@ -2924,9 +2932,9 @@ def ordersCpfCnpjReport(posid, period, cpf_cnpj, *args):
     except:
         companyName, federalRegister, stateRegister, municipalRegister = ("BK BRASIL OPERACAO E ASSESSORIA A RESTAURANTES S/A", 11111111111111, "222222222", "333333333")
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # reserve the database connection
         conn.transaction_start()
 
@@ -2988,7 +2996,8 @@ def ordersCpfCnpjReport(posid, period, cpf_cnpj, *args):
         sys_log_exception('[ordersCpfCnpjReport] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 def productListReport(posid, period, *args):
@@ -2998,9 +3007,9 @@ def productListReport(posid, period, *args):
         reportPath = "./"
 
     # opens the database connection
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # reserve the database connection
         conn.transaction_start()
         # set the period
@@ -3059,7 +3068,8 @@ def productListReport(posid, period, *args):
         sys_log_exception('[productListReport] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -3081,8 +3091,9 @@ def meiosDePagamento(posid, period_begin, period_end, *args):
     e) a soma individual de cada meio de pagamento referente ao período solicitado.
     """
     report = Report()
-    conn = dbd.open(mbcontext, posid)
+    conn = None
     try:
+        conn = dbd.open(mbcontext, posid)
         total = ZERO
         totalNonFiscal = ZERO
         FPRN_CASHIN = int(fpcmds.FPRN_CASHIN)
@@ -3141,7 +3152,8 @@ def meiosDePagamento(posid, period_begin, period_end, *args):
         sys_log_exception('[meiosDePagamento] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -3271,9 +3283,9 @@ def electronicFiscalFile(posid, period_begin, period_end, serial, *args):
     +------------------+------------------------------------+-----------------------------------------+--------+
     '''
     report = Report()
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         # Records must be pushed into these lists
         R01, R02, R03, R04, R05, R06, R07 = [], [], [], [], [], [], []
 
@@ -3933,7 +3945,8 @@ def electronicFiscalFile(posid, period_begin, period_end, serial, *args):
         sys_log_exception('[electronicFiscalFile] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -3953,8 +3966,9 @@ def fiscal_eft_merchant_slip(posid, eft_xml, *args):
 
 
 def paf_indice_tecnico(*args):
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
+        conn = dbd.open(mbcontext)
         cursor = conn.select("""
             SELECT
                 I.ProductCode AS ProductCode,
@@ -3982,7 +3996,8 @@ def paf_indice_tecnico(*args):
         sys_log_exception('[paf_indice_tecnico] Exception: {}'.format(e))
         raise
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     return report.getvalue()
 
 
@@ -4024,15 +4039,16 @@ def paf_parametros_de_config(posid, date_time, *args):
     # programada no PAF-ECF em execução para os parâmetros de configuração previstos nesta especificação.
     # opens the database connection
 
-    conn = dbd.open(mbcontext)
+    conn = None
     try:
-        conn.set_dbname(str(posid))
+        conn = dbd.open(mbcontext, dbname=str(posid))
         cursor = conn.select("SELECT KeyValue FROM storecfg.Configuration WHERE KeyPath = 'Store.UnidadeFederacao';")
         state = None
         for row in cursor:
             state = row.get_entry("KeyValue")
     finally:
-        conn.close()
+        if conn:
+            conn.close()
     if state in ("AC", "AL", "AM", "AP", "CE", "MG", "PA", "PR", "PE", "PI", "RN", "RS", "RO", "RR", "SP"):
         state_code = "ND"
     elif state == "RJ":

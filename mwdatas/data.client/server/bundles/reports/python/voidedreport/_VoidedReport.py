@@ -47,7 +47,12 @@ class VoidedReport(object):
             start_index = session_id.find("period=")
             initial_date = end_date = datetime.strptime(session_id[start_index + 7:], "%Y%m%d")
 
-        header = self._build_header(report_type, pos_id, report_pos, initial_date, end_date, operator_id)
+        count_pos_error = filter(lambda x:x == "error", voided_orders)
+        count_pos_error = len(count_pos_error)
+
+        voided_orders = filter(lambda x: x != "error", voided_orders)
+
+        header = self._build_header(report_type, pos_id, report_pos, initial_date, end_date, operator_id, count_pos_error)
         body = self._build_body(voided_orders)
 
         report = header + body
@@ -55,7 +60,7 @@ class VoidedReport(object):
 
         return report_bytes
 
-    def _build_header(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id):
+    def _build_header(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id, count_pos_error=0):
         # type: (unicode, int, Optional[unicode], datetime, datetime, unicode) -> unicode
         """
         ======================================
@@ -86,6 +91,8 @@ class VoidedReport(object):
         header += u" {0:.<13}: {1} - {2}\n".format(report_type_text, initial_date.strftime("%d/%m/%y"), end_date.strftime("%d/%m/%y"))
         header += u" ID Operador..: " + u"{0} (Reg # {1})\n".format(operator, str(pos_id).zfill(2))
         header += u" POS incluido.: " + u"{0}\n".format(pos_list)
+        if count_pos_error > 0:
+            header += u" POS excluidos: " + u"{0}\n".format(count_pos_error)
         header += u"======================================\n"
 
         return header

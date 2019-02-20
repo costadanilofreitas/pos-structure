@@ -12,8 +12,8 @@ class OrderSate(object):
 
 
 class Order(object):
-    def __init__(self, order_id, date, state, total, donation, tenders, void_reason_id):
-        # type: (int, datetime, int, float, float, List[OrderTender], Union[int, None]) -> None
+    def __init__(self, order_id, date, state, total, donation, tenders, void_reason_id, discount):
+        # type: (int, datetime, int, float, float, List[OrderTender], Union[int, None], float) -> None
         self.order_id = order_id
         self.date = date
         self.state = state
@@ -21,3 +21,4 @@ class Order(object):
         self.donation = donation
         self.tenders = tenders
         self.void_reason_id = void_reason_id
+        self.discount = discount

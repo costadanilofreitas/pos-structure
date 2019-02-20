@@ -8,7 +8,7 @@ from persistence import Connection
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 from xml.etree import cElementTree as eTree
-from systools import sys_log_exception
+from systools import sys_log_exception, sys_log_info
 
 
 class OrderRepository(BaseRepository):
@@ -23,7 +23,7 @@ class OrderRepository(BaseRepository):
         self.fiscal_sent_dir = fiscal_sent_dir
 
     def get_paid_orders_by_real_date(self, initial_date, end_date, operator_id, report_pos):
-        # type: (datetime, datetime, unicode, unicode) -> List[Order]
+        # type: (datetime, datetime, Optional[unicode], Optional[unicode]) -> List[Order]
         return self._get_paid_orders(self.TypeRealDate, initial_date, end_date, operator_id, None, report_pos)
 
     def get_paid_orders_by_business_period(self, initial_date, end_date, operator_id, report_pos):
@@ -73,29 +73,6 @@ class OrderRepository(BaseRepository):
         # type: (datetime, datetime) -> List[Order]
         return []
 
-    def get_hourly_sale(self, report_pos, initial_date, end_date):
-        # type: (unicode, Optional[datetime], Optional[datetime]) -> List[object]
-        def inner_func(conn):
-            # type: (Connection) -> List[object]
-            try:
-                initial_date_formatted = initial_date[:4] + '-' + initial_date[4:6] + '-' + initial_date[6:]
-                end_date_formatted = end_date[:4] + '-' + end_date[4:6] + '-' + end_date[6:]
-                query = self._QueryHourlySale.format(initial_date_formatted, end_date_formatted)
-
-                order_by_hour = [(str(x.get_entry(0)),
-                                 str(x.get_entry(1)),
-                                 int(x.get_entry(2)),
-                                 int(x.get_entry(3)),
-                                 float(x.get_entry(4)),
-                                 int(x.get_entry(5))) for x in conn.select(query)]
-
-                return list(order_by_hour)
-            except Exception as ex:
-                return list()
-
-        report_pos_list = self.pos_list if report_pos is None else (report_pos,)
-        return self.execute_in_all_databases_returning_flat_list(inner_func, report_pos_list)
-
     def _get_paid_orders(self, report_type, initial_date, end_date, operator_id, session_id, report_pos):
         # type: (unicode, Optional[datetime], Optional[datetime], Optional[unicode], Optional[unicode]) -> List[Order]
         def inner_func(conn):
@@ -125,7 +102,8 @@ class OrderRepository(BaseRepository):
                                         float(x.get_entry(3)),
                                         int(x.get_entry(4)),
                                         float(x.get_entry(5)),
-                                        float(x.get_entry(6))) for x in conn.select(query)]
+                                        float(x.get_entry(6)),
+                                        float(x.get_entry(7))) for x in conn.select(query)]
 
                 for order_tuple in order_with_payments:
                     order_id = order_tuple[0]
@@ -133,11 +111,12 @@ class OrderRepository(BaseRepository):
                     order_date = order_tuple[2]
                     order_total = order_tuple[3]
                     donation_value = order_tuple[6]
+                    discount_value = order_tuple[7]
 
                     if order_id in all_orders:
                         order = all_orders[order_id]
                     else:
-                        order = Order(order_id, order_date, order_state, order_total, donation_value, [], None)
+                        order = Order(order_id, order_date, order_state, order_total, donation_value, [], None, discount_value)
                         all_orders[order_id] = order
 
                     tender_type = order_tuple[4]
@@ -145,10 +124,9 @@ class OrderRepository(BaseRepository):
 
                     order_tender = OrderTender(tender_type, tender_value)
                     order.tenders.append(order_tender)
-
                 return list(all_orders.values())
             except:
-                return list()
+                return list({"error": "error"}.values())
 
         report_pos_list = self.pos_list if report_pos is None else (report_pos,)
         return self.execute_in_all_databases_returning_flat_list(inner_func, report_pos_list)
@@ -157,44 +135,50 @@ class OrderRepository(BaseRepository):
         # type: (unicode, Optional[datetime], Optional[datetime], Optional[unicode], Optional[unicode], Optional[unicode]) -> List[Order]
         def inner_func(conn):
             # type: (Connection) -> List[Order]
-            if report_type == self.TypeRealDate:
-                query = self._VoidedOrdersByRealDateQuery
-                date_format = "%Y-%m-%d"
-                query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
-            elif report_type == self.TypeBusinessPeriod:
-                query = self._VoidedOrdersByBusinessPeriod
-                date_format = "%Y%m%d"
-                query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
-            else:
-                query = self._VoidedOrdersBySessionId
-                date_format = "%Y%m%d"
-                query = query.format(session_id)
+            try:
+                if report_type == self.TypeRealDate:
+                    query = self._VoidedOrdersByRealDateQuery
+                    date_format = "%Y-%m-%d"
+                    query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
+                elif report_type == self.TypeBusinessPeriod:
+                    query = self._VoidedOrdersByBusinessPeriod
+                    date_format = "%Y%m%d"
+                    query = query.format(initial_date.strftime(date_format), end_date.strftime(date_format))
+                else:
+                    query = self._VoidedOrdersBySessionId
+                    date_format = "%Y%m%d"
+                    query = query.format(session_id)
 
-            if report_type == self.TypeRealDate or report_type == self.TypeBusinessPeriod:
-                if operator_id is not None:
-                    query += " and o.SessionId like '%user={0},%'".format(operator_id)
+                if report_type == self.TypeRealDate or report_type == self.TypeBusinessPeriod:
+                    if operator_id is not None:
+                        query += " and o.SessionId like '%user={0},%'".format(operator_id)
 
-            order_with_payments = [(int(x.get_entry(0)),
-                                    int(x.get_entry(1)),
-                                    datetime.strptime(x.get_entry(2), date_format),
-                                    float(x.get_entry(3)),
-                                    float(x.get_entry(4)),
-                                    x.get_entry(5)) for x in conn.select(query)]
+                order_with_payments = [(int(x.get_entry(0)),
+                                        int(x.get_entry(1)),
+                                        datetime.strptime(x.get_entry(2), date_format),
+                                        float(x.get_entry(3)),
+                                        float(x.get_entry(4)),
+                                        x.get_entry(5),
+                                        float(x.get_entry(6))) for x in conn.select(query)]
 
-            all_orders = []  # type: List[Order]
-            for order_tuple in order_with_payments:
-                order_id = order_tuple[0]
-                order_state = order_tuple[1]
-                order_date = order_tuple[2]
-                order_total = order_tuple[3]
-                donation_value = order_tuple[4]
-                void_reason_id = order_tuple[5]
+                all_orders = []  # type: List[Order]
+                for order_tuple in order_with_payments:
+                    order_id = order_tuple[0]
+                    order_state = order_tuple[1]
+                    order_date = order_tuple[2]
+                    order_total = order_tuple[3]
+                    donation_value = order_tuple[4]
+                    void_reason_id = order_tuple[5]
+                    discount_value = order_tuple[6]
 
-                order = Order(order_id, order_date, order_state, order_total, donation_value, [], void_reason_id)
-                all_orders.append(order)
+                    order = Order(order_id, order_date, order_state, order_total, donation_value, [], void_reason_id, discount_value)
+                    all_orders.append(order)
 
-            return all_orders
+                return all_orders
+            except:
+                return list({"error": "error"}.values())
 
+            
         report_pos_list = self.pos_list if report_pos is None else (report_pos, )
         return self.execute_in_all_databases_returning_flat_list(inner_func, report_pos_list)
 
@@ -219,7 +203,8 @@ class OrderRepository(BaseRepository):
         hora_nota = parsed_xml.find("infCFe/ide/hEmi").text
         data_emissao = datetime.strptime(data_nota + hora_nota, "%Y%m%d%H%M%S")
 
-        v_total = float(parsed_xml.find("infCFe/total/ICMSTot/vProd").text)
+        v_desc = float(parsed_xml.find("infCFe/total/ICMSTot/vDesc").text)
+        v_total = round(float(parsed_xml.find("infCFe/total/ICMSTot/vProd").text) - v_desc, 2)
 
         tenders = []  # type: List[OrderTender]
         troco = parsed_xml.find("infCFe/pgto/vTroco")
@@ -237,14 +222,14 @@ class OrderRepository(BaseRepository):
             else:
                 tender_type = 99
 
-            if tender_type == 0 and troco is not None:
-                v_mp -= float(troco.text)
+            if troco is not None:
+                v_mp = round(v_mp - float(troco.text), 2)
                 troco = None
 
             tender = OrderTender(tender_type, v_mp)
             tenders.append(tender)
 
-        order = Order(order_id, data_emissao, 5, v_total, 0, tenders, None)
+        order = Order(order_id, data_emissao, 5, v_total, 0, tenders, None, v_desc)
         order.numero_nota = numero_nota
 
         return order
@@ -260,11 +245,18 @@ class OrderRepository(BaseRepository):
         data_hora_nota = parsed_xml.find("{{{0}}}NFe/{{{0}}}infNFe/{{{0}}}ide/{{{0}}}dhEmi".format(nfe_namespace)).text
         data_emissao = iso8601.parse_date(data_hora_nota)
 
-        v_total = float(parsed_xml.find("{{{0}}}NFe/{{{0}}}infNFe/{{{0}}}total/{{{0}}}ICMSTot/{{{0}}}vProd".format(nfe_namespace)).text)
+        v_desc = float(parsed_xml.find("{{{0}}}NFe/{{{0}}}infNFe/{{{0}}}total/{{{0}}}ICMSTot/{{{0}}}vDesc".format(nfe_namespace)).text)
+        v_total = round(float(parsed_xml.find("{{{0}}}NFe/{{{0}}}infNFe/{{{0}}}total/{{{0}}}ICMSTot/{{{0}}}vProd".format(nfe_namespace)).text) - v_desc, 2)
 
         tenders = []  # type: List[OrderTender]
-        pgtos = parsed_xml.findall("{{{0}}}NFe/{{{0}}}infNFe/{{{0}}}pag".format(nfe_namespace))
+        pgtos = parsed_xml.findall("{{{0}}}NFe/{{{0}}}infNFe/{{{0}}}pag".format(nfe_namespace))[0]
+        v_troco = pgtos.find(".//{{{0}}}vTroco".format(nfe_namespace))
+        v_troco = float(v_troco.text) if v_troco is not None else 0.0
+
         for pgto in pgtos:
+            if "vTroco" in pgto.tag:
+                continue
+
             t_pag = int(pgto.find(".//{{{0}}}tPag".format(nfe_namespace)).text)
             v_pag = float(pgto.find(".//{{{0}}}vPag".format(nfe_namespace)).text)
 
@@ -277,15 +269,19 @@ class OrderRepository(BaseRepository):
             else:
                 tender_type = 99
 
+            if v_troco != 0.0:
+                v_pag = round(v_pag - v_troco, 2)
+                v_troco = 0.0
+
             tender = OrderTender(tender_type, v_pag)
             tenders.append(tender)
 
-        order = Order(order_id, data_emissao, 5, v_total, 0, tenders, None)
+        order = Order(order_id, data_emissao, 5, v_total, 0, tenders, None, v_desc)
 
         return order
 
     _PaidOrdersByRealDateQuery = \
-"""select o.OrderId, o.StateId, od.OrderDate, o.TotalGross, ot.TenderId, ot.TenderAmount - coalesce(ot.ChangeAmount, 0), coalesce(ocp.Value, 0)
+"""select o.OrderId, o.StateId, od.OrderDate, o.TotalGross, ot.TenderId, ot.TenderAmount - coalesce(ot.ChangeAmount, 0), coalesce(ocp.Value, 0), o.DiscountAmount
 from Orders o
 inner join OrderTender ot
 on o.OrderId = ot.OrderId
@@ -302,7 +298,7 @@ on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
 where o.StateId = 5"""
 
     _VoidedOrdersByRealDateQuery = \
-"""select o.OrderId, o.StateId, od.OrderDate, coalesce(o.TotalGross, 0), coalesce(ocp.Value, 0), vrs.Value as VoidReason
+"""select o.OrderId, o.StateId, od.OrderDate, coalesce(o.TotalGross, 0), coalesce(ocp.Value, 0), vrs.Value as VoidReason, o.DiscountAmount
 from Orders o
 inner join 
 (
@@ -328,24 +324,41 @@ left join OrderCustomProperties vrs on vrs.OrderId = o.OrderId and vrs.Key = 'VO
 where o.StateId = 4"""
 
     _PaidOrderByBusinessPeriod = \
-"""select o.OrderId, o.StateId, o.BusinessPeriod, o.TotalGross, ot.TenderId, ot.TenderAmount - coalesce(ot.ChangeAmount, 0), coalesce(ocp.Value, 0)
-from Orders o
-inner join OrderTender ot
-on o.OrderId = ot.OrderId
-left join OrderCustomProperties ocp
-on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
-where o.BusinessPeriod >= '{0}' and o.BusinessPeriod <= '{1}' and o.StateId = 5"""
+        """select o.OrderId,
+        o.StateId,
+        substr(o.SessionID, instr(o.SessionID, 'period=')+7) as BusinessPeriod,
+        o.TotalGross,
+        ot.TenderId,
+        ot.TenderAmount - coalesce(ot.ChangeAmount, 0),
+        coalesce(ocp.Value, 0),
+        o.DiscountAmount
+        from Orders o
+        inner join OrderTender ot
+        on o.OrderId = ot.OrderId
+        left join OrderCustomProperties ocp
+        on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
+        where substr(o.SessionID, instr(o.SessionID, 'period=')+7) >= '{0}'
+        and substr(o.SessionID, instr(o.SessionID, 'period=')+7) <= '{1}'
+        and o.StateId = 5"""
 
     _VoidedOrdersByBusinessPeriod = \
-"""select o.OrderId, o.StateId, o.BusinessPeriod, coalesce(o.TotalGross, 0), coalesce(ocp.Value, 0), vrs.Value as VoidReason
-from Orders o
-left join OrderCustomProperties ocp
-on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
-left join OrderCustomProperties vrs on vrs.OrderId = o.OrderId and vrs.Key = 'VOID_REASON_ID'
-where o.BusinessPeriod >= '{0}'  and o.BusinessPeriod <= '{1}' and o.StateId = 4"""
+        """select o.OrderId,
+        o.StateId,
+        substr(o.SessionID, instr(o.SessionID, 'period=')+7) as BusinessPeriod,
+        coalesce(o.TotalGross, 0),
+        coalesce(ocp.Value, 0),
+        vrs.Value as VoidReason,
+        o.DiscountAmount
+        from Orders o
+        left join OrderCustomProperties ocp
+        on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
+        left join OrderCustomProperties vrs on vrs.OrderId = o.OrderId and vrs.Key = 'VOID_REASON_ID'
+        where substr(o.SessionID, instr(o.SessionID, 'period=')+7) >= '{0}'
+        and substr(o.SessionID, instr(o.SessionID, 'period=')+7) <= '{1}'
+        and o.StateId = 4"""
 
     _PaidOrderBySessionId = \
-"""select o.OrderId, o.StateId, o.BusinessPeriod, o.TotalGross, ot.TenderId, ot.TenderAmount - coalesce(ot.ChangeAmount, 0), coalesce(ocp.Value, 0)
+"""select o.OrderId, o.StateId, o.BusinessPeriod, o.TotalGross, ot.TenderId, ot.TenderAmount - coalesce(ot.ChangeAmount, 0), coalesce(ocp.Value, 0), o.DiscountAmount
 from Orders o
 inner join OrderTender ot
 on o.OrderId = ot.OrderId
@@ -354,57 +367,9 @@ on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
 where o.SessionId = '{0}' and o.StateId = 5"""
 
     _VoidedOrdersBySessionId = \
-"""select o.OrderId, o.StateId, o.BusinessPeriod, coalesce(o.TotalGross, 0), coalesce(ocp.Value, 0), vrs.Value as VoidReason
+"""select o.OrderId, o.StateId, o.BusinessPeriod, coalesce(o.TotalGross, 0), coalesce(ocp.Value, 0), vrs.Value as VoidReason, o.DiscountAmount
 from Orders o
 left join OrderCustomProperties ocp
 on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
 left join OrderCustomProperties vrs on vrs.OrderId = o.OrderId and vrs.Key = 'VOID_REASON_ID'
 where o.SessionId = '{0}' and o.StateId = 4"""
-
-    _QueryHourlySale = """
-SELECT storetype, 
-       orderdate, 
-       hora, 
-       minuto, 
-       SUM(totalgross) total,
-	   count(1) total_transcations
-FROM   (SELECT ( CASE 
-                   WHEN distributionpoint == 'DT' THEN 'DT' 
-                   ELSE CASE WHEN distributionpoint == 'KK' THEN 'KK'
-				   ELSE 'STORE' 
-				  END 
-                 END )                                      StoreType, 
-               Strftime('%Y-%m-%d', orderdate, 'localtime') OrderDate, 
-               Strftime('%H', orderdate, 'localtime')       HORA, 
-               ( CASE 
-                   WHEN Cast(Strftime('%M', orderdate, 'localtime')AS INT) > 29 
-                 THEN 
-                   '30' 
-                   ELSE '00' 
-                 END )                                      AS MINUTO, 
-               o.totalgross 
-        FROM   orders o 
-               inner join ordertender ot 
-                       ON o.orderid = ot.orderid 
-               inner join ( 
-                          -- Busca as Orders do dia que estamos interessadosh  
-                          SELECT orderid, 
-                                 value OrderDate 
-                           FROM   ordercustomproperties 
-                           WHERE  KEY = 'FISCALIZATION_DATE' 
-                                  AND Strftime('%Y-%m-%d', value, 'localtime') 
-                                      >= 
-                                      '{}' 
-                                  AND Strftime('%Y-%m-%d', value, 'localtime') 
-                                      <= 
-                                      '{}') 
-                                                            od 
-                       ON o.orderid = od.orderid 
-               left join ordercustomproperties ocp 
-                      ON ocp.orderid = o.orderid 
-                         AND ocp.KEY = 'DONATION_VALUE' 
-        WHERE  o.stateid = 5) a 
-GROUP  BY storetype, 
-          orderdate, 
-          hora, 
-          minuto  """

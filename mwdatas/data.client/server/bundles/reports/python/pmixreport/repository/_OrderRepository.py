@@ -57,8 +57,8 @@ class OrderRepository(BaseRepository):
                             all_order_items[pcode].quantity += quantity
 
                 return list(all_order_items.values())
-            except Exception as ex:
-                return list()
+            except:
+                return list({"error": "error"}.values())
 
         return self.execute_in_all_databases_returning_flat_list(inner_func, self.pos_list)
 
@@ -129,6 +129,6 @@ on o.OrderId = od.OrderId"""
         FROM OrderItem t
         JOIN OrderItem u ON t.OrderId = u.OrderId AND t.LineNumber = u.LineNumber
         JOIN Orders s ON t.OrderId = s.OrderId
-        WHERE s.StateId = 5 AND t.OrderedQty IS NOT NULL AND u.OrderedQty IS NOT NULL AND u.OrderId IN ({0}) AND t.Level = '0' AND COALESCE(t.OrderedQty, 0) <> '0' AND COALESCE(u.OrderedQty, 0) <> '0' AND u.PriceKey IS NOT NULL) T
+        WHERE s.StateId = 5 AND u.OrderId IN ({0}) AND t.Level = '0' AND COALESCE(t.OrderedQty, 0) <> '0' AND COALESCE(u.OrderedQty, 0) <> '0' AND u.PriceKey IS NOT NULL) T
     GROUP BY PartCode, ItemId
     """

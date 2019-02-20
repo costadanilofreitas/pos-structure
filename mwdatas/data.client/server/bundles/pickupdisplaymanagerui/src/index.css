@@ -1,0 +1,580 @@
+.block-grid {
+    margin: 10px 0 0 0;
+    min-width: 100px;
+    max-width: 930px;
+}
+
+.grid-size-1 {
+    -webkit-columns: 1;
+    -moz-columns: 1;
+    columns: 1;
+}
+
+.grid-size-2 {
+    -webkit-columns: 2;
+    -moz-columns: 2;
+    columns: 2;
+}
+
+.grid-size-3 {
+    -webkit-columns: 3;
+    -moz-columns: 3;
+    columns: 3;
+}
+
+.grid-size-4 {
+    -webkit-columns: 4;
+    -moz-columns: 4;
+    columns: 4;
+}
+
+.grid-size-5 {
+    -webkit-columns: 5;
+    -moz-columns: 5;
+    columns: 5;
+}
+
+.grid-size-6 {
+    -webkit-columns: 6;
+    -moz-columns: 6;
+    columns: 6;
+}
+
+.block-items {
+    min-width: 100px;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: pre-wrap;
+}
+
+body {
+    background-color: #F2F1F0;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -ms-touch-action: none;
+    -ms-overflow-style: none;
+    -ms-scroll-chaining: none;
+}
+
+html {
+    -ms-content-zooming: none !important;
+    -ms-touch-action: pan-x pan-y !important;
+}
+
+.pickup-main {
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    font-weight: bold;
+    font-family: sans-serif;
+    background-color: lightgray;
+}
+
+.pickup-header {
+    width: 98%;
+    height: 12%;
+    margin-left: 1%;
+    margin-top: 0.5%;
+}
+
+.pickup-header-cont {
+    width: 100%;
+    height: 86%;
+}
+
+.pickup-tab {
+    font-size: 3vh;
+    width: 32.8%;
+    height: 85%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0.08em solid gray;
+}
+
+.pickup-tab-selected {
+    background-color: black;
+    color: white;
+}
+
+.pickup-content {
+    position: absolute;
+    display: flex;
+    width: 97%;
+    height: 87%;
+    bottom: 1%;
+    left: 1%;
+    background-color: #fff;
+    border: .28em solid gray;
+}
+
+.pickup-content-header{
+    font-size: 5vh;
+    width: 100%;
+    height: 8%;
+    left: 0;
+    top: 0;
+    display: flex;
+    position: absolute;
+    align-items: center;
+    justify-content: center;
+}
+
+.pickup-orders {
+    position: absolute;
+    flex-wrap: wrap;
+    flex-direction: row;
+    width: 99%;
+    height: 89%;
+    bottom: 1%;
+    left: 0;
+    padding-top: 0.5%;
+    background-color: #fff;
+    border-top: .18em solid gray;
+    overflow-y: auto;
+    overflow-x: hidden;
+    text-align: center;
+}
+
+.pickup-order-cel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    top: 0;
+}
+
+.pickup-order-cel-sub {
+    border: .08em solid #DBEBD4;
+}
+
+.pickup-order-title {
+    width: 100%;
+    height: 9%;
+    display: flex;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+.pickup-order-cel-title {
+    width: 100%;
+    height: 9%;
+    display: flex;
+    justify-content: left;
+    vertical-align: middle;
+    margin-top: 3px;
+    font-size: 2vh;
+    white-space: pre;
+}
+
+.pickup-order-cel-lev1 {
+    border: .08em solid #1ec64e;
+    height: 85%;
+    border: .08em solid black;
+    background-color: #DBEBD4;
+    margin: 4px 1px 1px;
+}
+
+.pickup-order-cel-lev1-content {
+    height: 76%;
+    width: 100%;
+    font-size: 1.80vh;
+    font-weight: 500;
+    font-family: sans-serif;
+    white-space: pre-line;
+    text-align: left;
+    overflow-y: none;
+    margin-top: 4px;
+}
+.pickup-order-cel-lev1-content-center {
+    text-align: center;
+    vertical-align: middle;
+    width: 100%;
+    height: 6%;
+    padding-top: 3%;
+    font-size: 1.2vh;
+}
+
+.pickup-order-cel-lev1-footer {
+    height: 17%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pickup-order-cel-lev1-button {
+    height: 60%;
+    width: 150px;
+    margin: 2%;
+    padding: 7px;
+    font-size: 1.7vh;
+    background-color: #073763;
+    border-radius: 5px;
+    color: #fff;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+    display: flex;
+}
+
+.pickup-button-ready-finalize {
+    margin: 2px 0 0 0 ;
+    background-color: #00008b !important;
+}
+
+.pickup-order-cel-lev1-button-ready {
+    font-size: 1.7vh;
+    background-color: #073763;
+    border-radius: 5px;
+    color: #fff;
+    width: 150px;
+    height: 60%;
+    margin: 2%;
+    padding: 7px;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+}
+
+.pickup-order-cel-lev1-clock {
+    display: -ms-flexbox;
+    margin-left: 10%;
+}
+
+.pickup-order-cel-lev1-clock-comp {
+    padding-top: 2%;
+    margin: 2%;
+}
+
+.pickup-order-cel-lev2 {
+    border: 0.08em solid black;
+    height: 80%;
+    width: 100%;
+}
+
+.pickup-order-cont {
+    /*display: flex;*/
+    display: inline-block;
+    background-color: #fff;
+    min-height: 2%;
+    max-height: 200%;
+    text-align: center;
+    margin: 5px 2px;
+}
+
+.pickup-order-cont-sub {
+    height: 90%;
+}
+
+.pickup-order-cont-sub-1 {
+    width: 155px;
+    height: 180px;
+}
+
+.pickup-order-cont-sub-2 {
+    width: 310px;
+    height: 180px;
+}
+
+.pickup-order-cont-sub-3 {
+    min-width: 465px;
+    max-width: 100%;
+    height: 180px;
+}
+
+.pickup-order-cont-sub-4 {
+    min-width: 620px;
+    max-width: 100%;
+    height: 180px;
+}
+
+.pickup-order-cont-sub-5 {
+    width: 775px;
+    height: 180px;
+}
+
+.pickup-order-cont-sub-6 {
+    width: 930px;
+}
+
+.block-strike {
+    text-decoration: line-through;
+}
+
+.pickup-order-cel-lev1-paid {
+    background-color: #DBEBD4;
+}
+
+.pickup-order-cel-lev1-ready {
+    background-color: #FFEBB2;
+}
+
+.pickup-order-cel-lev1-ready-picked {
+    background-color: #FFEBB2;
+}
+
+.pickup-button-ready-return {
+    background-color: orange;
+    background-image: url('./images/redo.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 90% 90%;
+    width: 15px;
+    height: 15px;
+    z-index: 99;
+}
+
+.pickup-orders .pickup-button-ready-return {
+    width: 70px;
+    background-size: 25px 25px;
+}
+
+.pickup-clock-image {
+    background-image: url('./images/clock.png');
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    width: 15px;
+    height: 15px;
+    margin: 0 3px 0 3px;
+    float: left;
+}
+
+.pickup-box-time {
+    margin: 0 3px;
+    width: 70px;
+    border-radius: 5px;
+}
+
+@-webkit-keyframes glowing {
+  0% { background-color: #FFF; -webkit-box-shadow: 0 0 0px #B20000; }
+  100% { background-color: #FF0000; -webkit-box-shadow: 0 0 0px #B20000; }
+}
+
+@-moz-keyframes glowing {
+  0% { background-color: #FFF; -moz-box-shadow: 0 0 0px #B20000; }
+  100% { background-color: #FF0000; -moz-box-shadow: 0 0 0px #B20000; }
+}
+
+@-o-keyframes glowing {
+  0% { background-color: #FFF; box-shadow: 0 0 0px #B20000; }
+  100% { background-color: #FF0000; box-shadow: 0 0 0px #B20000; }
+}
+
+@keyframes glowing {
+  0% { background-color: #FFF; box-shadow: 0 0 0px #B20000; }
+  100% { background-color: #FF0000; box-shadow: 0 0 0px #B20000; }
+}
+
+.pickup-box-time-blinking {
+  -webkit-animation: glowing 1000ms infinite;
+  -moz-animation: glowing 1000ms infinite;
+  -o-animation: glowing 1000ms infinite;
+  animation: glowing 1000ms infinite;
+}
+
+.campo-tma, .campo-pp, .campo-pdv, .campo-mont {
+    text-align: center;
+    font-family: monospace;
+}
+
+.campo-tma, .campo-pp {
+    position: absolute;
+}
+
+.campo-pdv, .campo-mont {
+    font-size: 13pt;
+    margin: 4px;
+    display: block;
+}
+
+.campo-pdv {
+    padding: 0 5px;
+}
+
+.campo-pdv .metrics-label{
+    padding-left: 9px;
+}
+
+.campo-tma {
+    left: 10px;
+    top: 0;
+    font-size: 13pt;
+}
+
+.campo-pp {
+    left: 320px;
+    top: 5px;
+    font-size: 20pt;
+}
+
+.subcampos {
+    position: absolute;
+    left: 98px;
+    top: 3px;
+}
+.subcampos::before {
+    content: " ";
+    border-top: 1px solid black;
+    position: absolute;
+    width: 13px;
+    left: -13px;
+    bottom: 50%;
+}
+
+.subcampos::after {
+    content: " ";
+    position: absolute;
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+    border-left: 1px solid black;
+    left: 0;
+    top: 0;
+    width: 13px;
+    height: 49px;
+}
+
+.metrics-label {
+    font-size: 12pt;
+}
+
+.campo-tma span, .campo-pp span, .campo-pdv span, .campo-mont span {
+    border-radius: 5px;
+}
+
+.campo-tma span, .campo-pp span{
+    display: block;
+}
+
+.campo-tma span:last-child{
+    width: 78px;
+}
+
+.pages {
+    position: absolute;
+    right: 20px;
+    font-size: 16pt;
+    top: 5px;
+}
+
+.page-indicator {
+    position: absolute;
+    right: 132px;
+    text-align: center;
+    font-size: 20pt;
+}
+
+.page-indicator span {
+    display: block;
+}
+
+.page-button {
+    position: absolute;
+    top: 0;
+    right: 65px;
+    border: 3px solid black;
+    width: 55px;
+    height: 45px;
+}
+
+.page-button:last-child{
+    right: 0px;
+}
+
+.arrow {
+    border: solid black;
+    border-width: 0 5px 5px 0;
+    display: inline-block;
+    padding: 3px;
+    width: 20px;
+    height: 20px;
+}
+
+.right {
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+}
+
+.left {
+    transform: rotate(135deg);
+    -webkit-transform: rotate(135deg);
+}
+
+.up {
+    transform: translate(12px, 15px) rotate(-135deg);
+    -webkit-transform: translate(12px, 15px) rotate(-135deg);
+}
+
+.down {
+    transform: translate(12px, 0px) rotate(45deg);
+    -webkit-transform: translate(12px, 0px) rotate(45deg);
+}
+
+.historico {
+    position: absolute;
+    right: 0;
+    width: 263px;
+    text-align: center;
+    top: 5px;
+    background-color: white;
+    overflow: hidden;
+    border-left: 2px solid black;
+    font-size: 12pt;
+}
+
+.historico-conteudo {
+    height: 627px;
+    overflow: auto;
+}
+
+.historico-conteudo .historico-item {
+    border: 1px solid black;
+    margin: 10px;
+    background-color: gold;
+    padding: 10px;
+}
+
+.historico-item .pedido {
+    float: left;
+}
+
+.historico-item .nome {
+    float: right;
+}
+
+.goal {
+    font-size: 9pt;
+    font-style: italic;
+    margin-top: 2px;
+}
+
+.sale-type {
+    color: white;
+    text-transform: uppercase;
+    white-space: pre;
+    font-weight: bold;
+    margin-left: 16px;
+}
+
+.sale-type.viagem {
+    background-color: black;
+}
+
+.sale-type.drive {
+    background-color: darkblue;
+}
+
+.sale-type.preferencial {
+    background-color: darkred;
+}

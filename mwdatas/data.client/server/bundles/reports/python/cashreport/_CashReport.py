@@ -28,17 +28,17 @@ class CashReport(object):
         for tender_tuple in self.tender_repository.get_tender_names():
             self.tender_names_dict[tender_tuple[0]] = tender_tuple[1]
 
-    def generate_cash_report_by_real_date(self, pos_id, report_pos, initial_date, end_date, operator_id, business_period=None, codigo_centro=None, close_time=None):
-        # type: (int, Optional[unicode], datetime, datetime, Optional[unicode], Optional[unicode], Optional[unicode], datetime) -> str
+    def generate_cash_report_by_real_date(self, pos_id, report_pos, initial_date, end_date, operator_id):
+        # type: (int, Optional[unicode], datetime, datetime, unicode) -> str
+        return self._generate_cash_report(self.TypeRealDate, pos_id, report_pos, initial_date, end_date, operator_id, None)
+
+    def generate_cash_report_by_business_period(self, pos_id, report_pos, initial_date, end_date, operator_id, business_period=None, codigo_centro=None, close_time=None):
+        # type: (int, Optional[unicode], datetime, datetime, unicode, Optional[unicode], Optional[unicode], Optional[datetime]) -> str
 
         if business_period is None:
-            return self._generate_cash_report(self.TypeRealDate, pos_id, report_pos, initial_date, end_date, operator_id, None)
+            return self._generate_cash_report(self.TypeBusinessPeriod, pos_id, report_pos, initial_date, end_date, operator_id, None)
         else:
             return self._generate_cash_report_json(pos_id, report_pos, initial_date, end_date, operator_id, business_period, codigo_centro, close_time)
-
-    def generate_cash_report_by_business_period(self, pos_id, report_pos, initial_date, end_date, operator_id):
-        # type: (int, Optional[unicode], datetime, datetime, unicode) -> str
-        return self._generate_cash_report(self.TypeBusinessPeriod, pos_id, report_pos, initial_date, end_date, operator_id, None)
 
     def generate_cash_report_by_session_id(self, pos_id, session_id):
         # type: (int, unicode) -> str
@@ -50,7 +50,6 @@ class CashReport(object):
 
     def _generate_cash_report(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id, session_id):
         # type: (unicode, int, Optional[unicode], Optional[datetime], Optional[datetime], Optional[unicode], Optional[unicode]) -> str
-        show_donation = True
         if report_type == self.TypeRealDate:
             paid_orders = self.order_repository.get_paid_orders_by_real_date(initial_date, end_date, operator_id, report_pos)
             voided_orders = self.order_repository.get_voided_orders_by_real_date(initial_date, end_date, operator_id, report_pos)
@@ -76,14 +75,19 @@ class CashReport(object):
             voided_orders = self.order_repository.get_voided_orders_by_xml(initial_date, end_date)
             transfers = self.account_repository.get_transfers_by_real_date(initial_date, end_date, None, report_pos)
             operator_id = None
-            show_donation = False
 
         card_brands = None
         if get_storewide_config("Store.PrintCardBrands", defval="False").lower() == "true":
             card_brands = self.fiscal_repository.get_card_brands(paid_orders)
 
-        header = self._build_header(report_type, pos_id, report_pos, initial_date, end_date, operator_id)
-        body = self._build_body(paid_orders, voided_orders, transfers, card_brands, show_donation)
+        count_pos_error = filter(lambda x:x == "error", paid_orders)
+        count_pos_error = len(count_pos_error)
+
+        paid_orders = filter(lambda x: x != "error", paid_orders)
+        voided_orders = filter(lambda x: x != "error", voided_orders)
+
+        header = self._build_header(report_type, pos_id, report_pos, initial_date, end_date, operator_id, count_pos_error)
+        body = self._build_body(paid_orders, voided_orders, transfers, report_type, card_brands)
 
         report = header + body
         report_bytes = report.encode("utf-8")
@@ -93,9 +97,9 @@ class CashReport(object):
     def _generate_cash_report_json(self, pos_id, report_pos, initial_date, end_date, operator_id, business_period, codigo_centro, close_time):
         # type: (int, Optional[unicode], datetime, datetime, unicode, unicode, unicode, datetime) -> str
 
-        paid_orders = self.order_repository.get_paid_orders_by_real_date(initial_date, end_date, operator_id, report_pos)
-        voided_orders = self.order_repository.get_voided_orders_by_real_date(initial_date, end_date, operator_id,  report_pos)
-        transfers = self.account_repository.get_transfers_by_real_date(initial_date, end_date, operator_id, report_pos)
+        paid_orders = self.order_repository.get_paid_orders_by_business_period(initial_date, end_date, operator_id, report_pos)
+        voided_orders = self.order_repository.get_voided_orders_by_business_period(initial_date, end_date, operator_id, report_pos)
+        transfers = self.account_repository.get_transfers_by_business_period(initial_date, end_date, operator_id, report_pos)
         card_brands = self.fiscal_repository.get_card_brands(paid_orders)
         operators_qty = self.pos_ctrl_repository.get_operators_qty(pos_id, business_period)
 
@@ -103,8 +107,11 @@ class CashReport(object):
 
         return json_report.encode("utf-8")
 
-    def _build_header(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id):
-        # type: (unicode, int, Optional[unicode], datetime, datetime, unicode) -> unicode
+    def generate_paid_order_cash_report_by_date(self, initial_date, end_date):
+        return self.order_repository.get_paid_orders_by_real_date(initial_date, end_date, None, None)
+
+    def _build_header(self, report_type, pos_id, report_pos, initial_date, end_date, operator_id, count_pos_error=0):
+        # type: (unicode, int, Optional[unicode], datetime, datetime, unicode, int) -> unicode
         """
         ======================================
               Relatorio de Vendas(Loja)
@@ -136,11 +143,15 @@ class CashReport(object):
         header += u" {0:.<13}: {1} - {2}\n".format(report_type_text, initial_date.strftime("%d/%m/%y"), end_date.strftime("%d/%m/%y"))
         header += u" ID Operador..: " + u"{0} (Reg # {1})\n".format(operator, str(pos_id).zfill(2))
         header += u" POS incluido.: " + u"{0}\n".format(pos_list)
+        if count_pos_error > 0:
+            header += u" POS excluidos: " + u"{0}\n".format(count_pos_error)
+
         header += u"======================================\n"
 
         return header
 
-    def _build_body(self, paid_orders, voided_orders, transfers, card_brands=None, show_donation=True):
+    def _build_body(self, paid_orders, voided_orders, transfers, report_type, card_brands=None):
+        # type: (List[Order], List[Order], List[Transfer], unicode, Optional[List[Tuple[unicode, int, float, int]]]) -> unicode
         """
         Descricao           Qtd   Total
         Balanco Inicial..:        R$      0.00
@@ -165,18 +176,23 @@ class CashReport(object):
         :param transfers: the list of all transfers
         :return: the report bytes encoded with UTF-8
         """
-        # type: (List[Order], List[Order], List[Transfer]) -> unicode
+
         qty_paid_orders = len(paid_orders)
         value_paid_orders = 0.0
         value_doacoes = 0.0
         qty_doacoes = 0
+        value_discount = 0.0
+        qty_discount = 0
         total_tender_by_type_dict = {}  # type: Dict[int, TotalTender]
         total_tender = ''
         for order in paid_orders:
             value_paid_orders += order.total
-            if show_donation and order.donation > 0:
+            if order.donation > 0:
                 value_doacoes += order.donation
                 qty_doacoes += 1
+            if order.discount > 0:
+                value_discount += order.discount
+                qty_discount += 1
             for tender in order.tenders:
                 if tender.type in total_tender_by_type_dict:
                     total_tender = total_tender_by_type_dict[tender.type]
@@ -248,33 +264,50 @@ class CashReport(object):
         except:
             locale.setlocale(locale.LC_ALL, "pt_BR.UTF-8")
 
-        body =  u"Descricao           Qtd   Total\n"
+        body = u"Descricao           Qtd   Total\n"
         body += u"Balanco Inicial..:        R${0:>10}\n".format(locale.format("%.2f", initial_balance, True))
-        body += u"Cancelamentos....: [{0:>4}] R${1:>10}\n".format(qty_total_voided, locale.format("%.2f", value_total_voided, True))
-        body += u"  Pedidos........: [{0:>4}] R${1:>10}\n".format(qty_orders_voided, locale.format("%.2f", value_orders_voided, True))
-        body += u"  Cupons.........: [{0:>4}] R${1:>10}\n".format(qty_coupons_voided, locale.format("%.2f", value_coupons_voided, True))
+        if report_type != self.TypeXml:
+            body += u"Cancelamentos....: [{0:>4}] R${1:>10}\n".format(qty_total_voided, locale.format("%.2f", value_total_voided, True))
+            body += u"  Pedidos........: [{0:>4}] R${1:>10}\n".format(qty_orders_voided, locale.format("%.2f", value_orders_voided, True))
+            body += u"  Cupons.........: [{0:>4}] R${1:>10}\n".format(qty_coupons_voided, locale.format("%.2f", value_coupons_voided, True))
         body += u"Vendas...........: [{0:>4}] R${1:>10}\n".format(qty_paid_orders + qty_total_voided, locale.format("%.2f", value_paid_orders + value_total_voided, True))
         body += u"Venda Liquida....: [{0:>4}] R${1:>10}\n".format(qty_paid_orders, locale.format("%.2f", value_paid_orders, True))
-        if card_brands is None:
-            for total_tender in total_tender_by_type_list:
-                body += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name, total_tender.quantity, locale.format("%.2f", total_tender.value, True))
-        else:
-            for total_tender in total_tender_by_type_list:
-                if total_tender.tender_type == 0:
-                    body += u" {0:.<16}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name, total_tender.quantity, locale.format("%.2f", total_tender.value, True))
-                else:
-                    body += u" {0:.<16}:\n".format(total_tender.tender_name)
-                    for brand in card_brands:
-                        if total_tender.tender_type == brand[1]:
-                            body += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(brand[0][:15], brand[3], locale.format("%.2f", brand[2], True))
+        body += self._get_payments_text(card_brands, total_tender_by_type_list)
         body += u"Sangria..........: [{0:>4}] R${1:>10}\n".format(qty_sangria, locale.format("%.2f", value_sangria, True))
         body += u"Suprimentos......: [{0:>4}] R${1:>10}\n".format(qty_suprimento, locale.format("%.2f", value_suprimento, True))
-        if show_donation:
+        if report_type != self.TypeXml:
             body += u"Doacoes..........: [{0:>4}] R${1:>10}\n".format(qty_doacoes, locale.format("%.2f", value_doacoes, True))
+        body += u"Descontos........: [{0:>4}] R${1:>10}\n".format(qty_discount, locale.format("%.2f", value_discount, True))
         body += u"Valor na Gaveta..:        R${0:>10}\n".format(locale.format("%.2f", drawer_value, True))
         body += u"======================================\n"
 
         return body
+
+    @staticmethod
+    def _get_payments_text(card_brands, total_tender_by_type_list):
+        # type: (List[Tuple[unicode, int, float, int]], List[TotalTender]) -> unicode
+
+        payments_text = u"  Pagamentos.....: [{payment_qty:>4}] R${payment_value:>10}\n"
+        payment_qty = 0
+        payment_value = 0
+        if card_brands is None:
+            for total_tender in total_tender_by_type_list:
+                payment_qty += total_tender.quantity
+                payment_value += total_tender.value
+                payments_text += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name, total_tender.quantity, locale.format("%.2f", total_tender.value, True))
+        else:
+            for total_tender in total_tender_by_type_list:
+                payment_qty += total_tender.quantity
+                payment_value += total_tender.value
+                if total_tender.tender_type == 0:
+                    payments_text += u" {0:.<16}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name, total_tender.quantity, locale.format("%.2f", total_tender.value, True))
+                else:
+                    payments_text += u" {0:.<16}:\n".format(total_tender.tender_name)
+                    for brand in card_brands:
+                        if total_tender.tender_type == brand[1]:
+                            payments_text += u"  {0:.<15}: [{1:>4}] R${2:>10}\n".format(brand[0][:15], brand[3], locale.format("%.2f", brand[2], True))
+
+        return payments_text.format(payment_qty=payment_qty, payment_value=locale.format("%.2f", payment_value, True))
 
     def _build_json(self, pos_id, paid_orders, voided_orders, transfers, operators_qty, business_period, codigo_centro, close_time, card_brands):
         # type: (int, List[Order], List[Order], List[Transfer], int, unicode, unicode, datetime, List[Tuple[unicode, int, float, int]]) -> unicode
@@ -378,6 +411,3 @@ class CashReport(object):
         }
 
         return json.dumps(response)
-
-    def generate_hourly_sale(self, report_pos, initial_date, end_date):
-        return self.order_repository.get_hourly_sale(report_pos, initial_date, end_date)
