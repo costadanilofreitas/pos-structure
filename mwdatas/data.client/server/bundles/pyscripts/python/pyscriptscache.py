@@ -7,7 +7,7 @@ import os
 
 from xml.etree.ElementTree import Element
 from xml.etree import cElementTree as eTree
-from cache import CacheManager, PeriodBasedExpiration
+from cache import CacheManager, InfiniteExpiration
 from typing import Optional
 
 
@@ -162,14 +162,14 @@ class Part:
 class Cache:
     def __init__(self, mbcontext):
         self.mbcontext = mbcontext
-        self._tags_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._tags_cache_renewer)
-        self._parts_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._parts_cache_renewer)
-        self._product_prices_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._product_prices_cache_renewer)
-        self._price_key_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._price_key_cache_renewer)
-        self._must_modify_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._must_modify_cache_renewer)
-        self._dt_only_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._dt_only_cache_renewer)
-        self._discount_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._discount_cache_renewer)
-        self._options_cache = CacheManager(PeriodBasedExpiration(5), new_object_func=self._options_cache_renewer)
+        self._tags_cache = CacheManager(InfiniteExpiration(), new_object_func=self._tags_cache_renewer)
+        self._parts_cache = CacheManager(InfiniteExpiration(), new_object_func=self._parts_cache_renewer)
+        self._product_prices_cache = CacheManager(InfiniteExpiration(), new_object_func=self._product_prices_cache_renewer)
+        self._price_key_cache = CacheManager(InfiniteExpiration(), new_object_func=self._price_key_cache_renewer)
+        self._must_modify_cache = CacheManager(InfiniteExpiration(), new_object_func=self._must_modify_cache_renewer)
+        self._dt_only_cache = CacheManager(InfiniteExpiration(), new_object_func=self._dt_only_cache_renewer)
+        self._discount_cache = CacheManager(InfiniteExpiration(), new_object_func=self._discount_cache_renewer)
+        self._options_cache = CacheManager(InfiniteExpiration(), new_object_func=self._options_cache_renewer)
 
     def seach_items_tree_combo(self, part_code, list_categories=[]):
         """

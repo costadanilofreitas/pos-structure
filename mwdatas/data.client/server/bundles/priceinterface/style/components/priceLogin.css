@@ -1,0 +1,23 @@
+.loginBox {
+    margin: auto;
+    padding: 10% 5% !important;
+    padding-left: 7% !important;
+    width: 60%;
+    float: none !important;
+}
+
+.loginBox  h1 {
+    margin-bottom: 20px;
+}
+
+.loginBox .loginButton {
+    width: 100%;
+    margin:0 auto;
+    display:block;
+    margin-top: 20px;
+}
+
+.loginBox .loginAlert {
+    margin-top: 20px;
+    text-align: center;
+}

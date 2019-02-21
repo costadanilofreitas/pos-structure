@@ -1,0 +1,359 @@
+@font-face {
+    font-family: 'fontebk';
+    src: local('fontebk'), url(../../common/vendor/font-awesome/fonts/Block-Berthold-Condensed.ttf) format('truetype')
+}
+
+body {
+    background-color: #F2F1F0;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+html {
+    -ms-content-zooming: none !important;
+    -ms-touch-action: pan-x pan-y !important;
+}
+
+.container, .container-fluid {
+    padding-right: 15px;
+    padding-left: 15px;
+}
+
+/* .row {
+    margin-bottom: 20px;
+} */
+
+.main-header {
+    text-align: center;
+}
+
+.max-width {
+    width: 100vw;
+}
+
+.text-header {
+    margin-top: 5%;
+}
+
+.font-index {
+    font-family: 'fontebk';
+}
+
+.text-alert {
+    position: absolute;
+    top: 35%;
+}
+
+.alinha-meio {
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.logo {
+    width: 50%;
+    padding-top: 100px;
+    padding-bottom: 100px;
+}
+
+.imgAtual{
+    position: absolute;
+    left: 54px;
+    top: -15px;
+    height: 110px;
+    width: 110px;
+}
+
+.btn-toque {
+    width: 850px;
+    padding-top: 50px
+}
+
+.txt-toque {
+    color: #FFF;
+    position: relative;
+    bottom: 180px;
+    font-size: 72px
+}
+
+.linguagem {
+    width: 5%;
+}
+
+.linguagem-margin {
+    margin-right: 5%;
+}
+
+.selecao {
+    width: 45%;
+}
+
+.acessibility {
+    width: 25%;
+    margin-top: 22%;
+    margin-left: 45%;
+}
+
+footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+}
+
+
+.selecao {
+    width: 45%;
+}
+
+.box-selecao {
+    background-repeat: no-repeat;
+    background-image: url("../../common/images/bg-curvado.png");
+    background-size: 100%;
+    background-color: transparent !important
+}
+
+.box-selecao-loja {
+    margin-right: 5%;
+}
+
+.img-loja {
+    padding: 10% 18% 9% 18%;
+    width: 450px;
+}
+
+.img-viagem {
+    padding: 20% 30% 5% 30%;
+    width: 450px;
+}
+
+.vertical-alignment-helper {
+    display: table;
+    height: 100%;
+    width: 100%;
+    pointer-events: none;
+}
+
+.vertical-align-center {
+    display: table-cell;
+    vertical-align: middle;
+    pointer-events: none;
+}
+
+.modal-content {
+    width: inherit;
+    height: inherit;
+    margin: 0 auto;
+    pointer-events: all;
+}
+
+.font-contador {
+    font-family: 'fontebk';
+    text-align: center;
+    color: #eeaa03;
+    padding-top: 5%
+}
+
+.contador-text {
+    font-size: 500%;
+    line-height: 1.0;
+}
+
+.contador-numero {
+    font-size: 2000%;
+    line-height: 0.9;
+}
+
+.font-btn-escolha {
+    color: #eeaa03;
+    font-size: 400%;
+}
+
+.font-idioma {
+    color: #3a1b0a;
+    font-size: 200%;
+}
+
+.no-margin-bottom {
+    margin-bottom: 0 !important;
+}
+
+/* @media screen and (max-width: 768px) { */
+    .font-inicio {
+        font-size: 700%;
+    }
+    .btn-toque {
+        width: 570px;
+        padding-top: 50px
+    }
+    .txt-toque {
+        color: #FFF;
+        position: relative;
+        bottom: 140px;
+        font-size: 49px
+    }
+    .font-inicio p {
+        line-height: 0.70;
+    }
+    .font-inicio-selection {
+        font-size: 600% !important;
+    }
+    .font-inicio-selection p {
+        line-height: 0.59;
+    }
+    .img-loja {
+        padding: 10% 18% 9% 18%;
+        width: 290px;
+    }
+    .img-viagem {
+        padding: 20% 30% 5% 30%;
+        width: 290px;
+    }
+    .font-btn-escolha {
+        color: #eeaa03;
+        font-size: 240%;
+    }
+    .acessibility {
+        width: 4.5%;
+        margin-top: 0%;
+        margin-left: 93%;
+        margin-bottom: 3%;
+    }
+    .font-idioma {
+        color: #3a1b0a;
+        font-size: 135%;
+    }
+    .linguagem {
+        width: 6%;
+    }
+    .linguagem-margin {
+        margin-right: 3%;
+    }
+    .font-contador {
+        font-family: 'fontebk';
+        text-align: center;
+        color: #eeaa03;
+        padding-top: 5%
+    }
+    .contador-text {
+        font-size: 300%;
+        line-height: 1.0;
+    }
+    .contador-numero {
+        font-size: 1500%;
+        line-height: 0.9;
+    }
+    .modal-content {
+        width: 250px;
+        height: 300px;
+        margin: 0 auto;
+        pointer-events: all;
+    }
+/* } */
+
+.modal-content-pedido {
+    width: 670px;
+    height: 364px;
+    margin: 0 auto;
+    pointer-events: all;
+}
+
+.bg-modal-int-pedido {
+    background-image: url(../../common/images/box_modal.png);
+    width: 90%;
+    height: 370px;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    margin-left: 52px;
+
+}
+
+.modal-pedido-pedd{
+    /*padding-left: 51px;*/
+}
+
+/* .modal-header {
+    border-bottom: none;
+    text-align: center;
+} */
+
+/* .row {
+    margin-bottom: 20px;
+    margin-right: 0;
+    margin-left: 0;
+} */
+
+.bg-produto-pedido {
+    width: 157px !important;
+}
+.bg-produto {
+    width: 172px;
+    height: 155px;
+}
+
+.width-remover {
+    width: 44%;
+}
+
+.contador-pedido {
+    background-image: url(../../common/images/PERSONALIZE-O-SEU-SANDUICHE/bg-total.png);
+    background-repeat: no-repeat;
+    background-size: 100%;
+    width: 58px;
+    height: 69px;
+}
+
+.text-btn-modal-itensExtras {
+    margin-left: 12%;
+    position: absolute;
+    padding-top: 1%;
+}
+
+.font-contador-pedido {
+    margin-left: 21%;
+    font-size: 38px;
+    position: absolute;
+    color: #fff;
+}
+
+.btn-modal-edit-include {
+    background-image: url(../../common/images/btn_confirmar_ativado.png);
+    background-repeat: no-repeat;
+    background-size: 100% 90%;
+    width: 140px;
+    position: absolute;
+    height: 51px;
+}
+
+.text-btn-modal-itensExtras {
+    margin-left: 12%;
+    position: absolute;
+    padding-top: 1%;
+}
+
+.font-btn-pedido {
+    color: white;
+    font-size: 29px;
+}
+
+.text-msg-error{
+     font-size: 29px;
+     color: #d52b1e;
+}
+
+.banner-dimension,
+.banner-dimension img{
+    width: 100%;
+    height: 326px;
+}
+
+.btn-qty {
+    display: block;
+    width: 32px;
+    margin-top: 6px;
+    margin-left: 8px;
+}

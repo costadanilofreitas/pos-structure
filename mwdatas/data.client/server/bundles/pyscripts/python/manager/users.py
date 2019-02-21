@@ -6,7 +6,7 @@ import os
 
 from systools import sys_log_error
 from msgbus import MBEasyContext, MBException, FM_PARAM, TK_SYS_ACK
-from sysactions import action, show_listbox, show_keyboard, show_info_message, show_confirmation, show_messagebox, get_model, get_custom
+from sysactions import action, show_listbox, show_keyboard, show_info_message, show_confirmation, show_messagebox, get_model, get_custom, get_storewide_config
 from userhelper import UserHelper
 
 mbcontext = None  # type: MBEasyContext
@@ -14,6 +14,7 @@ logger = logging.getLogger("manager.users")
 
 config = cfgtools.read(os.environ["LOADERCFG"])
 users_with_blocked_changes = config.find_values("UsersManager.BlockedChanges")
+
 
 # noinspection PyUnusedLocal
 
@@ -226,7 +227,7 @@ def removeuser(posid, *args):
             else:
                 show_info_message(posid, "Ocorreu um erro ao excluir usuário!", msgtype="error")
         else:
-            show_info_message(posid, "Operação cancelada. Usuário não removido", msgtype="error")
+            show_info_message(posid, "Operação cancelada. Usuário não removido", msgtype="warning")
 
 
 @action
@@ -262,7 +263,49 @@ def inactivateuser(posid, *args):
             else:
                 show_info_message(posid, "Ocorreu um erro ao desativar usuário!", msgtype="error")
         else:
-            show_info_message(posid, "Operação cancelada. Usuário não desativado", msgtype="error")
+            show_info_message(posid, "Operação cancelada. Usuário não desativado", msgtype="warning")
+
+
+@action
+def activateuser(posid, user_level='administrator', *args):
+    with UserHelper(mbcontext) as user_helper:
+        # lista de usuarios
+        users = user_helper.get_inactive_users_by_level("0")
+        # lista de supervisores
+        users.update(user_helper.get_inactive_users_by_level("20"))
+        users_formatted = ["%s - %s" % (i, users.get(i)) for i in users]
+
+        buttons = "$CANCEL"
+        allow_reactivate_user = get_storewide_config("Store.AllowSupervisorsReactivateUser", defval="false").lower() == "true"
+        if allow_reactivate_user or user_level == 'administrator':
+            buttons = "$OK|$CANCEL"
+
+        index = show_listbox(posid, users_formatted, message="Usuários", buttons=buttons)
+        if index is None or not allow_reactivate_user:
+            return
+
+        if users.keys()[index] in users_with_blocked_changes:
+            show_info_message(posid, "Este usuário não pode ser ativado!", msgtype="error")
+            return
+
+        confirm = show_confirmation(posid, message="Tem certeza que deseja reativar o usuário?", buttons="Sim|Não")
+
+        if confirm:
+            # noinspection PyBroadException
+            try:
+                sucesso = user_helper.activate_user(users.keys()[index], op=0)
+            except Exception as ex:
+                sys_log_error("Exceção ativando usuário - Exception: " + str(ex))
+                logger.exception("Exceção ativando usuário")
+                show_info_message(posid, "Ocorreu um erro ao ativar usuário!", msgtype="error")
+                return
+
+            if sucesso:
+                show_info_message(posid, "Usuário reativado com sucesso", msgtype="info")
+            else:
+                show_info_message(posid, "Ocorreu um erro ao ativar usuário!", msgtype="error")
+        else:
+            show_info_message(posid, "Operação cancelada. Usuário não ativado", msgtype="warning")
 
 @action
 def changeperfil(posid, *args):
@@ -302,7 +345,7 @@ def changeperfil(posid, *args):
             else:
                 show_info_message(posid, "Ocorreu um erro ao alterar o perfil do usuário!", msgtype="error")
         else:
-            show_info_message(posid, "Operação cancelada.", msgtype="error")
+            show_info_message(posid, "Operação cancelada. Perfil não alterado", msgtype="warning")
 
 
 def _info_user_session(posid):

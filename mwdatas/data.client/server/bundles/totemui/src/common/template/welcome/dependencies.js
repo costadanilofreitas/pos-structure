@@ -1,0 +1,6 @@
+import '../../vendor/bootstrap/css/bootstrap.css'
+import '../../vendor/jquery/jquery.min.js'
+import '../../css/site.css'
+import '../../css/indexPedido.css'
+import '../../css/fluxoPedido.css'
+import '../../css/customSnack.css'

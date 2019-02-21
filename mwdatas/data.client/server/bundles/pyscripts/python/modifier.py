@@ -16,7 +16,7 @@ def get_modifiers_and_elements(modifier_sets, modifier_elem, modifier_part, cont
     defaults = {}
     options_tag = all_options_tags[1]
     if len(options_tag.split(">")) > 1 and options_tag.split(">")[1]:
-        defaults[options_tag.split(">")[0]] = [x for x in options_tag.split('|')[0].split(">")[1].split(";")]
+        defaults[options_tag.split(">")[0]] = [x for x in options_tag.split(">")[1].split(";")]
 
     # Busca os valores Default, Min e Max de cada Option ou Ingredients
     qty_option = {x.split(">")[0]: x.split(">")[1].split(";") for x in _cache.get_tags_as_dict(part_code, "QtyOptions").split("|") if x != ""}

@@ -1,0 +1,7 @@
+node_modules
+*.log
+.vs
+public/*
+!public/index.html
+build/*
+!build/index.html
