@@ -20,8 +20,8 @@ IF NOT EXIST "%MWPOS_BIN%\genclient.exe" call :ERROR Could not find hypervisor.
 
 cd %MWPOS_BIN%
 :: Run genclient
-call :EXEC genclient --local ..\genesis --data "%DATADIR%" --notime 1 --force 1 --node %NODEID% 
-rem hv.exe --service --data "%DATADIR%"
+rem call :EXEC genclient --local ..\genesis --data "%DATADIR%" --notime 1 --force 1 --node %NODEID% 
+hv.exe --service --data "%DATADIR%"
 rem genclient.exe
 goto EXIT
 
