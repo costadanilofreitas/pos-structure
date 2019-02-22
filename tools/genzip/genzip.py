@@ -66,7 +66,7 @@ def need_update(inputfiles, outputfiles):
 
 def main(dest, srcdir, arcdir):
     # Base "bin" directory
-    basedir = abspath(PLATDIR) + "/bin"
+    basedir = abspath(PLATDIR) + "mwappsdk/bin"
     #
     # Iterate over all directories that should be zipped
     #
