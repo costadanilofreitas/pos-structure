@@ -3,4 +3,4 @@
 	url = https://bitbucket.org/edeployteam/pos-components.git
 [submodule "mwappsdk"]
 	path = mwappsdk
-	url = https://git.mwneo.com/edeploy/mwappsdk.git
+	url = http://10.200.24.82/mwpos/mwappsdk.git
