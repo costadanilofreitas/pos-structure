@@ -4,7 +4,7 @@
 
 MACHINE=$(shell uname -m)
 OPSYS=$(shell uname -s)
-BASEDIR=$(abspath $(CURDIR)/../../../../../../mwappsdk/)
+BASEDIR=$(abspath $(CURDIR)/../../../../../../)
 
 ifeq ($(OPSYS),Linux)
 	OPSYS := linux
@@ -23,7 +23,7 @@ else
 endif
 endif
 
-export PYTHONHOME := $(BASEDIR)/$(OPSYS)-$(MACHINE)/python
+export PYTHONHOME := $(BASEDIR)/mwappsdk/$(OPSYS)-$(MACHINE)/python
 export LD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(LD_LIBRARY_PATH)
 export DYLD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(DYLD_LIBRARY_PATH)
 export PATH := $(PYTHONHOME):$(PYTHONHOME)/bin:$(PATH)
