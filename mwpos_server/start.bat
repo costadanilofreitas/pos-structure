@@ -5,7 +5,7 @@ if "%ERRORLEVEL%"=="0" (exit)
 tasklist /FI "IMAGENAME eq hv.exe" 2>NUL | find /I "hv.exe" >NUL
 if "%ERRORLEVEL%"=="0" (exit)
 
-set DEBUGGER=true
+set DEBUGGER=false
 set PYDEVPATH=%CD%\pycharm-debug.egg
 set MWPOS_BIN=%CD%\bin
 set APACHE_MODS=%CD%\apache\modules
