@@ -1459,6 +1459,7 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
 
     finally:
         logger.debug("Order Totalizada - POS %s" % pos_id)
+    return True
 # END of doTotal
 
 

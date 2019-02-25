@@ -416,8 +416,17 @@ class SaleScreen extends PureComponent {
                     order={order}
                     selectedLine={selectedLine}
                     selectedParent={selectedParent}
-                    showSummary={true}
-                    showSummaryOnFinished={true}
+                    showSummary={attributes.state === 'IN_PROGRESS'}
+                    showSummaryChange={false}
+                    showSummaryDelivery={false}
+                    showSummaryDiscount={false}
+                    showSummaryDue={false}
+                    showSummaryService={false}
+                    showSummaryTax={false}
+                    showSummaryTip={false}
+                    showSummaryTotal={false}
+                    showSummaryTotalAfterDiscount={false}
+                    showFinishedSale={false}
                     autoSelectLine={true}
                     skipAutoSelect={skipAutoSelect}
                     onLineClicked={this.handleLineClicked}
