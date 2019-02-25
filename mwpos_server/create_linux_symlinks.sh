@@ -1,43 +1,43 @@
 unlink genesis/apache/darwin-x86_64
-ln -s genesis/apache/darwin-x86_64 ../../../mwappsdk/darwin-x86_64/apache
+ln -s ../mwappsdk/darwin-x86_64/apache genesis/apache/darwin-x86_64
 unlink genesis/apache/linux-redhat-x86_64
-ln -s genesis/apache/linux-redhat-x86_64 ../../../mwappsdk/linux-redhat-x86_64/apache
+ln -s ../mwappsdk/linux-redhat-x86_64/apache genesis/apache/linux-redhat-x86_64
 unlink genesis/apache/linux-ubuntu-i686
-ln -s genesis/apache/linux-ubuntu-i686 ../../../mwappsdk/linux-ubuntu-i686/apache
+ln -s ../mwappsdk/linux-ubuntu-i686/apache genesis/apache/linux-ubuntu-i686
 unlink genesis/apache/linux-ubuntu-x86_64
-ln -s genesis/apache/linux-ubuntu-x86_64 ../../../mwappsdk/linux-ubuntu-x86_64/apache
+ln -s ../mwappsdk/linux-ubuntu-x86_64/apache genesis/apache/linux-ubuntu-x86_64
 unlink genesis/apache/windows-x86
-ln -s genesis/apache/windows-x86 ../../../mwappsdk/windows-x86/apache
+ln -s ../mwappsdk/windows-x86/apache genesis/apache/windows-x86
 unlink genesis/apache/windows-AMD64
-ln -s genesis/apache/windows-AMD64 ../../../mwappsdk/windows-x86/apache
+ln -s ../mwappsdk/windows-x86/apache genesis/apache/windows-AMD64
 
 
 unlink genesis/bin/darwin-x86_64
-ln -s genesis/bin/darwin-x86_64 ../../../mwappsdk/darwin-x86_64/bin
+ln -s ../mwappsdk/darwin-x86_64/bin genesis/bin/darwin-x86_64
 unlink genesis/bin/linux-redhat-x86_64
-ln -s genesis/bin/linux-redhat-x86_64 ../../../mwappsdk/linux-redhat-x86_64/bin
+ln -s ../mwappsdk/linux-redhat-x86_64/bin genesis/bin/linux-redhat-x86_64
 unlink genesis/bin/linux-ubuntu-i686
-ln -s genesis/bin/linux-ubuntu-i686 ../../../mwappsdk/linux-ubuntu-i686/bin
+ln -s ../mwappsdk/linux-ubuntu-i686/bin genesis/bin/linux-ubuntu-i686
 unlink genesis/bin/linux-ubuntu-x86_64
-ln -s genesis/bin/linux-ubuntu-x86_64 ../../../mwappsdk/linux-ubuntu-x86_64/bin
+ln -s ../mwappsdk/linux-ubuntu-x86_64/bin genesis/bin/linux-ubuntu-x86_64
 unlink genesis/bin/windows-x86
-ln -s genesis/bin/windows-x86 ../../../mwappsdk/windows-x86/bin
+ln -s ../mwappsdk/windows-x86/bin genesis/bin/windows-x86
 unlink genesis/bin/windows-AMD64
-ln -s genesis/bin/windows-AMD64 ../../../mwappsdk/windows-x86/bin
+ln -s ../mwappsdk/windows-x86/bin genesis/bin/windows-AMD64
 
 
 unlink genesis/python/darwin-x86_64
-ln -s genesis/python/darwin-x86_64 ../../../mwappsdk/darwin-x86_64/python
+ln -s ../mwappsdk/darwin-x86_64/python genesis/python/darwin-x86_64
 unlink genesis/python/linux-redhat-x86_64
-ln -s genesis/python/linux-redhat-x86_64 ../../../mwappsdk/linux-redhat-x86_64/python
+ln -s ../mwappsdk/linux-redhat-x86_64/python genesis/python/linux-redhat-x86_64
 unlink genesis/python/linux-ubuntu-i686
-ln -s genesis/python/linux-ubuntu-i686 ../../../mwappsdk/linux-ubuntu-i686/python
+ln -s ../mwappsdk/linux-ubuntu-i686/python genesis/python/linux-ubuntu-i686
 unlink genesis/python/linux-ubuntu-x86_64
-ln -s genesis/python/linux-ubuntu-x86_64 ../../../mwappsdk/linux-ubuntu-x86_64/python
+ln -s ../mwappsdk/linux-ubuntu-x86_64/python genesis/python/linux-ubuntu-x86_64
 unlink genesis/python/windows-x86
-ln -s genesis/python/windows-x86 ../../../mwappsdk/windows-x86/python
+ln -s ../mwappsdk/windows-x86/python genesis/python/windows-x86
 unlink genesis/python/windows-AMD64
-ln -s genesis/python/windows-AMD64 ../../../mwappsdk/windows-x86/python
+ln -s ../mwappsdk/windows-x86/python genesis/python/windows-AMD64
 
 unlink genesis/data/server
-ln -s genesis/data/server ../../../mwdatas/data.client/server
+ln -s ../mwdatas/data.client/server genesis/data/server
