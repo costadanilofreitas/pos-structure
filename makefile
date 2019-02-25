@@ -75,7 +75,7 @@ export LD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(LD_LIBRARY_PATH)
 export DYLD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(DYLD_LIBRARY_PATH)
 export PATH := $(PYTHONHOME):$(PYTHONHOME)/bin:$(PATH)
 
-GENPYPKG := mwappsdk/tools/genpypkg/genpypkg.py
+GENPYPKG := tools/genpypkg/genpypkg.py
 
 FLAKE_OUT_DIR := .flake
 FLAKE_EXCLUDES := $(foreach notpath,$(FLAKE_EXCLUDED_PATHS),-not -path "$(notpath)")
@@ -303,7 +303,7 @@ standard-common-ui-objs: $(STANDARD_COMMON_UI_OBJS)
 	$(info $@: Done!)
 	
 $(STANDARD_COMMON_DIR)/ui/gui_client_pos.zip: $(shell find $(STANDARD_DATA_DIR)/server/bundles/gui/pos/src -type f -iname "*.js" -o -iname "*.json" -o -iname "*css" -o -iname "*.html")
-	cd $(STANDARD_DATA_DIR)/server/bundles/gui/pos && $(MAKE) && mkdir -p ../../../$(dir $@) &&  mv $(notdir $@) ../../../../../../$(dir $@)
+	cd $(STANDARD_DATA_DIR)/server/bundles/gui/pos && $(MAKE) && mkdir -p ../../../../../../$(dir $@) &&  mv $(notdir $@) ../../../../../../$(dir $@)
 
 $(FLAKE_APP_FILES): $(FLAKE_OUT_DIR)/%.flake: %.py
 	test -d $(dir $@) || mkdir -p $(dir $@)
