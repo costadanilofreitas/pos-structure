@@ -36,7 +36,7 @@ FLAKE_EXCLUDED_PATHS := \
 	src/totemapi/lib/* \
 	src/edpcommon/dateutil/* \
 	src/edpcommon/iso8601/* \
-	wmappsdk/tools/flake8/*
+	mwappsdk/tools/flake8/*
 
 ifndef BUILD_VERSION
 	BUILD_VERSION := $(shell date +"%Y%m")
@@ -70,7 +70,7 @@ else
 endif
 endif
 
-export PYTHONHOME := $(BASEDIR)/wmappsdk/$(OPSYS)-$(MACHINE)/python
+export PYTHONHOME := $(BASEDIR)/mwappsdk/$(OPSYS)-$(MACHINE)/python
 export LD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(LD_LIBRARY_PATH)
 export DYLD_LIBRARY_PATH := $(PYTHONHOME)/lib:$(DYLD_LIBRARY_PATH)
 export PATH := $(PYTHONHOME):$(PYTHONHOME)/bin:$(PATH)
@@ -311,8 +311,9 @@ $(FLAKE_APP_FILES): $(FLAKE_OUT_DIR)/%.flake: %.py
 
 ddl-hash: $(DDL_FILES)
 	echo $(DDLHASHSCRIPT) > ./ddlhash.py
-	for f in $?; do\
-		python ./ddlhash.py $$f > $$f.new; \
+	PYTHONHOME=$(PYTHONHOME)
+	for f in $?; do \
+	python ./ddlhash.py $$f > $$f.new; \
 		cp $$f.new $$f; \
 		rm $$f.new; \
 	done
