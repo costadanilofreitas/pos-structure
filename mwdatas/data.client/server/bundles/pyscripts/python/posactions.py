@@ -1429,7 +1429,7 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
         xml_order = etree.XML(posot.orderPicture(pos_id))
         due_amount = float(xml_order.get("dueAmount"))
 
-        if due_amount <= 0:
+        if due_amount < 0:
             # Ask if we should proceed
             show_info_message(pos_id, "$TENDERS_ARE_BIGGER_THEN_DUE_AMOUNT", msgtype="warning")
             doBackFromTotal(pos_id)
@@ -3523,7 +3523,7 @@ def doTransfer(posid, transfer_type, *args):
     ppview = True
     transfer_id = 0
     drawer_amount = round(float(get_drawer_amount(posid, period, session)), 2)
-    initial_value_drawer = _get_initial_value_drawer(posid, session)
+    initial_value_drawer = float(_get_initial_value_drawer(posid, session))
     get_value_drawer = round(float(drawer_amount - initial_value_drawer), 2)
 
     if int(transfer_type) == 2:
@@ -3678,7 +3678,7 @@ def _get_initial_value_drawer(posid, session, *args):
         period_sess_now = session.split(',')[3].split('=')[1]
 
         conn = persistence.Driver().open(mbcontext, posid)
-        cursor = conn.select("select amount, sessionid from transfer where description = 'Initial Float' and posid = '{}' order by ID desc limit 1".format(pos_sess_now))
+        cursor = conn.select("select amount, sessionid from transfer where description = 'Initial Float' and posid = '{}' order by timestamp desc limit 1".format(pos_sess_now))
 
         if cursor.rows() > 0:
             for row in cursor:
@@ -5675,3 +5675,8 @@ def importEmployees(pos_id):
         return False
     show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
     return True
+
+
+@action
+def getProducts(pos_id,):
+    return

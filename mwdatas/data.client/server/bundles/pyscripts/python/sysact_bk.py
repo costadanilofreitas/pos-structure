@@ -16,7 +16,7 @@ from sysactions import get_cfg, get_model, get_used_service, show_confirmation, 
 __all__ = ['get_authorization', 'validar_cpf', 'validar_cnpj']
 
 
-def get_authorization(posid, min_level=None, model=None, timeout=60000, is_login=True):
+def get_authorization(posid, min_level=None, model=None, timeout=60000, is_login=True, display_title=""):
     """ get_authorization(posid, min_level=None, model=None, timeout=60000) -> True or False
     Requests authorization for an operation.
     The "authorizationType" parameter on PosController defines how the authorization will be requested.
@@ -25,6 +25,7 @@ def get_authorization(posid, min_level=None, model=None, timeout=60000, is_login
     @param min_level - optional minimum user level required for this operation
     @param model - optional POS model (will be retrieved if necessary)
     @param timeout - operation timeout (in millis)
+    @param display_title - specify the title of the authentication pop-up (str or i18n id)
     @return True if authorization succeeded, False otherwise
     """
 
@@ -49,7 +50,6 @@ def get_authorization(posid, min_level=None, model=None, timeout=60000, is_login
             return False
 
         dlgid = show_messagebox(posid, "$SWIPE_CARD_TO_AUTHORIZE", "$MAGNETIC_STRIPE_READER", "swipecard", "$CANCEL", timeout, True)
-        tracks = None
 
         try:
             # Read tracks from the card reader
@@ -68,11 +68,11 @@ def get_authorization(posid, min_level=None, model=None, timeout=60000, is_login
     #
     if auth_type == "login":
         # Request user ID and password to GUI
-        userid = show_keyboard(posid, "$AUTH_ENTER_USER_ID", title="", mask="INTEGER", numpad=True)
+        userid = show_keyboard(posid, "$ENTER_USER_ID", title=display_title, mask="INTEGER", numpad=True)
         if userid is None:
             return  # User cancelled, or timeout
 
-        passwd = show_keyboard(posid, message="$ENTER_PASSWORD|%s" % (userid), title="$OPERATOR_LOGIN" if is_login else "", is_password=True, numpad=True)
+        passwd = show_keyboard(posid, message="$ENTER_PASSWORD|%s" % userid, title=display_title, is_password=True, numpad=True)
         if passwd is None:
             return  # User cancelled, or timeout
 
@@ -86,7 +86,7 @@ def get_authorization(posid, min_level=None, model=None, timeout=60000, is_login
             sys_log_info("Authentication succeeded for POS id: %s, user id: %s" % (posid, userid))
             return True
         except AuthenticationFailed:
-            show_info_message(posid, "Autenticação não autorizada !!!", msgtype="error")
+            show_info_message(posid, "$AUTHENTICATION_NOT_AUTHORIZED", msgtype="error")
 
         return False
 
