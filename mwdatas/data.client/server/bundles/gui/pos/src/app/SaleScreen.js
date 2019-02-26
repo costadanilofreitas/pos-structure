@@ -288,10 +288,11 @@ class SaleScreen extends PureComponent {
     return groupsByTab
   }
 
-  sellItem = (item) => {
+  sellItem = (item, itemId) => {
+    const { selectedLine } = this.state
     const qty = this.state.selectedQty
     this.setState({ selectedQty: 1, skipAutoSelect: false })
-    return ['doSale', `${this.NAVIGATION_MENU}.${item.plu}`, qty]
+    return ['doCompleteOption', itemId, `${this.NAVIGATION_MENU}.${item.plu}`, qty, selectedLine.lineNumber]
   }
 
   sellOption = (item, itemId) => {

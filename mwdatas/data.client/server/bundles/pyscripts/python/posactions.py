@@ -33,7 +33,7 @@ from systools import sys_log_info, sys_log_debug, sys_log_exception, sys_log_err
 from msgbus import TK_EFT_REQUEST, TK_EVT_EVENT, TK_FISCAL_CMD, TK_SYS_NAK, TK_ACCOUNT_EFTACTIVITY, TK_ACCOUNT_GIFTCARDACTIVITY, TK_POS_SETDEFSERVICE, TK_SYS_ACK, TK_SYS_CHECKFORUPDATES, \
     TK_POS_SETRECALLDATA, TK_POS_USERLOGOUT, TK_POS_USERLOGIN, TK_POS_LISTUSERS, TK_POS_SETFUNCTION, TK_POS_USEROPEN, TK_I18N_GETLANGS, TK_POS_SETLANG, TK_CMP_TERM_NOW, \
     TK_POS_SETPOD, TK_CDRAWER_OPEN, TK_POS_SETMODIFIERSDATA, TK_ACCOUNT_TRANSFER, TK_HV_GLOBALRESTART, TK_GENESIS_LISTPKGS, TK_GENESIS_APPLYUPDATE, TK_CASHLESS_REPORT, \
-    FM_STRING, FM_PARAM, FM_XML, TK_PERSIST_SEQUENCER_INCREMENT, MBException, SE_NOTFOUND, MBEasyContext, TK_POS_BUSINESSEND, TK_POS_GETSTATE, TK_PRN_GETSTATUS, TK_PRN_PRINT
+    FM_STRING, FM_PARAM, FM_XML, TK_PERSIST_SEQUENCER_INCREMENT, MBException, SE_NOTFOUND, MBEasyContext, TK_POS_BUSINESSEND, TK_POS_GETSTATE, TK_PRN_GETSTATUS, TK_PRN_PRINT, TK_DRV_IOCTL
 import bustoken
 import datetime
 from posot import OrderTaker, OrderTakerException, ClearOptionException
@@ -44,7 +44,7 @@ from sysactions import StopAction, AuthenticationFailed, action, send_message, c
     check_current_order, show_info_message, show_messagebox, show_confirmation, show_listbox, show_keyboard, show_order_preview, show_text_preview, \
     close_asynch_dialog, generate_report, print_text, print_report, set_custom, get_custom, clear_custom, translate_message, format_amount, get_last_order, \
     get_line_product_name, get_clearOptionsInfo, can_void_line, get_user_information, authenticate_user, is_valid_date, calculate_giftcards_amount, get_poslist, \
-    get_pricelist, check_main_screen, get_storewide_config, on_before_total, read_msr, format_date, get_posfunction, is_day_blocked, show_custom_dialog
+    get_pricelist, check_main_screen, get_storewide_config, on_before_total, read_msr, format_date, get_posfunction, is_day_blocked, show_custom_dialog, read_scanner
 from sysact_bk import validar_cpf, validar_cnpj
 from persistence import Driver as DBDriver
 from pyscriptscache import cache as _cache
@@ -128,6 +128,9 @@ nf_type = None
 _eft_events = []
 # List of pending tandem events
 _tandem_events = []
+# Indicates that a scanner's automatic sale function is paused for a specific POS, used during
+# price lookup, or non-product scans. Key is POS id, value True or False.
+_scanner_sale_paused = {}
 # Set of recall-by-picture listeners
 _recall_listeners = set()
 # Dictionaries that maps booth numbers to POS ids (and vice-versa)
@@ -144,6 +147,10 @@ _default_options_cache = {}
 _options_cache = {}
 # Must Be Modified Cache
 _must_modify = {}
+# Product list cache, with prices and barcodes
+_products_cache = None
+# Barcode to product mapping
+_product_by_barcode = {}
 
 comment_mods = []
 productPrices = {}
@@ -296,6 +303,34 @@ def _sitef_processing_received(params):
                 close_asynch_dialog(pos_id, eft_evt[1])
                 break
     return None
+
+
+def _device_data_event_received(params):
+    """
+    When a scanner event is received, we should try so sell the item on the POS or, if price
+    lookup mode is on, just ignore and let the sysactions handle the scanner dialog
+    """
+    global _product_by_barcode, _scanner_sale_paused
+    data, subject, p_type, asynch, pos_id = params[:5]
+    try:
+        device = etree.XML(data).find("Device")
+        device_name = str(device.get("name"))
+        if not device_name.startswith("scanner"):
+            # just processing scanner events, ignoring other devices
+            return
+        # extract POS id from device name
+        # XXX: we are assuming that the device name is scannerXX where XX is the destination POS number
+        pos_id = int(device_name[7:])
+        if pos_id in _scanner_sale_paused and _scanner_sale_paused[pos_id]:
+            # scanner sale is paused, don't try to sell
+            return
+        barcode = base64.b64decode(device.text).strip()
+        if barcode and barcode in _product_by_barcode:
+            doSale(str(pos_id), "1." + _product_by_barcode[barcode]['plu'])
+        else:
+            sys_log_info("Scanned barcode {0} not found on the product database!".format(barcode))
+    except:
+        sys_log_exception('Exception processing device data event')
 
 
 #
@@ -1103,6 +1138,7 @@ def get_nf_type(posid=1, *args):
     return nf_type
 
 @action
+
 def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", *args):
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
@@ -1137,6 +1173,7 @@ def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sal
 
         checkShowModifierScreen(posid, sale_xml, "350")
     logger.debug("--- doCompleteOption END ---")
+
     return sale_xml
 
 
@@ -1204,6 +1241,8 @@ def doChangeSaleType(posid, saletype, *args):
     if has_current_order(model):
         # Set the sale type on the order
         posot.updateOrderProperties(posid, saletype=saletype)
+    else:
+        return False
     return True
 
 
@@ -1607,15 +1646,15 @@ def doBackFromTotal(pos_id, void_reason=5, *args):
                 posot = get_posot(model)
                 posot.setOrderCustomProperties(void_reason, order.get('orderId'))
                 doShowScreen(pos_id, default_screen)  # Returns to the previous screen
-            else:
-                check_current_order(pos_id, model=model, need_order=True)
-                get_posot(model).reopenOrder(int(pos_id))
+        else:
+            check_current_order(pos_id, model=model, need_order=True)
+            get_posot(model).reopenOrder(int(pos_id))
 
     except OrderTakerException as ex:
         show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
 
     doShowScreen(pos_id, default_screen)  # Returns to the previous screen
-
+    return True
 
 @action
 def doChangeEFT(posid, *args):
@@ -3053,7 +3092,9 @@ def doOpenDrawer(posid, check_oper="true", *args):
     def thread_open_drawer(drawer):
         try:
             send_message(drawer.get("name"), TK_CDRAWER_OPEN)
+            show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
         except MBException:
+            show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
             pass
 
     model = get_model(posid)
@@ -5668,15 +5709,213 @@ def doModifier(posid, itemid, level, pcode, qty, linenumber, modtype):
 
 @action
 def importEmployees(pos_id):
-    params = '\0'.join(['', 'MwBOH', 'ImportUser'])
-    reply = send_message("MwBOH", TK_EVT_EVENT, FM_PARAM, params)
-    if reply.token == TK_SYS_NAK:
-        show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-        return False
-    show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
+    change_screen(pos_id, main)
+    #params = '\0'.join(['', 'MwBOH', 'ImportUser'])
+    #reply = send_message("MwBOH", TK_EVT_EVENT, FM_PARAM, params)
+    #if reply.token == TK_SYS_NAK:
+    #    show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
+    #    return False
+    #show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
     return True
 
 
 @action
-def getProducts(pos_id,):
-    return
+def doToggleMirrorScreen(posid):
+    model = get_model(posid)
+    value = "false" if get_custom(model, "MIRROR_SCREEN", "false") == "true" else "true"
+    set_custom(posid, "MIRROR_SCREEN", value, persist=True)
+
+
+@action
+def doChangeLanguage(posid, *args):
+    # Retrieve the list of languages from the I18N service
+    msg = send_message("I18N", TK_I18N_GETLANGS)
+    if msg.token == TK_SYS_ACK:
+        options = msg.data.split('\0')
+        if options and not options[len(options) - 1]:
+            options.pop()  # Last element is empty... remove it!
+        # Find out the current POS language
+        try:
+            model = get_model(posid)
+            current_index = options.index(str(model.find("Language").get("name")))
+        except:
+            current_index = 0  # default value
+        index = show_listbox(posid, options, defvalue=current_index)
+        if index is None:
+            return  # User canceled
+        lang = options[index]
+        # Set the new language on PosController
+        msg = send_message("POS%d" % int(posid), TK_POS_SETLANG, FM_PARAM, "%s\0%s" % (posid, lang))
+        if msg.token == TK_SYS_ACK:
+            # Wait some time for the UI to reload
+            show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
+            return
+    # Failed
+    show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
+
+
+def _get_products(pos_id="1"):
+    global _products_cache, _product_by_barcode
+
+    if _products_cache is None:
+        model = get_model(pos_id)
+        query = """SELECT P.ProductCode, P.ProductName, Price.DefaultUnitPrice AS UnitPrice, PCP.CustomParamValue AS BarCode, NULLIF(Production.JITLines,'None') AS ProductionLine
+                   FROM ProductClassification PC
+                   JOIN Product P ON P.ProductCode=PC.ProductCode
+                   LEFT JOIN Production ON Production.ProductCode=P.ProductCode
+                   LEFT JOIN Price ON Price.ProductCode=P.ProductCode AND Context IS NULL AND CURRENT_DATE BETWEEN Price.ValidFrom AND Price.ValidThru AND PriceListId='EI'
+                   LEFT JOIN ProductCustomParams PCP ON PCP.ProductCode=P.ProductCode AND PCP.CustomParamId='BarCode'
+                   WHERE PC.ClassCode=1 ORDER BY P.ProductName"""
+        prodlist = []
+        try:
+            conn = persistence.Driver().open(mbcontext, pos_id)
+            cursor = conn.select(query)
+            for row in cursor:
+                plu, name, price, barcode, prodline = map(row.get_entry, ("ProductCode", "ProductName", "UnitPrice", "BarCode", "ProductionLine"))
+                product = {
+                    "plu": plu,
+                    "name": name,
+                    "price": format_amount(model, price),
+                    "barcode": barcode,
+                    "prodline": prodline
+                }
+                prodlist.append(product)
+                _product_by_barcode[barcode] = product
+        except:
+            sys_log_exception("Error getting product list")
+        finally:
+            if conn:
+                conn.close()
+        _products_cache = prodlist
+
+    return _products_cache
+
+
+@action
+def getProducts(pos_id, *args):
+    return json.dumps(_get_products(pos_id))
+
+
+@action
+def doPriceLookup(pos_id, timeout=45, *args):
+    global _scanner_sale_paused
+    model = get_model(pos_id)
+    services = get_used_service(model, "scanner", get_all=True)
+    scanner = None
+    for svc in services:
+        if "scanner" in svc:
+            scanner = svc
+            break
+    if scanner is None:
+        show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", title="$PRICE_LOOKUP", msgtype="critical")
+        return
+    timeout = timeout * 1000
+    try:
+        _scanner_sale_paused[int(pos_id)] = True
+        dlg_id = show_messagebox(pos_id, message="$PLEASE_SCAN_FOR_PRICE_LOOKUP", title="$PRICE_LOOKUP", buttons="$CANCEL", asynch=True, timeout=timeout, focus=False)
+        try:
+            barcode = read_scanner(scanner, timeout, dlg_id)
+        finally:
+            close_asynch_dialog(pos_id, dlg_id)
+        if barcode is not None:
+            barcode = base64.b64decode(barcode).strip()
+            if barcode and barcode in _product_by_barcode:
+                show_messagebox(pos_id, message="{0}: {1}".format(_product_by_barcode[barcode]['name'], _product_by_barcode[barcode]['price']), title="$PRICE_LOOKUP")
+    finally:
+        _scanner_sale_paused[int(pos_id)] = False
+
+
+@action
+def doUpdateMediaData(posid, *args):
+    try:
+        mbcontext.MB_EasySendMessage('MediaManager', TK_EVT_EVENT, data='\0MediaManager\0UpdateMedia\0true\01\01\0', timeout=5000000)
+        show_messagebox(posid, "Atualizando imagens em segundo plano")
+    except:
+        sys_log_exception("Exception updating media data")
+        show_info_message(posid, "Erro atualizando imagens, tente novamente.", msgtype="error")
+
+
+@action
+def doScanTab(pos_id, timeout=45, store_order=True, message="Por favor, pegue sua ficha de consumo e posicione o código de barras da ficha no leitor abaixo.", title="Envie seu pedido", *args):
+    global _scanner_sale_paused
+    model = get_model(pos_id)
+    posot = get_posot(model)
+    services = get_used_service(model, "scanner", get_all=True)
+    scanner = None
+    for svc in services:
+        if "scanner" in svc:
+            scanner = svc
+            break
+    if scanner is None:
+        show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", title="$ERROR", msgtype="critical")
+        return
+    timeout = timeout * 1000
+    while True:
+        # send direct command to the scanner in order to turn it on
+        mbcontext.MB_EasySendMessage(scanner, token=TK_DRV_IOCTL, format=FM_PARAM, data="\x16T\x0d")
+        dlg_id = show_messagebox(pos_id, message=message, title=title, buttons="$CANCEL", asynch=True, timeout=timeout, focus=False)
+        try:
+            _scanner_sale_paused[int(pos_id)] = True
+            barcode = read_scanner(scanner, timeout, dlg_id)
+            if barcode is None:
+                # user cancelled, turn scanner off
+                mbcontext.MB_EasySendMessage(scanner, token=TK_DRV_IOCTL, format=FM_PARAM, data="\x16U\x0d")
+                return
+            if len(barcode) == 0:
+                raise Exception('Error reading barcode')
+            barcode = base64.b64decode(barcode).strip()
+            # save the tab custom property and store the order
+            posot.setOrderCustomProperty("TAB", barcode[-3:])
+            if store_order:
+                posot.storeOrder(pos_id)
+            return
+        except:
+            show_messagebox(pos_id, message="Erro de leitura, tente novamente", icon="error", timeout=180000)
+        finally:
+            _scanner_sale_paused[int(pos_id)] = False
+            close_asynch_dialog(pos_id, dlg_id)
+
+
+@action
+def incrementLine(posid, line_number=None):
+    if line_number is None:
+        show_info_message(posid, "$SELECT_LINE_FIRST", msgtype="warning")
+        return
+
+    model = get_model(posid)
+    check_current_order(posid, model=model, need_order=True)
+
+    try:
+        posot = get_posot(model)
+        order_xml = get_current_order(model)
+        line = order_xml.find('SaleLine[@level="0"][@lineNumber="{}"]'.format(line_number))
+        if line is None:
+            sys_log_error('Line {} not found for order {}'.format(line_number, order_xml.get('orderId')))
+            return
+
+        qty = int(line.get('qty'))
+        posot.blkopnotify = True
+        posot.changeLineItemQty(int(posid), line_number, int(qty + 1))
+        posot.blkopnotify = False
+        posot.splitOrderLine(int(posid), line_number, qty)
+    except OrderTakerException, e:
+        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+
+
+@action
+def enterTabNumber(posid, *args):
+
+    model = get_model(posid)
+    check_current_order(posid, model=model, need_order=True)
+    posot = get_posot(model)
+    order = get_current_order(model)
+    tab = order.find('CustomOrderProperties/OrderProperty[@key="TAB"]')
+    if tab is not None:
+        saved_tab_number = tab.get('value')
+    else:
+        saved_tab_number = ''
+
+    tab_number = show_keyboard(posid, "$ENTER_TAB_NUMBER", defvalue=saved_tab_number, mask="INTEGER", numpad=True)
+    if tab_number in (None, ""):
+        return
+    posot.setOrderCustomProperty("TAB", tab_number)
