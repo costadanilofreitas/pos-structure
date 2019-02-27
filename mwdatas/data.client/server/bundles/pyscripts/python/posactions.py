@@ -1138,7 +1138,6 @@ def get_nf_type(posid=1, *args):
     return nf_type
 
 @action
-
 def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", *args):
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
@@ -1173,7 +1172,6 @@ def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sal
 
         checkShowModifierScreen(posid, sale_xml, "350")
     logger.debug("--- doCompleteOption END ---")
-
     return sale_xml
 
 
@@ -1241,8 +1239,6 @@ def doChangeSaleType(posid, saletype, *args):
     if has_current_order(model):
         # Set the sale type on the order
         posot.updateOrderProperties(posid, saletype=saletype)
-    else:
-        return False
     return True
 
 
@@ -1646,9 +1642,9 @@ def doBackFromTotal(pos_id, void_reason=5, *args):
                 posot = get_posot(model)
                 posot.setOrderCustomProperties(void_reason, order.get('orderId'))
                 doShowScreen(pos_id, default_screen)  # Returns to the previous screen
-        else:
-            check_current_order(pos_id, model=model, need_order=True)
-            get_posot(model).reopenOrder(int(pos_id))
+            else:
+                check_current_order(pos_id, model=model, need_order=True)
+                get_posot(model).reopenOrder(int(pos_id))
 
     except OrderTakerException as ex:
         show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
@@ -5709,13 +5705,12 @@ def doModifier(posid, itemid, level, pcode, qty, linenumber, modtype):
 
 @action
 def importEmployees(pos_id):
-    change_screen(pos_id, main)
-    #params = '\0'.join(['', 'MwBOH', 'ImportUser'])
-    #reply = send_message("MwBOH", TK_EVT_EVENT, FM_PARAM, params)
-    #if reply.token == TK_SYS_NAK:
-    #    show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-    #    return False
-    #show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
+    params = '\0'.join(['', 'MwBOH', 'ImportUser'])
+    reply = send_message("MwBOH", TK_EVT_EVENT, FM_PARAM, params)
+    if reply.token == TK_SYS_NAK:
+        show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
+        return False
+    show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
     return True
 
 
