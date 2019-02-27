@@ -4095,7 +4095,10 @@ def doVoidPaidSale(posid, request_authorization="true", allpos="false", requestd
         # Build the preview data to be displayed on UI
         preview_data = []
         # Sort the orders by their ID
-        orders = sorted(orders, key=lambda x: map(int, re.findall('\d+', x['custom_properties']['FISCALIZATION_DATE'] if 'custom_properties' in x else x['createdAt'])), reverse=True)
+        try:
+            orders = sorted(orders, key=lambda x: map(int, re.findall('\d+', x['createdAt'])), reverse=True)
+        except:
+            orders = sorted(orders, key=lambda x: map(int, re.findall('\d+', x['custom_properties']['FISCALIZATION_DATE'] if 'custom_properties' in x else x['createdAt'])), reverse=True)
         # Base URL
         baseurl = "/mwapp/services/PosController/POS%d/?token=TK_POS_EXECUTEACTION&format=2&isBase64=true&payload=" % int(posid)
 
