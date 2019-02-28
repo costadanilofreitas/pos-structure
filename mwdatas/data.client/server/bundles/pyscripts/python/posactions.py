@@ -197,20 +197,24 @@ def get_authorization(posid, min_level=None, model=None, timeout=60000, can_bypa
                 try:
                     user_xml_str = get_user_information(user_id)
                 except Exception as ex:
-                    show_info_message(posid, "Impressao digital associada a usuario que nao esta cadastrado", msgtype="error")
+                    show_messagebox(posid, message="Impressao digital associada a usuario que nao esta cadastrado", icon="error")
+                    #show_info_message(posid, "Impressao digital associada a usuario que nao esta cadastrado", msgtype="error")
                     return
 
                 # Se identificamos o usuario pela digital, pegamos a informacao dele e constuimos o objeto
                 # igual a autenticacao por usuario e senha faz
                 if user_xml_str is None:
-                    show_info_message(posid, "Impressao digital associada a usuario que nao esta cadastrado", msgtype="error")
+                    show_messagebox(posid, message="Impressao digital associada a usuario que nao esta cadastrado",
+                                    icon="error")
+                    #show_info_message(posid, "Impressao digital associada a usuario que nao esta cadastrado", msgtype="error")
                     return
 
                 user_xml = etree.XML(user_xml_str)
                 user_element = user_xml.find("user")
                 user_level = int(user_element.attrib["Level"])
                 if user_level < min_level:
-                    show_info_message(posid, "Acesso negado", msgtype="error")
+                    show_messagebox(posid, message="Acesso negado", icon="error")
+                    #show_info_message(posid, "Acesso negado", msgtype="error")
                     return False
                 else:
                     set_custom(posid, 'Authorization Level', user_level)
@@ -232,7 +236,7 @@ def get_authorization(posid, min_level=None, model=None, timeout=60000, can_bypa
             order = model.find("CurrentOrder/Order")
             order_id = order.get("orderId")
         posot.setOrderCustomProperty("AUTHENTICATION_USER", user_id, order_id)
-
+    logger.debug(response)
     return response
 
 
@@ -639,7 +643,8 @@ def request_gift(posid, model, gift_command, amount=0, order_id=0, validate=True
     finally:
         close_asynch_dialog(posid, dlgid)
     if not msg or msg.token == TK_SYS_NAK:
-        show_info_message(posid, "$GIFT_ERROR|%s|%s" % ("0", "Communication error"), msgtype="error")
+        show_messagebox(posid, message="$GIFT_ERROR|%s|%s" % ("0", "Communication error"), icon="error")
+        #show_info_message(posid, "$GIFT_ERROR|%s|%s" % ("0", "Communication error"), msgtype="error")
         return None
     # Parse the response XML
     gift_xml = etree.XML(msg.data)
@@ -647,7 +652,8 @@ def request_gift(posid, model, gift_command, amount=0, order_id=0, validate=True
         rescode = gift_xml.get("result")
         if int(rescode) != 0:
             reason = gift_xml.get("reason") or "(none)"
-            show_info_message(posid, "$GIFT_ERROR|%s|%s" % (rescode, reason), msgtype="error")
+            show_messagebox(posid, message="$GIFT_ERROR|%s|%s" % (rescode, reason), icon="error")
+            #show_info_message(posid, "$GIFT_ERROR|%s|%s" % (rescode, reason), msgtype="error")
             return None
     # Sets a "masked" card number
     cardnbr = "%s*****%s*" % (card_number[0:6], card_number[10:len(card_number) - 1])
@@ -866,10 +872,12 @@ def doSale(pos_id, part_code, qty="", size="", sale_type="EAT_IN", *args):
             if handle_order_taker_exception(pos_id, pos_ot, ex, mbcontext):
                 return
             else:
-                show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                                  msgtype="critical")
+                #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+                #                 msgtype="critical")
+                show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
         else:
-            show_info_message(pos_id, "ERRO AO INICIAR A VENDA - {}".format(ex._descr), msgtype="critical")
+            #show_info_message(pos_id, "ERRO AO INICIAR A VENDA - {}".format(ex._descr), msgtype="critical")
+            show_messagebox(pos_id, message="ERRO AO INICIAR A VENDA - {}".format(ex._descr), icon="error")
 
         if is_new_order:
             model = get_model(pos_id)
@@ -891,12 +899,14 @@ def pafecflistenter_component_found(pos_id):
     try:
         msg = mbcontext.MB_EasySendMessage("PafEcfListener", token=TK_VERIFY_PAF_ECF_LISTENER, format=FM_PARAM, data="")
         if msg.token != TK_SYS_ACK:
-            show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
+            #show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
+            show_messagebox(pos_id, message="FiscalMode PAF but no PafEcfListener found", icon="error")
             return False
 
         return True
     except Exception as _:
-        show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
+        #show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
+        show_messagebox(pos_id, message="FiscalMode PAF but no PafEcfListener found", icon="error")
         return False
 
 
@@ -918,8 +928,9 @@ def handle_synchronization_error(pos_id, pos_ot, dlgid=None):
                     return
 
             logger.exception("Erro cancelando pedido")
-            show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                              msgtype="critical")
+            #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+            #                  msgtype="critical")
+            show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
 
 
 def handle_printer_validation_error(pos_id, msg):
@@ -1003,8 +1014,10 @@ def offer_multi_order(model, pod_type, pos_id, pos_ot, pos_function, price_list,
             logger.debug("--- doSale after posot.createOrder ---")
 
         except OrderTakerException as ex:
-            show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                              msgtype="critical")
+            #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+            #                  msgtype="critical")
+            show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+                            icon="error")
             raise StopAction()
         else:
             return True
@@ -1196,8 +1209,10 @@ def doOption(pos_id, context, part_code, qty="", line_number="", size="", sale_t
         return sale_xml
 
     except OrderTakerException as ex:
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+        #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+        #                  msgtype="critical")
+        show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+                        icon="error")
         logger.debug("--- doOption Exception END ---")
     return False
 
@@ -1226,8 +1241,8 @@ def doClearOption(posid, lineNumber="", qty="", *args):
         sys_log_exception("Could not clear option")
         show_info_message(posid, "Error %s" % e, msgtype="error")
     except OrderTakerException, ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+        show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
+        #show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
 
 
 @action
@@ -1398,7 +1413,8 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
             return
 
     if is_day_blocked(model):
-        show_info_message(pos_id, "$POS_IS_BLOCKED_BY_TIME", msgtype="critical")
+        #show_info_message(pos_id, "$POS_IS_BLOCKED_BY_TIME", msgtype="critical")
+        show_messagebox(pos_id, message="$POS_IS_BLOCKED_BY_TIME", icon="error")
         return
 
     # Waits a maximum of 1,5 seconds for the order to "arrive" at the POS model
@@ -1428,7 +1444,8 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
         option = _list_open_options(order)
         if option is not None:
             prod_name = get_line_product_name(model, int(option.get("lineNumber")))
-            show_info_message(pos_id, "$NEED_TO_RESOLVE_OPTION|%s" % (prod_name.encode("UTF-8")), msgtype="critical")
+            #show_info_message(pos_id, "$NEED_TO_RESOLVE_OPTION|%s" % (prod_name.encode("UTF-8")), msgtype="critical")
+            show_messagebox(pos_id, message="$NEED_TO_RESOLVE_OPTION|%s" % (prod_name.encode("UTF-8")), icon="error")
             return
 
     logger.debug("Order Verificada - Pronta para Totalizar - POS %s" % pos_id)
@@ -1488,7 +1505,8 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
             if handle_order_taker_exception(pos_id, posot, ex, mbcontext):
                 return
 
-        show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
+        #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
+        show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
         if is_recall:
             raise ex
 
@@ -1678,6 +1696,7 @@ def doChangeEFT(posid, *args):
 def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmation="false", *args):
     logger.debug("--- doTender START ---")
 
+
     if not pafecflistenter_component_found(pos_id):
         return
 
@@ -1713,6 +1732,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                         break
 
                 logger.debug("--- doTender before 'Processando pagamento' 2 ---")
+
                 dlgid = show_messagebox(pos_id, "$PROCESSING_PAYMENT_DATA", title="$PROCESSING", buttons="", asynch=True, timeout=180000)
 
                 if round_donation_value > 0.0:
@@ -1917,7 +1937,6 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
             logger.debug("--- doTender before 'Processando pagamento' ---")
             # Mensagem de Processando Pagamento
             dlgid = show_messagebox(pos_id, "$PROCESSING_PAYMENT_DATA", title="$PROCESSING", buttons="", asynch=True, timeout=180000)
-
             # If the tender will close the sale and we have an index pin pad,
             tender_seq_id = len(xml_order.findall("TenderHistory/Tender")) + 1
 
@@ -1982,7 +2001,8 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                     queries = BEGIN_TRANSACTION + queries + COMMIT_TRANSACTION
                     conn.query("\0".join(queries))
                 except Exception as ex:
-                    show_info_message(pos_id, "Erro armazenando dados do pagamento: %s" % str(ex), msgtype="error")
+                    show_messagebox(pos_id, message="Erro armazenando dados do pagamento: %s" % str(ex), icon="error")
+                    #show_info_message(pos_id, "Erro armazenando dados do pagamento: %s" % str(ex), msgtype="error")
                 finally:
                     if conn:
                         conn.close()
@@ -2048,7 +2068,8 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                     cancel_sale_and_payments("Certificado da Loja Expirado")
                     break
 
-                fiscal_ok, message = ret.data.split('\0')
+                fiscal_ok, message, orderid, data_fiscal, hora_fiscal = ret.data.split('\0')
+
 
                 # Fiscal OK - Erro na DANFE - Venda conluida sem volta - Apenas informa o usuário
                 if fiscal_ok == "True":
@@ -2118,7 +2139,8 @@ def doSendOrderToProduction(pos_id, order_id):
         if msg.token == TK_SYS_ACK:
             show_info_message(pos_id, "Pedido Enviado para Produção", msgtype="info")
         else:
-            show_info_message(pos_id, "Erro Enviado Pedido para Produção", msgtype="error")
+            show_messagebox(pos_id, message="Erro Enviado Pedido para Produção", icon="error")
+            #show_info_message(pos_id, "Erro Enviado Pedido para Produção", msgtype="error")
     finally:
         if dlg_id != -1:
             close_asynch_dialog(pos_id, dlg_id)
@@ -2213,7 +2235,8 @@ def closeday(pos_id, store_wide="false", *args):
                                 void_order(pos_id, order_id=order.get("orderId"))
                     except Exception:
                         sys_log_exception("Erro ao apagar pedidos salvos")
-                        show_info_message(pos_id, "Erro ao apagar pedidos salvos", msgtype="error")
+                        show_messagebox(pos_id, message="Erro ao apagar pedidos salvos", icon="error")
+                        #show_info_message(pos_id, "Erro ao apagar pedidos salvos", msgtype="error")
                     finally:
                         close_asynch_dialog(pos_id, wait_dlg_id)
 
@@ -2328,7 +2351,8 @@ def closeday(pos_id, store_wide="false", *args):
                 sys_log_exception("Error closing business day on pos id: %s" % posno)
 
             show_info_message(posno, "$OPERATION_FAILED", msgtype="error")
-            show_info_message(pos_id, "$ERROR_CLOSING_BUSINESS_PERIOD|%s" % error, msgtype="error")
+            show_messagebox(pos_id, message="$ERROR_CLOSING_BUSINESS_PERIOD|%s" % error, icon="error")
+            #show_info_message(pos_id, "$ERROR_CLOSING_BUSINESS_PERIOD|%s" % error, msgtype="error")
     finally:
         close_asynch_dialog(pos_id, wait_dlg_id)
 
@@ -3631,18 +3655,13 @@ def doTransfer(posid, transfer_type, *args):
     if int(transfer_type) != 3 and amount > 0:
         valid_banana = True
         while valid_banana:
-            banana = show_keyboard(posid, "Entre com o numero COMPLETO da banana", title="$OPERATOR_CLOSURE", numpad=True, timeout=720000, buttons=buttons, mask="INTEGER")
+            banana = show_keyboard(posid, "Entre com o numero COMPLETO do envelope", title="$OPERATOR_CLOSURE", numpad=True, timeout=720000, buttons=buttons, mask="INTEGER")
 
             if banana not in (None, ""):
                 if len(banana) < skim_digit_limit['min'] or len(banana) > skim_digit_limit['max']:
-                    show_info_message(posid, "O numero da banana precisa ter entre {} e {} dígitos"
+                    show_info_message(posid, "O numero do envelope precisa ter entre {} e {} dígitos"
                                       .format(skim_digit_limit['min'], skim_digit_limit['max']),
                                       msgtype="error")
-                    continue
-
-                is_exist_banana = _is_exist_banana(posid, banana, *args)
-                if int(is_exist_banana or 0) > 0:
-                    show_info_message(posid, "O numero da banana ja existe no sistema", msgtype="error")
                     continue
 
                 valid_banana = False
@@ -3852,7 +3871,8 @@ def storewideRestart(posid, *args):
         mbcontext.MB_SendMessage(mbcontext.hv_service, TK_HV_GLOBALRESTART)
 
     if int(selected_pos_id) not in poslist:
-        show_info_message(posid, "Numero de POS inválido", msgtype="critical")
+        #show_info_message(posid, "Numero de POS inválido", msgtype="critical")
+        show_messagebox(pos_id, message="Numero de POS inválido" % error, icon="error")
         return
     confirm = show_confirmation(posid, message="Você tem certeza que deseja fechar o POS%s?\n OBS: Essa operação pode demorar alguns segundos" % selected_pos_id, title="Alerta", icon="warning", buttons="$OK|$CANCEL")
     if not confirm:
@@ -3898,8 +3918,9 @@ def doListPaidOrders(posid, limit=10, *args):
         orders.sort(key=lambda x: x["orderId"], reverse=False)
         set_custom(posid, "paidOrders", ",".join([x.get("orderId") for x in orders]))
     except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+        #show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+        #                  msgtype="critical")
+        show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
 
 
 def get_timestamp():
@@ -4179,8 +4200,10 @@ def doVoidPaidSale(posid, request_authorization="true", allpos="false", requestd
                 sys_log_exception("Could not print Receipt for voided order - Error: %s" % str(ex))
 
     except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
-                          msgtype="critical")
+        # show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+        #                   msgtype="critical")
+        show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+                        icon="error")
 
 
 @action
@@ -4339,7 +4362,8 @@ def doAddOrEditComment(posid, line, level, item_id, part_code, comment_id="", co
 
     else:
         if not line:
-            show_info_message(posid, "Selecione uma linha primeiro", msgtype="critical")
+            # show_info_message(posid, "Selecione uma linha primeiro", msgtype="critical")
+            show_messagebox(posid, message="Selecione uma linha primeiro", icon="error")
             return
         defval = comment if comment else ""
         if comment_id:
@@ -4419,8 +4443,8 @@ def doChangeQuantity(posid, line_numbers, qty, is_absolute=False):
         if to_void:
             posot.voidLine(posid, "|".join(to_void))
     except OrderTakerException as ex:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
-
+        # show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
+        show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
 
 @action
 def doGetItemComposition(pos_id, line_number, modifier_screen="350", qty="0", default_mod_set="", *args):
@@ -5559,9 +5583,11 @@ def handle_order_taker_exception(pos_id, pos_ot, ex, mbcontext, dlgid=None):
             error_description_is_json = False
 
         if not error_description_is_json:
-            show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(),
-                                                                  ex.getErrorDescr().replace("{}", "")),
-                              msgtype="critical")
+            # show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(),
+            #                                                      ex.getErrorDescr().replace("{}", "")),
+            #                  msgtype="critical")
+            show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+                            icon="error")
         handle_synchronization_error(pos_id, pos_ot, dlgid)
         return True
     elif ex.getErrorCode() == 100036:
@@ -5638,7 +5664,9 @@ def doClearOptionItem(posid, linenumber="", itemid="", *args):
         sys_log_exception("Could not clear option")
         show_info_message(posid, "Error %s" % e, msgtype="error")
     except OrderTakerException, e:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+        # show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+        show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
+                        icon="error")
     return False
 
 
@@ -5806,6 +5834,7 @@ def doPriceLookup(pos_id, timeout=45, *args):
             break
     if scanner is None:
         show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", title="$PRICE_LOOKUP", msgtype="critical")
+
         return
     timeout = timeout * 1000
     try:
@@ -5897,7 +5926,9 @@ def incrementLine(posid, line_number=None):
         posot.blkopnotify = False
         posot.splitOrderLine(int(posid), line_number, qty)
     except OrderTakerException, e:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+        # show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
+        show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
+                        icon="error")
 
 
 @action
