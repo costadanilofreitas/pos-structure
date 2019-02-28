@@ -2,6 +2,7 @@ import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
+import { I18N } from 'posui/core'
 import { Button } from 'posui/button'
 import { ButtonGrid, SaleTypeSelector, NumPad } from 'posui/widgets'
 import { SalePanel } from 'posui/sale-panel'
@@ -81,8 +82,7 @@ const styles = {
     flexGrow: 30,
     flexShrink: 0,
     flexBasis: 0,
-    position: 'relative',
-    height: '80%'
+    position: 'relative'
   },
   footerContainer: {
     flexGrow: 10,
@@ -126,7 +126,7 @@ const styles = {
     padding: '2vh 2.5%'
   },
   gridPadding: {
-    padding: '0.4vh 0'
+    padding: '0.5vh 0.5vh'
   },
   tenderQuickGrid: {
     padding: '2.5vh 2.5%',
@@ -147,7 +147,15 @@ const styles = {
     backgroundColor: '#3e3c3c',
     color: '#e2dac7'
   },
+  functionButton: {
+    padding: '2vh 2.5%'
+  },
   saveOrder: {
+    padding: '2vh 2.5%',
+    backgroundColor: '#d2691e', color: 'white'
+  },
+  customerInfo: {
+    padding: '2vh 2.5%',
     backgroundColor: '#d2691e', color: 'white'
   }
 }
@@ -199,17 +207,22 @@ class TenderScreen extends PureComponent {
 
   paymentType = {
     //  To Do Paymente card
-    0: <Button executeAction={() => { return this.doTender(this.state.value, '2') }}
+    0: <Button executeAction={() => { return this.doTender(this.state.value, '1') }}
          rounded={true} style={this.tenderButton}>
          <i style={styles.tenderIcon} className="fa fa-credit-card fa-4x" aria-hidden="true"></i>
          <div style={styles.bigTenderText}>Credito</div>
        </Button>,
-    1: <Button executeAction={() => { return this.doTender(this.state.value, '3') }}
+    1: <Button executeAction={() => { return this.doTender(this.state.value, '2') }}
          rounded={true} style={this.tenderButton}>
          <i style={styles.tenderIcon} className="fa fa-credit-card fa-4x" aria-hidden="true"></i>
          <div style={styles.bigTenderText}>Debito</div>
        </Button>,
-    2: <Button executeAction={() => { return this.doTender(this.state.value, '0') }}
+    2: <Button executeAction={() => { return this.doTender(this.state.value, '3') }}
+         rounded={true} style={this.tenderButton}>
+         <i style={styles.tenderIcon} className="fa fa-mobile-phone fa-4x" aria-hidden="true"></i>
+         <div style={styles.bigTenderText}>Maquininha</div>
+       </Button>,
+    3: <Button executeAction={() => { return this.doTender(this.state.value, '0') }}
          rounded={true} style={this.tenderButton}>
          <i style={styles.tenderIcon} className="fa fa-money fa-4x" aria-hidden="true"></i>
          <div style={styles.bigTenderText}>Dinheiro</div>
@@ -224,28 +237,33 @@ class TenderScreen extends PureComponent {
            executeAction={() => { return this.doTender(this.state.nextDollar, '0') }}
            rounded={true}
            style={styles.quickTender}>
-           ${this.state.nextDollar}
+           <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> {this.state.nextDollar}
          </Button>,
       1: <Button
            executeAction={() => { return this.doTender('10.00', '0') }}
            style={styles.quickTender}
            rounded={true}>
-           $10.00
+           <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> 10,00
          </Button>,
       2: <Button
            executeAction={() => { return this.doTender('20.00', '0') }}
            style={styles.quickTender}
            rounded={true}>
-           $20.00
+           <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> 20,00
          </Button>,
       3: <Button
            executeAction={() => { return this.doTender('50.00', '0') }}
            style={styles.quickTender}
            rounded={true}>
-           $50.00
+           <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> 50,00
          </Button>
     }
+
     const moreFunctions = {
+
+    }
+
+    const discountFunctions = {
 
     }
 
@@ -275,9 +293,9 @@ class TenderScreen extends PureComponent {
               <div className={classes.absoluteWrapper}>
                 <ButtonGrid
                   styleCell={styles.tenderGrid}
-                  direction="column"
-                  cols={1}
-                  rows={3}
+                  direction="row"
+                  cols={2}
+                  rows={2}
                   buttons={this.paymentType}
                   style={{ height: '70%', position: 'relative' }}
                 />
@@ -292,7 +310,7 @@ class TenderScreen extends PureComponent {
                 <ButtonGrid
                   styleCell={styles.tenderGrid}
                   direction="column"
-                  cols={2}
+                  cols={3}
                   rows={1}
                   buttons={moreFunctions}
                   style={{ height: '15%', position: 'relative' }}
@@ -310,6 +328,15 @@ class TenderScreen extends PureComponent {
                   currencyMode={true}
                   textAlign="right"
                   shouldClearText={this.shouldClearText}
+                  style={{ height: '70%', position: 'relative' }}
+                />
+                <ButtonGrid
+                  styleCell={styles.tenderGrid}
+                  direction="column"
+                  cols={3}
+                  rows={2}
+                  buttons={discountFunctions}
+                  style={{ height: '30%', position: 'relative' }}
                 />
               </div>
             </div>
@@ -321,10 +348,11 @@ class TenderScreen extends PureComponent {
               <ButtonGrid
                 styleCell={styles.gridPadding}
                 direction="column"
-                cols={8}
+                cols={9}
                 rows={1}
                 buttons={{
                   0: <Button
+                       rounded={true}
                        style={styles.backToOrder}
                        executeAction={() => ['doBackFromTotal']}
                        onActionFinish={(resp) => {
@@ -335,7 +363,22 @@ class TenderScreen extends PureComponent {
                        text="$BACK_TO_ORDER"
                        defaultText="Back to Order"
                      />,
-                  7: <Button
+                  1: <Button
+                       rounded={true}
+                       style={styles.customerInfo}
+                       executeAction={['doSetCustomerName']}
+                       text="$CUSTOMER_NAME"
+                       defaultText="Customer Name"
+                     />,
+                  2: <Button
+                       rounded={true}
+                       style={styles.customerInfo}
+                       executeAction={['doSetCustomerDocument']}
+                       text="$CUSTOMER_DOC"
+                       defaultText="Customer Document"
+                     />,
+                  8: <Button
+                       rounded={true}
                        style={styles.saveOrder}
                        executeAction={['doStoreOrder']}
                        text="$SAVE_ORDER"

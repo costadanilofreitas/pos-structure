@@ -85,7 +85,7 @@ const styles = (theme) => ({
     backgroundColor: 'white'
   },
   quantityBox: {
-    flexGrow: 4,
+    flexGrow: 6,
     flexShrink: 0,
     flexBasis: 0,
     position: 'relative',
@@ -382,9 +382,7 @@ class SaleScreen extends PureComponent {
 
   render() {
     const { classes, order, modifiers, custom, themeName } = this.props
-    const {
-      skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen, selectedTabIdx
-    } = this.state
+    const { skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen, selectedTabIdx } = this.state
     const attributes = order['@attributes'] || {}
     const inProgress = _.includes(['IN_PROGRESS', 'TOTALED'], attributes.state)
     const isCombo = (selectedLine || {}).itemType === 'COMBO'
