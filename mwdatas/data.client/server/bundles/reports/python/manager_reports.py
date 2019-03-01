@@ -1742,7 +1742,8 @@ def checkout_report(posid, period, operatorid, store_wide, posnumbers, report_ty
             elif skim[0] == "DECLARED_AMOUNT":
                 add_line("Valor Declarado", amount=skim[1])
                 if len(skim) > 2 and skim[2] is not None and skim[2].__contains__('Justificativa'):
-                    report.write(skim[2][skim[2].index('Justificativa'):].replace('=', '....: ') + '\n')
+                    just = (filter(lambda x: 'Justificativa= ' in x, skim[2][skim[2].index('Justificativa'):].split(';'))[0].replace('=', '....: ') + '\n')
+                    report.write(just)
     '''
     # TIPS
     tips_title = _center("**** GORJETA ****")

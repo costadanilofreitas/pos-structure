@@ -1241,7 +1241,7 @@ def doClearOption(posid, lineNumber="", qty="", *args):
         sys_log_exception("Could not clear option")
         show_info_message(posid, "Error %s" % e, msgtype="error")
     except OrderTakerException, ex:
-        show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
+        show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
         #show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
 
 
@@ -1660,9 +1660,9 @@ def doBackFromTotal(pos_id, void_reason=5, *args):
                 posot = get_posot(model)
                 posot.setOrderCustomProperties(void_reason, order.get('orderId'))
                 doShowScreen(pos_id, default_screen)  # Returns to the previous screen
-            else:
-                check_current_order(pos_id, model=model, need_order=True)
-                get_posot(model).reopenOrder(int(pos_id))
+        else:
+            check_current_order(pos_id, model=model, need_order=True)
+            get_posot(model).reopenOrder(int(pos_id))
 
     except OrderTakerException as ex:
         show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
@@ -3668,9 +3668,10 @@ def doTransfer(posid, transfer_type, *args):
             else:
                 if int(transfer_type) != 6 and banana is None:
                     return
-
+        just = just + ";envelope=%s" % banana
+    just = just + ";managerID=%s" % get_custom(model, 'Last Manager ID', None)
     msg = send_message("account%s" % posid, TK_ACCOUNT_TRANSFER, FM_PARAM, "%s\0%s\0%s\0%s\0%s\0%s" % (session, int(transfer_type), descri_key, amount, transfer_id, just or "NULL"), timeout=600 * USECS_PER_SEC)
-    _update_manager_id_on_transfer(posid, str(banana), model, *args)
+
     if msg.token == TK_SYS_ACK:
         if int(transfer_type) == 6:
             skim_result = send_message("account%s" % posid, TK_ACCOUNT_TRANSFER, FM_PARAM, "%s\0%s\0%s\0%s\0%s" % (session, 2, "TRANSFER_SKIM", drawer_amount, transfer_id), timeout=600 * USECS_PER_SEC)
@@ -3684,46 +3685,13 @@ def doTransfer(posid, transfer_type, *args):
         if not get_nf_type(posid) == "PAF":
             if print_report(posid, model, ppview, "transferReport", posid, operatorid, transfer_type, amount, period, banana):
                 show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
-            _update_manager_id_on_transfer(posid, str(banana), model, *args)
+
             if (drawer_amount - amount) < float(sangria_levels.split(";")[0]):
                 set_custom(posid, "sangria_level_1_alert", "0")
 
         return True
     else:
         show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
-
-
-def _update_manager_id_on_transfer(posid, banana, model, *args):
-    conn = None
-    try:
-        last_id = ""
-        conn = persistence.Driver().open(mbcontext, posid)
-        cursor = conn.select("SELECT MAX(ID) FROM account.Transfer")
-        for temp_id in cursor:
-            last_id = temp_id.get_entry(0)
-
-        conn.query("""UPDATE account.Transfer SET NumberBanana='{0}', ManagerID='{1}', Sent=0 where ID='{2}'""".format(banana, get_custom(model, 'Last Manager ID', None), last_id))
-    except:
-        sys_log_exception("Error in save manager id for sangria")
-    finally:
-        if conn:
-            conn.close()
-
-
-def _is_exist_banana(posid, banana, *args):
-    conn = None
-    try:
-        count_result = ""
-        conn = persistence.Driver().open(mbcontext, posid)
-        cursor = conn.select("SELECT COUNT(*) FROM account.Transfer WHERE NumberBanana = '{0}'".format(banana))
-        for row in cursor:
-            count_result = int(row.get_entry(0) or 0)
-        return count_result
-    except:
-        sys_log_exception("Error in consult number banana")
-    finally:
-        if conn:
-            conn.close()
 
 
 def _get_initial_value_drawer(posid, session, *args):
@@ -3872,7 +3840,7 @@ def storewideRestart(posid, *args):
 
     if int(selected_pos_id) not in poslist:
         #show_info_message(posid, "Numero de POS inválido", msgtype="critical")
-        show_messagebox(pos_id, message="Numero de POS inválido" % error, icon="error")
+        show_messagebox(posid, message="Numero de POS inválido", icon="error")
         return
     confirm = show_confirmation(posid, message="Você tem certeza que deseja fechar o POS%s?\n OBS: Essa operação pode demorar alguns segundos" % selected_pos_id, title="Alerta", icon="warning", buttons="$OK|$CANCEL")
     if not confirm:
@@ -5125,9 +5093,7 @@ def doReportSangria(posid, *args):
             show_info_message(posid, "$INVALID_DATE", msgtype="error")
             return
 
-        query_transfer = "SELECT * FROM account.Transfer WHERE period='{0}'".format(period)
-        if not show_all_transfer:
-            query_transfer += " AND Sent NOT IN(0,2,1)"
+        query_transfer = "SELECT *, strftime('%s',timestamp) as ID FROM account.Transfer WHERE period='{0}'".format(period)
 
         conn = persistence.Driver().open(mbcontext, posid)
         cursor = conn.select(query_transfer)
@@ -5136,15 +5102,25 @@ def doReportSangria(posid, *args):
         footer = "{}".format("*" * 35)
 
         for row in cursor:
-            pos_id, number_banana, manager_id, amount, timestamp, session_id, gla_ccount, description, date_fiscal, sent, ID = map(row.get_entry, ("PosId", "NumberBanana", "ManagerID", "Amount", "Timestamp", "SessionId", "GLAccount", "Description", "Period", "Sent", "ID"))
+            pos_id, amount, timestamp, session_id, gla_ccount, description, date_fiscal, ID = map(row.get_entry, ("PosId",  "Amount", "Timestamp", "SessionId", "GLAccount", "Description", "Period", "ID"))
+
 
             if gla_ccount is None:
                 continue
+
 
             if description in ['DECLARED_AMOUNT', 'TRANSFER_SKIM', "TRANSFER_CASH_IN", "TRANSFER_CASH_OUT"]:
                 # mounting dict to send to backoffice
                 user = filter(lambda x: 'user=' in x, session_id.split(','))
                 user = user[0].split("=")[1] if user[0] else ""
+                number_banana = filter(lambda x: 'envelope=' in x, gla_ccount.split(';'))
+                if number_banana:
+                    number_banana = number_banana[0].split("=")[1] if number_banana[0] else ""
+
+                manager_id = filter(lambda x: 'managerID=' in x, gla_ccount.split(';'))
+                if manager_id:
+                    manager_id = manager_id[0].split("=")[1] if manager_id[0] else ""
+
 
                 date_sangria = get_date_difference_GMT_timezone(timestamp)
 
@@ -5160,24 +5136,27 @@ def doReportSangria(posid, *args):
                     "transfer_id": ID}, ID])
 
                 # montando the list to display the popup
-                banana = "Banana# {}".format(number_banana)
+                banana = "Envelope# {}".format(number_banana)
 
-                info = gla_ccount.split(";")[0].split("=")
-                info = "%-13s: %s" % (info[0].strip().split(" ")[1], info[1].strip())
+                info = filter(lambda x: 'Valor Informado=' in x, gla_ccount.split(';'))
+                if info:
+                    info = info[0].split("=")[1] if info[0] else ""
 
-                esper = gla_ccount.split(";")[1].split("=")
-                esper = "%-13s: %s" % (esper[0].strip().split(" ")[1], esper[1].strip())
+                esper = filter(lambda x: 'Valor Esperado=' in x, gla_ccount.split(';'))
+                if esper:
+                    esper = esper[0].split("=")[1] if esper[0] else ""
 
-                just = gla_ccount.split(";")[2].split("=")
-                just = "%-13s: %s" % (just[0].strip(), just[1].strip()[:20])
-                sent = "%-13s: %s" % ("Enviado", "Sim" if int(sent) == 1 else "Não")
+                just = filter(lambda x: 'Justificativa= ' in x, gla_ccount.split(';'))
+                if just:
+                    just = just[0].split("=")[1] if just[0] else ""
+
 
                 # banana, period, timestanp, user
-                print_banana = "%-13s: %s" % ("Banana", number_banana)
+                print_banana = "%-13s: %s" % ("Envelope", number_banana)
                 print_period = "%-13s: %s/%s/%s" % ("Periodo", date_fiscal[6:], date_fiscal[4:6], date_fiscal[:4])
                 print_timestamp = "%-13s: %s/%s/%s %s:%s:%s" % ("Timestamp", date_sangria[8:10], date_sangria[5:7], date_sangria[:4], date_sangria[11:13], date_sangria[14:16], date_sangria[17:19])
                 print_user = "%-13s: %s" % ("Usuario", user)
-                formated_msg = "{}\n\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n\n{}".format(header, print_banana, print_period, print_timestamp, info, esper, print_user, sent, just, footer)
+                formated_msg = "{}\n\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n\n{}".format(header, print_banana, print_period, print_timestamp, info, esper, print_user, just, footer)
 
                 # dict with all the sangrias
                 print_list.append([number_banana, formated_msg])
@@ -5192,50 +5171,12 @@ def doReportSangria(posid, *args):
         if conn:
             conn.close()
 
-    index = show_text_preview(posid, data, title='Selecione uma Sangria:', buttons='Enviar|$PRINT|$CANCEL', defvalue='', onthefly=False, timeout=120000)
+    index = show_text_preview(posid, data, title='Selecione uma Sangria:', buttons='$PRINT|$CANCEL', defvalue='', onthefly=False, timeout=120000)
     if index is None:
         return
 
+
     if int(index[0]) == 0:
-        wait_dlg_id = show_messagebox(posid, "$SENDING_SKIM_TO_BKOFFICE", "$WAIT_MESSAGE", buttons="", asynch=True)
-        try:
-            obj, id = {}, 0
-            for data in json_data:
-                try:
-                    if data[0] == index[1]:
-                        obj = data[1]
-                        id = data[2]
-                except:
-                    continue
-
-            msg = mbcontext.MB_EasySendMessage("BKOfficeUploader", TK_BKOFFICEUPLOADER_SEND_SANGRIA, data=str(obj), format=FM_PARAM, timeout=-1)
-
-            if msg.token == TK_SYS_NAK:
-                show_info_message(posid, "Falha de comunicação com o servidor", msgtype="error")
-                return
-
-            response = eval(msg.data)
-
-            if response['status']:
-                show_info_message(posid, "Enviado com sucesso", msgtype="success")
-                try:
-                    conn = persistence.Driver().open(mbcontext, posid)
-                    conn.select("""UPDATE account.Transfer SET Sent='1' where ID='{}'""".format(id))
-                except:
-                    sys_log_exception("Error in sangria update")
-                finally:
-                    if conn:
-                        conn.close()
-            else:
-                show_info_message(posid, str(response['description'].encode('utf-8')), msgtype="error")
-
-        except Exception as _:
-            show_info_message(posid, "Falha de comunicação com o servidor", msgtype="error")
-        finally:
-            close_asynch_dialog(posid, wait_dlg_id)
-
-
-    if int(index[0]) == 1:
         try:
             message = None
 
