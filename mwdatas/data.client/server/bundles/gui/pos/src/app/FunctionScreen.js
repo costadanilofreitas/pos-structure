@@ -90,17 +90,17 @@ export class FunctionScreen extends PureComponent {
       2: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doReportSangria']}>
            <I18N id="$SKIM_REPORT" defaultMessage="Skim Report" />
          </Button>,
-      4: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doVoidSale', 'True','4', 'True']}>
+      3: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doVoidSale', 'True','4', 'True']}>
            <I18N id="$VOID_SALE" defaultMessage="Void Sale" />
          </Button>,
-      5: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['importEmployees']}>
-           <I18N id="$UPDATE_USERS" defaultMessage="Update Users" />
-         </Button>,
-      6: (Number(level) === 30) ?
+
+      5: (Number(level) === 60) ?
         <Button rounded={true} className="function-btn" style={styles.yellowBtn} onClick={() => this.setState({ supportScreenOpened: true })}>
           <I18N id="$SUPPORT_MENU" defaultMessage="Support Menu"/>
         </Button> : null,
-
+      6: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['importEmployees']}>
+           <I18N id="$UPDATE_USERS" defaultMessage="Update Users" />
+         </Button>,
       7: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['openday', 'false']}>
             <div>
               <I18N id="$OPEN_DAY" defaultMessage="Open Day" />
@@ -124,7 +124,7 @@ export class FunctionScreen extends PureComponent {
       12: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doVoidPaidSale', 'false', 'true', 'true']}>
            <I18N id="$CLOSED_ORDERS" defaultMessage="Closed Orders" />
          </Button>,
-      13: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doToggleMirrorScreen']}>
+      13: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doToggleMirrorScreen']}>
            <I18N id="$MIRROR_SCREEN" defaultMessage="Mirror Screen" />
          </Button>,
       14: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['cashReport', 'ask', 'RealDate']}>
