@@ -8,8 +8,10 @@ import { ButtonGrid, SaleTypeSelector, NumPad } from 'posui/widgets'
 import { SalePanel } from 'posui/sale-panel'
 import { ensureDecimals } from 'posui/utils'
 import injectSheet, { jss } from 'react-jss'
+import TenderDivision from './TenderDivision'
 import { MENU_ORDER } from '../reducers/menuReducer'
 import setMenuAction from '../actions/setMenuAction'
+import {DataTable, ScrollPanel} from './RecallScreen';
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -147,17 +149,24 @@ const styles = {
     backgroundColor: '#3e3c3c',
     color: '#e2dac7'
   },
+  tenderDivision: {
+    backgroundColor: '#3e3c3c',
+    color: '#e2dac7',
+    width: '100%',
+    height: '100%'
+  },
   functionButton: {
-    padding: '2vh 2.5%'
   },
   saveOrder: {
-    padding: '2vh 2.5%',
     backgroundColor: '#d2691e', color: 'white'
   },
   customerInfo: {
-    padding: '2vh 2.5%',
     backgroundColor: '#d2691e', color: 'white'
-  }
+  },
+  customerNameLine: {
+    fontSize: '1.5vh',
+    paddingTop: '0.4vh'
+  },
 }
 
 class TenderScreen extends PureComponent {
@@ -229,6 +238,17 @@ class TenderScreen extends PureComponent {
        </Button>
   }
 
+  handleHeaderRendered = () => {
+    const { classes, order } = this.props
+    const customerName = (order.CustomOrderProperties || {}).CUSTOMER_NAME
+    if (!customerName) {
+      return null
+    }
+    return (
+      <div className={classes.customerNameLine}>Customer name: <em>{customerName}</em></div>
+    )
+  }
+
   render() {
     const { order, custom, classes } = this.props
     const { value } = this.state
@@ -284,6 +304,7 @@ class TenderScreen extends PureComponent {
                       style={styles.salePanel}
                       order={order}
                       showSummary={true}
+                      onHeaderRendered={this.handleHeaderRendered}
                     />
                   </div>
                 </div>
@@ -319,6 +340,10 @@ class TenderScreen extends PureComponent {
             </div>
             <div className={classes.rightPanel}>
               <div className={classes.absoluteWrapper}>
+                <TenderDivision
+                  setNumPadValue={(value) => this.setState({value: value})}
+                  style={{ height: '15%', position: 'relative' }}
+                />
                 <NumPad
                   className={classes.numPad}
                   value={value}
@@ -336,7 +361,7 @@ class TenderScreen extends PureComponent {
                   cols={3}
                   rows={2}
                   buttons={discountFunctions}
-                  style={{ height: '30%', position: 'relative' }}
+                  style={{ height: '15%', position: 'relative' }}
                 />
               </div>
             </div>
@@ -366,14 +391,14 @@ class TenderScreen extends PureComponent {
                   1: <Button
                        rounded={true}
                        style={styles.customerInfo}
-                       executeAction={['doSetCustomerName']}
+                       executeAction={() => ['doSetCustomerName']}
                        text="$CUSTOMER_NAME"
                        defaultText="Customer Name"
                      />,
                   2: <Button
                        rounded={true}
                        style={styles.customerInfo}
-                       executeAction={['doSetCustomerDocument']}
+                       executeAction={() => ['doSetCustomerDocument']}
                        text="$CUSTOMER_DOC"
                        defaultText="Customer Document"
                      />,

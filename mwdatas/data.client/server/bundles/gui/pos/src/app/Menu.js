@@ -64,11 +64,7 @@ class Menu extends PureComponent {
       }
       break
     case MENU_PAYMENT:
-      // payment
-      if (state === 'IN_PROGRESS') {
-        return ['doTotal']
-      }
-      break
+      return ['doTotal']
     case MENU_MANAGER:
       return ['doAuthorize']
     default:
