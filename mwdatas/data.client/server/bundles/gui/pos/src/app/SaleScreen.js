@@ -477,7 +477,7 @@ class SaleScreen extends PureComponent {
             />
           </div>
           <div className={classes.rightPanel}>
-            {(!isCombo && showModifierScreen) &&
+            {(!isCombo && showModifierScreen && inProgress) &&
               <div className={classes.wrapper}>
                 <div className={classes.container}>
                   <div className={classes.grid}>
@@ -503,7 +503,7 @@ class SaleScreen extends PureComponent {
                 </div>
               </div>
             }
-            {(isCombo || !showModifierScreen) &&
+            {(isCombo || !showModifierScreen || !inProgress) &&
               <div className={classes.absoluteWrapper}>
                 <NavigationGrid
                   groups={this.groupsByTab[selectedTabIdx]}
