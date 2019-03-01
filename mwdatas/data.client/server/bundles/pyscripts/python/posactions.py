@@ -2791,7 +2791,7 @@ def loginuser(pos_id, *args):
         multioper = get_cfg(pos_id).key_value("multipleOperators", "false").lower() == "true"
         if not multioper:
             show_info_message(pos_id, "$NEED_TO_LOGOFF_FIRST", msgtype="warning")
-            return
+            return False
 
     if podtype == "DT":
         # We are working on "DT" mode, so we need to request a pos function (OT,CS,OT/CS)
@@ -2800,11 +2800,11 @@ def loginuser(pos_id, *args):
 
         index = show_messagebox(pos_id, message="$SELECT_POS_FUNCTION", title="$OPERATOR_OPENING", icon="question", buttons="|".join(options_label))
         if index is None:
-            return  # timeout
+            return  False  # timeout
 
         posfunction = options[index]
         if posfunction == "$CANCEL":
-            return  # User cancelled
+            return False  # User cancelled
 
     elif podtype == "OT":
         # We are working on "OT" function, so we need to request a pos mode (DT, "Normal")
@@ -2813,10 +2813,10 @@ def loginuser(pos_id, *args):
 
         index = show_messagebox(pos_id, message="$SELECT_POS_FUNCTION", title="$OPERATOR_OPENING", icon="question", buttons="|".join(options_label))
         if index is None:
-            return  # timeout
+            return False  # timeout
 
         if options[index] == "$CANCEL":
-            return  # User cancelled
+            return False  # User cancelled
 
         podtype = options[index]
         posfunction = "OT"
@@ -2837,14 +2837,14 @@ def loginuser(pos_id, *args):
             if ret.token != TK_SYS_ACK:
                 # Erro cadastrando impressao digital
                 show_info_message(pos_id, "Erro realizando a leitura da digital. Tente novamente.", msgtype="error")
-                return
+                return False
             elif ret.data == "":
                 # Leitura da impressao OK mas usuario nao cadastrado
                 show_info_message(pos_id, "Usuário não identificado a partir da digital. Tente novamente.", msgtype="error")
-                return
+                return False
             else:
                 if _check_user_already_logged(pos_id, ret.data) is False:
-                    return
+                    return False
     except MBException as ex:
         if ex.errorcode == 2:  # NOT_FOUND, servico de FingerPrint nao disponivel
             sys_log_info("Servico de FingerPrint Não Disponível")
@@ -2855,34 +2855,34 @@ def loginuser(pos_id, *args):
         # Request user ID and password to GUI
         user_id = show_keyboard(pos_id, "$ENTER_USER_ID", title="$OPERATOR_OPENING", mask="INTEGER", numpad=True)
         if user_id in (None, ""):
-            return  # User cancelled, or timeout
+            return False  # User cancelled, or timeout
         user_id = int(user_id, 10)
 
         if _check_user_already_logged(pos_id, user_id) is False:
-            return
+            return False
 
         passwd = show_keyboard(pos_id, message="$ENTER_PASSWORD|%s" % user_id, title="$OPERATOR_OPENING", is_password=True, numpad=True)
         if passwd is None:
-            return  # User cancelled, or timeout
+            return False  # User cancelled, or timeout
 
         # Verify if the user id/password is correct
         try:
             userinfo = authenticate_user(user_id, passwd)
         except AuthenticationFailed as ex:
             show_info_message(pos_id, "$%s" % ex.message, msgtype="error")
-            return
+            return False
     else:
         try:
             user_xml_str = get_user_information(user_id)
         except Exception as ex:
             show_info_message(pos_id, "Impressao digital associada a usuario que nao esta cadastrado", msgtype="error")
             sys_log_exception("Erro get_user_information - %s" % str(ex))
-            return
+            return False
 
         # Se identificamos o usuario pela digital, pegamos a informacao dele e constuimos o objeto igual a autenticacao por usuario e senha faz
         if user_xml_str is None:
             show_info_message(pos_id, "Impressao digital associada a usuario que nao esta cadastrado", msgtype="error")
-            return
+            return False
 
         user_xml = etree.XML(user_xml_str)
         user_element = user_xml.find("user")
@@ -2902,7 +2902,7 @@ def loginuser(pos_id, *args):
         index = show_listbox(pos_id, list_limits, message="$ENTER_THE_INITIAL_FLOAT_AMOUNT", title="$OPERATOR_OPENING", buttons="$OK|$CANCEL", icon="info", timeout=720000)
 
         if index is None:
-            return  # User cancelled, or timeout
+            return False  # User cancelled, or timeout
 
         initfloat = list_min_values_drawer.split(";")[index]
         initfloat = float(initfloat or 0.0)
@@ -2912,7 +2912,7 @@ def loginuser(pos_id, *args):
     if int(userinfo["Level"] or 0) < LEVEL_SUPERVISOR:
         # verificar autorização do gerente
         if not get_authorization(pos_id, min_level=LEVEL_SUPERVISOR, model=model, display_title="$OPERATOR_OPENING"):
-            return
+            return False
 
     wait_dlg_id = show_messagebox(pos_id, "$PLEASE_WAIT", "$OPERATOR_OPENING", buttons="", asynch=True)
     try:
@@ -2920,14 +2920,14 @@ def loginuser(pos_id, *args):
         msg = send_message(pos_service, TK_POS_USEROPEN, FM_PARAM, "%s\0%s\0%s\0%s" % (pos_id, user_id, initfloat, longusername), timeout=600 * USECS_PER_SEC)
         if msg.token == TK_SYS_NAK:
             show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-            return
+            return False
 
         # Send the login command to POS Controller
 
         msg = send_message(pos_service, TK_POS_USERLOGIN, FM_PARAM, "%s\0%s\0%s" % (pos_id, user_id, longusername), timeout=600 * USECS_PER_SEC)
         if msg.token == TK_SYS_NAK:
             show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-            return
+            return False
 
         if posfunction == "DS":
             check_main_screen(pos_id)
@@ -2990,6 +2990,8 @@ def loginuser(pos_id, *args):
     finally:
         close_asynch_dialog(pos_id, wait_dlg_id)
 
+    return True
+
 
 def list_users(pos_id):
     msg = send_message("POS%d" % int(pos_id), TK_POS_LISTUSERS, FM_PARAM, "%s" % pos_id, timeout=600 * USECS_PER_SEC)
@@ -3005,7 +3007,7 @@ def list_users(pos_id):
 def logoffuser(pos_id, *args):
     logger.debug("Logoff POS %d - Iniciando logoff." % int(pos_id))
     if not verify_and_fix_business_period(pos_id):
-        return "Error"
+        return False
 
     model = get_model(pos_id)
     posot = get_posot(model)
@@ -3017,19 +3019,19 @@ def logoffuser(pos_id, *args):
         opened_users = list_users(pos_id)
     except:
         show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-        return
+        return False
 
     if not opened_users:
         logger.debug("Logoff POS %d - Não há operadores logados." % int(pos_id))
         show_info_message(pos_id, "$THERE_ARE_NO_OPENED_USERS", msgtype="warning")
-        return
+        return False
 
     if len(opened_users) > 1:
         opened_users.sort(key=lambda x: x.get("id"))
         options = [("%s - %s" % (tag.get("id"), tag.get("name"))).encode('utf-8') for tag in opened_users]
         index = show_listbox(pos_id, options)
         if index is None:
-            return  # The user cancelled - or timed-out
+            return False  # The user cancelled - or timed-out
 
         userid = opened_users[index].get("id")
     else:
@@ -3038,7 +3040,7 @@ def logoffuser(pos_id, *args):
 
     # verificar autorização do gerente
     if not get_authorization(pos_id, min_level=LEVEL_SUPERVISOR, model=model, is_login=False, display_title="$OPERATOR_CLOSURE"):
-        return
+        return False
 
     has_to_do_transfer = True
     pod_function = get_posfunction(model) if get_podtype(model) in ("DT", "FC") else get_podtype(model)
@@ -3047,7 +3049,7 @@ def logoffuser(pos_id, *args):
     if has_to_do_transfer:
         declared_amount = doTransfer(pos_id, 6)
         if not declared_amount:
-            return
+            return False
 
     wait_dlg_id = show_messagebox(pos_id, "$PLEASE_WAIT", "$OPERATOR_CLOSURE", buttons="", asynch=True)
     try:
@@ -3081,6 +3083,8 @@ def logoffuser(pos_id, *args):
             show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
     finally:
         close_asynch_dialog(pos_id, wait_dlg_id)
+
+    return True
 
 
 @action

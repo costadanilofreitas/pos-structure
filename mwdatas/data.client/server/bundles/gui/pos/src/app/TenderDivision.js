@@ -43,24 +43,28 @@ class TenderDivision extends PureComponent {
   render() {
     const tenderDivision = {
       0: <Button
+           rounded={true}
            executeAction={() => { this.props.setNumPadValue(this.getMaxNumPadValue(this.div2)) }}>
           <div style={styles.bigTenderDivText}>
            DIV 2: <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> {this.div2}
           </div>
          </Button>,
       1: <Button
+           rounded={true}
            executeAction={() => { this.props.setNumPadValue(this.getMaxNumPadValue(this.div3)) }}>
           <div style={styles.bigTenderDivText}>
            DIV 3: <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> {this.div3}
           </div>
          </Button>,
       2: <Button
+           rounded={true}
            executeAction={() => { this.props.setNumPadValue(this.getMaxNumPadValue(this.div4)) }}>
           <div style={styles.bigTenderDivText}>
            DIV 4: <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> {this.div4}
           </div>
          </Button>,
       3: <Button
+           rounded={true}
            executeAction={() => { this.props.setNumPadValue(this.getMaxNumPadValue(this.div5)) }}>
            <div style={styles.bigTenderDivText}>
            DIV 5: <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> {this.div5}

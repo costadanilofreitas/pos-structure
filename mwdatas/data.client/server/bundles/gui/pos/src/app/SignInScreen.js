@@ -6,6 +6,9 @@ import { I18N } from 'posui/core'
 import { Button } from 'posui/button'
 import injectSheet, { jss } from 'react-jss'
 import Logo from './Logo'
+import setMenuAction from '../actions/setMenuAction'
+import { MENU_ORDER } from '../reducers/menuReducer'
+import {bindActionCreators} from "redux";
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -67,7 +70,7 @@ class SignInScreen extends PureComponent {
   }
 
   render() {
-    const { classes, actionRunning, operator, posState } = this.props
+    const { classes, actionRunning, operator, posState, setMenu } = this.props
     const custom = (this.props.custom || {})
     const busy = !_.isEmpty(actionRunning)
     const loggedIn = !_.isEmpty(operator) && operator.state !== 'LOGGEDOUT'
@@ -77,8 +80,6 @@ class SignInScreen extends PureComponent {
     return (
       <div className={classes.container}>
         <div className={classes.leftPanel}>
-
-
         </div>
         <div className={classes.centerPanel}>
           <Logo />
@@ -87,7 +88,12 @@ class SignInScreen extends PureComponent {
           <Button
             className={classes.signInButton}
             disabled={busy}
-            executeAction={(loggedIn) ? ['logoffuser'] : ['loginuser']}
+            executeAction={() => ((loggedIn) ? ['logoffuser'] : ['loginuser'])}
+            onActionFinish={(resp) => {
+              if ( (resp === 'True') && loggedIn) {
+                setMenu(MENU_ORDER)
+              }
+            }}
           >
             { signInButtonText }
           </Button>
@@ -107,6 +113,10 @@ SignInScreen.defaultProps = {
 }
 
 SignInScreen.propTypes = {
+    /**
+   * @ignore
+   */
+  setMenu: PropTypes.func,
   /**
    * Injected classes
    * @ignore
@@ -143,4 +153,10 @@ function mapStateToProps(state) {
   }
 }
 
-export default connect(mapStateToProps)(injectSheet(styles)(SignInScreen))
+function mapDispatchToProps(dispatch) {
+  return bindActionCreators({
+    setMenu: setMenuAction
+  }, dispatch)
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(injectSheet(styles)(SignInScreen))
