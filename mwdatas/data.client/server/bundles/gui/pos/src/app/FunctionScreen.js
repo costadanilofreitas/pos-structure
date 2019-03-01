@@ -69,6 +69,9 @@ export class FunctionScreen extends PureComponent {
       1: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doTransfer', '3', 'True']}>
            <I18N id="$CASH_PAID_IN" defaultMessage="Cash Paid In" />
          </Button>,
+      2: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doReportSangria']}>
+           <I18N id="$SKIM_REPORT" defaultMessage="Skim Report" />
+         </Button>,
       4: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doVoidSale', 'True','4', 'True']}>
            <I18N id="$VOID_SALE" defaultMessage="Void Sale" />
          </Button>,
