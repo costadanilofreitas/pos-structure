@@ -39,7 +39,7 @@ const styles = (theme) => ({
   },
   refresh: {
     backgroundColor: 'transparent',
-    color: theme.color,
+    color: theme.color + '!important',
     position: 'relative',
     float: 'right',
     width: '30px !important',
@@ -134,20 +134,26 @@ class RecallScreen extends PureComponent {
       <div>
         <Button
           rounded={true}
-          style={{ backgroundColor: '#b9663d', color: 'white', height: '4vh', width: '48%', float: 'left' }}
+          style={{ backgroundColor: '#b9663d', color: 'white', margin: '0.2vh', height: '4vh', width: '31%', float: 'right' }}
           executeAction={() => {
             return ['doRecallNext', '', line.orderId]
-          }}
-        >
+          }}>
           <I18N id="$RECALL" defaultMessage="Recall" />
         </Button>
         <Button
           rounded={true}
-          style={{ backgroundColor: '#b9663d', color: 'white', height: '4vh', width: '48%', float: 'right' }}
+          style={{ backgroundColor: '#b9663d', color: 'white', margin: '0.2vh', height: '4vh', width: '31%', float: 'right' }}
+          executeAction={() => {
+            return ['doPreviewOrder', line.orderId, line.session.pos]
+          }}>
+          <I18N id="$ORDER_PREVIEW" defaultMessage="Preview" />
+        </Button>
+        <Button
+          rounded={true}
+          style={{ backgroundColor: '#b9663d', color: 'white', margin: '0.2vh', height: '4vh', width: '31%', float: 'right' }}
           executeAction={() => {
             return ['doVoidStoredOrder', line.orderId, line.session.pos]
-          }}
-        >
+          }}>
           <I18N id="$CANCEL" defaultMessage="Cancel" />
         </Button>
       </div>

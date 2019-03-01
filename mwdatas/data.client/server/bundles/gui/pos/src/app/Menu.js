@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux'
 import { showInfoMessageAction } from 'posui/actions'
 import { Button } from 'posui/button'
 import injectSheet, { jss } from 'react-jss'
-import { MENU_PAYMENT, MENU_ORDER, MENU_MANAGER } from '../reducers/menuReducer'
+import { MENU_PAYMENT, MENU_ORDER, MENU_SAVED_ORDERS, MENU_MANAGER } from '../reducers/menuReducer'
 import setMenuAction from '../actions/setMenuAction'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
@@ -63,16 +63,22 @@ class Menu extends PureComponent {
         return ['doBackFromTotal']
       }
       break
-    case MENU_PAYMENT:
-      // payment
+    case MENU_SAVED_ORDERS:
+      if ((state === 'TOTALED') || (state === 'IN_PROGRESS')) {
+        this.props.showInfoMessageAction('$NEED_TO_FINISH_ORDER', '5000', 'error')
+        return []
+      }
       if (_.isEmpty(operator)) {
         this.props.showInfoMessageAction('$NEED_TO_LOGIN_FIRST', '5000', 'error')
         return []
       }
-      if (state === 'IN_PROGRESS') {
-        return ['doTotal']
-      }
       break
+    case MENU_PAYMENT:
+      if (_.isEmpty(operator)) {
+        this.props.showInfoMessageAction('$NEED_TO_LOGIN_FIRST', '5000', 'error')
+        return []
+      }
+      return ['doTotal']
     case MENU_MANAGER:
       return ['doAuthorize']
     default:

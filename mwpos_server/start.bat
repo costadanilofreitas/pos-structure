@@ -1,4 +1,4 @@
-@echo off
+
 
 tasklist /FI "IMAGENAME eq genclient.exe" 2>NUL | find /I "genclient.exe" >NUL
 if "%ERRORLEVEL%"=="0" (exit)

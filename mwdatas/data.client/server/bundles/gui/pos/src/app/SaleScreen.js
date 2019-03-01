@@ -85,7 +85,7 @@ const styles = (theme) => ({
     backgroundColor: 'white'
   },
   quantityBox: {
-    flexGrow: 4,
+    flexGrow: 6,
     flexShrink: 0,
     flexBasis: 0,
     position: 'relative',
@@ -155,12 +155,20 @@ class SaleScreen extends PureComponent {
     this.submenu = submenu
     this.submenuActive = submenuActive
     this.groupsByTab = this.getGroupsByTab(props)
+    const commonStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '1.8vh',
+      height: '5vh',
+      fontWeight: 'bold'
+    }
     this.styleTitle = {
-      fontSize: '1.3vh',
+      ...commonStyle,
       color: 'black'
     }
     this.styleTitleDark = {
-      fontSize: '1.3vh',
+      ...commonStyle,
       color: '#eeeeee'
     }
   }
@@ -270,6 +278,13 @@ class SaleScreen extends PureComponent {
 
     _.forEach(groups, (group, idx) => {
       let tempGroups = []
+
+      _.forEach(group.groups, (group) => {
+        if ((group.text || '').length > 20) {
+          group.text = group.text.substring(0, 20);
+        }
+      })
+
       if ((group.items || []).length > 0) {
         // this tab does not have sub-categories, but it has items, so handle them as a single
         // sub-category with no title
@@ -277,7 +292,7 @@ class SaleScreen extends PureComponent {
           items: group.items,
           name: group.name,
           text: null,
-          classes: group.classes || []
+          classes: group.classes || [],
         }]
       }
       if ((group.groups || []).length > 0) {
@@ -383,9 +398,7 @@ class SaleScreen extends PureComponent {
 
   render() {
     const { classes, order, modifiers, custom, themeName } = this.props
-    const {
-      skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen, selectedTabIdx
-    } = this.state
+    const { skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen, selectedTabIdx } = this.state
     const attributes = order['@attributes'] || {}
     const inProgress = _.includes(['IN_PROGRESS', 'TOTALED'], attributes.state)
     const isCombo = (selectedLine || {}).itemType === 'COMBO'
@@ -464,7 +477,7 @@ class SaleScreen extends PureComponent {
             />
           </div>
           <div className={classes.rightPanel}>
-            {(!isCombo && showModifierScreen) &&
+            {(!isCombo && showModifierScreen && inProgress) &&
               <div className={classes.wrapper}>
                 <div className={classes.container}>
                   <div className={classes.grid}>
@@ -490,7 +503,7 @@ class SaleScreen extends PureComponent {
                 </div>
               </div>
             }
-            {(isCombo || !showModifierScreen) &&
+            {(isCombo || !showModifierScreen || !inProgress) &&
               <div className={classes.absoluteWrapper}>
                 <NavigationGrid
                   groups={this.groupsByTab[selectedTabIdx]}
