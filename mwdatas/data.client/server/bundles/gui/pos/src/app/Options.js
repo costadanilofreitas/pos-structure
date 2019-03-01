@@ -18,12 +18,6 @@ const styles = {
     fontWeight: 'bold',
     fontSize: '4.5vh',
     position: 'relative'
-  },
-  closeOption: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0
   }
 }
 
@@ -72,7 +66,6 @@ class Options extends PureComponent {
       <div className={classes.container}>
         <div className={classes.title}>
           <I18N id="$OPTIONS_TITLE" defaultMessage="Options" />
-          <i className={`fa fa-times ${classes.closeOption}`} />
         </div>
         <NavigationGrid
           groups={modifierGroup.groups}

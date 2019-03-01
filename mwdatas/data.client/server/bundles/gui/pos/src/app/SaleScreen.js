@@ -5,12 +5,14 @@ import { Button } from 'posui/button'
 import { NavigationGrid, ButtonGrid, SaleTypeSelector } from 'posui/widgets'
 import { SalePanel } from 'posui/sale-panel'
 import { getFirstOpenOption, findClosestParent } from 'posui/utils'
+import { I18N } from 'posui/core'
 import injectSheet, { jss } from 'react-jss'
 import _ from 'lodash'
 import QtyButtons from './QtyButtons'
 import OrderFunctions from './OrderFunctions'
 import Options from './Options'
 import Modifiers from './Modifiers'
+
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -105,13 +107,16 @@ const styles = (theme) => ({
     display: 'flex',
     position: 'absolute',
     width: '100%',
-    height: '100%'
+    height: '100%',
+    flexWrap: 'wrap',
+    flexDirection: 'row'
   },
   container: {
     flexGrow: 85,
     flexShrink: 0,
-    flexBasis: 0,
-    position: 'relative'
+    flexBasis: '85%',
+    position: 'relative',
+    height: '92%'
   },
   grid: {
     position: 'absolute',
@@ -124,8 +129,9 @@ const styles = (theme) => ({
   tabs: {
     flexGrow: 15,
     flexShrink: 0,
-    flexBasis: 0,
-    position: 'relative'
+    flexBasis: '15%',
+    position: 'relative',
+    height: '92%'
   },
   submenu: {
     ...(theme.submenu || {})
@@ -135,6 +141,12 @@ const styles = (theme) => ({
   },
   submenuNotLast: {
     ...(theme.submenuNotLast || {})
+  },
+  modifierButtons: {
+    height: '10%',
+    position: 'relative',
+    flexGrow: 100,
+    flexBasis: '100%'
   }
 })
 
@@ -391,7 +403,11 @@ class SaleScreen extends PureComponent {
     const isCombo = (selectedLine || {}).itemType === 'COMBO'
     const isOption = (selectedLine || {}).itemType === 'OPTION'
     const submenu = { ...this.submenu, [selectedTabIdx]: this.submenuActive[selectedTabIdx] }
-    const containerStyle = (!isCombo && showModifierScreen) ? { height: '92%' } : {}
+    const modifierButtons = {
+      3: <Button rounded={true} className="function-btn" onClick={() => this.setState({ showModifierScreen: false })}>
+        <I18N id="$OK" defaultMessage="OK"/>
+      </Button>
+    }
     return (
       <div className={classes.containerStyle}>
         <div className={classes.tabContainerStyle}>
@@ -466,7 +482,7 @@ class SaleScreen extends PureComponent {
           <div className={classes.rightPanel}>
             {(!isCombo && showModifierScreen) &&
               <div className={classes.wrapper}>
-                <div className={classes.container} style={containerStyle}>
+                <div className={classes.container}>
                   <div className={classes.grid}>
                     {(!isOption) &&
                       <Modifiers
@@ -487,6 +503,15 @@ class SaleScreen extends PureComponent {
                 </div>
                 <div className={classes.tabs}>
                   {this.renderTabs()}
+                </div>
+                <div className={classes.modifierButtons}>
+                  <ButtonGrid
+                    styleCell={{ padding: '2vh 2%' }}
+                    direction="row"
+                    cols={4}
+                    rows={1}
+                    buttons={modifierButtons}
+                  />
                 </div>
               </div>
             }

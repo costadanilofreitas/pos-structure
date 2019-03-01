@@ -69,12 +69,6 @@ const styles = {
     fontWeight: 'bold',
     fontSize: '4.5vh',
     position: 'relative'
-  },
-  closeModifier: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0
   }
 }
 
@@ -236,7 +230,6 @@ class Modifiers extends PureComponent {
       <div className={`${classes.container} ${className}`}>
         <div className={classes.title}>
           <I18N id="$MODIFIERS_TITLE" defaultMessage="Modifiers" />
-          <i className={`fa fa-times ${classes.closeModifier}`} />
         </div>
         {showMods &&
           <div className={classes.modsCont}>
