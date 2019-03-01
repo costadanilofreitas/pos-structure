@@ -5783,12 +5783,9 @@ def doPriceLookup(pos_id, timeout=45, *args):
             scanner = svc
             break
     if scanner is None:
-<<<<<<< HEAD
-        show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", title="$PRICE_LOOKUP", msgtype="critical")
 
-=======
         show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", msgtype="critical")
->>>>>>> remotes/origin/feature/SBUXPLT-40
+
         return
     timeout = timeout * 1000
     try:
