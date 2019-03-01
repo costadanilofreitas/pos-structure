@@ -2128,6 +2128,7 @@ def void_order(pos_id, lastpaidorder=0, order_id='', abandon=0):
 @action
 def doUpdateOpenTabs(pos_id, *args):
     change_screen(pos_id, "600")
+
 # END doUpdateOpenTabs
 
 
@@ -5681,12 +5682,15 @@ def doModifier(posid, itemid, level, pcode, qty, linenumber, modtype):
 
 @action
 def importEmployees(pos_id):
-    params = '\0'.join(['', 'MwBOH', 'ImportUser'])
-    reply = send_message("MwBOH", TK_EVT_EVENT, FM_PARAM, params)
-    if reply.token == TK_SYS_NAK:
+    try:
+        params = '\0'.join(['', 'MwBOH', 'ImportUser'])
+        reply = send_message("MwBOH", TK_EVT_EVENT, FM_PARAM, params)
+        if reply.token == TK_SYS_NAK:
+            show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
+            return False
+        show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
+    except:
         show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
-        return False
-    show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
     return True
 
 
