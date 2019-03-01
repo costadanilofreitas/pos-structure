@@ -65,6 +65,10 @@ class Menu extends PureComponent {
       break
     case MENU_PAYMENT:
       // payment
+      if (_.isEmpty(operator)) {
+        this.props.showInfoMessageAction('$NEED_TO_LOGIN_FIRST', '5000', 'error')
+        return []
+      }
       if (state === 'IN_PROGRESS') {
         return ['doTotal']
       }

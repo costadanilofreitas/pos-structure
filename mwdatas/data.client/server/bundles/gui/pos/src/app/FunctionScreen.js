@@ -75,7 +75,7 @@ export class FunctionScreen extends PureComponent {
       4: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doVoidSale', 'True','4', 'True']}>
            <I18N id="$VOID_SALE" defaultMessage="Void Sale" />
          </Button>,
-      5: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['importEmployees']}>
+      6: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['importEmployees']}>
            <I18N id="$UPDATE_USERS" defaultMessage="Update Users" />
          </Button>,
       7: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['openday', 'false']}>
@@ -98,9 +98,12 @@ export class FunctionScreen extends PureComponent {
 	  10: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doOpenDrawer', 'True']}>
             <I18N id="$OPEN_DRAWER" defaultMessage="Open Drawer" />
           </Button>, 
-	  12: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doVoidPaidSale', 'false', 'true', 'true']}>
+	  12:<Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doVoidPaidSale', 'false', 'true', 'true']}>
            <I18N id="$CLOSED_ORDERS" defaultMessage="Closed Orders" />
-         </Button>,  
+         </Button>,
+      13:<Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doToggleMirrorScreen']}>
+           <I18N id="$MIRROR_SCREEN" defaultMessage="Mirror Screen" />
+         </Button>,
       14: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['cashReport', 'ask', 'RealDate']}>
             <I18N id="$RESTAURANT_SALES_REAL_DATE" defaultMessage="Restaurant Sales Real Date" />
           </Button>,
@@ -110,7 +113,9 @@ export class FunctionScreen extends PureComponent {
       16: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['productMixReportByPeriod', 'RealDate']}>
             <I18N id="$PRODUCT_MIX_REAL_DATE" defaultMessage="Product Mix Real Date" />
           </Button>,
-
+      17: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['doPrintLogoffReport']}>
+            <I18N id="$LOGOFF_REPORT" defaultMessage="Logoff Report" />
+          </Button>,
       18: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['voidedOrdersReport', 'ask', 'RealDate']}>
             <I18N id="$VOIDED_REPORT" defaultMessage="Voided Orders Report" />
           </Button>,
