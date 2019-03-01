@@ -4,6 +4,7 @@ import _ from 'lodash'
 import { Button } from 'posui/button'
 import { NavigationGrid } from 'posui/widgets'
 import injectSheet, { jss } from 'react-jss'
+import { I18N } from 'posui/core'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -62,6 +63,18 @@ const styles = {
   },
   noMods: {
     color: '#777777'
+  },
+  title: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: '4.5vh',
+    position: 'relative'
+  },
+  closeModifier: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0
   }
 }
 
@@ -221,6 +234,10 @@ class Modifiers extends PureComponent {
     const showMods = _.sum(renderInfo.colsNeededByGroup) > 0
     return (
       <div className={`${classes.container} ${className}`}>
+        <div className={classes.title}>
+          <I18N id="$MODIFIERS_TITLE" defaultMessage="Modifiers" />
+          <i className={`fa fa-times ${classes.closeModifier}`} />
+        </div>
         {showMods &&
           <div className={classes.modsCont}>
             <div className={classes.modTypesBox}>
@@ -256,7 +273,11 @@ class Modifiers extends PureComponent {
           </div>
         }
         {!showMods &&
-          <center><em className={classes.noMods}>No modifiers available for selected product</em></center>
+          <center>
+            <em className={classes.noMods}>
+              <I18N id="$NO_MODIFIERS_PRODUCT" defaultMessage="No modifiers available for selected product"/>
+            </em>
+          </center>
         }
       </div>
     )

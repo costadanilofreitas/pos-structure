@@ -391,7 +391,7 @@ class SaleScreen extends PureComponent {
     const isCombo = (selectedLine || {}).itemType === 'COMBO'
     const isOption = (selectedLine || {}).itemType === 'OPTION'
     const submenu = { ...this.submenu, [selectedTabIdx]: this.submenuActive[selectedTabIdx] }
-
+    const containerStyle = (!isCombo && showModifierScreen) ? { height: '92%' } : {}
     return (
       <div className={classes.containerStyle}>
         <div className={classes.tabContainerStyle}>
@@ -466,7 +466,7 @@ class SaleScreen extends PureComponent {
           <div className={classes.rightPanel}>
             {(!isCombo && showModifierScreen) &&
               <div className={classes.wrapper}>
-                <div className={classes.container}>
+                <div className={classes.container} style={containerStyle}>
                   <div className={classes.grid}>
                     {(!isOption) &&
                       <Modifiers
