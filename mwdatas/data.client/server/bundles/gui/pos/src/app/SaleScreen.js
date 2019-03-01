@@ -7,10 +7,12 @@ import { SalePanel } from 'posui/sale-panel'
 import { getFirstOpenOption, findClosestParent } from 'posui/utils'
 import injectSheet, { jss } from 'react-jss'
 import _ from 'lodash'
+import SearchIcon from '../icons/Search'
 import QtyButtons from './QtyButtons'
 import OrderFunctions from './OrderFunctions'
 import Options from './Options'
 import Modifiers from './Modifiers'
+import ProductSearch from './ProductSearch'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -176,26 +178,39 @@ class SaleScreen extends PureComponent {
   getSubmenu(props) {
     const { classes, navigation, themeName } = props
     const tabs = (navigation[this.NAVIGATION_MENU] || {}).groups || []
-    const numTabs = tabs.length
     const submenu = {}
     const submenuActive = {}
     _.forEach(tabs, (tab, idx) => {
-      const notLast = (idx + 1 !== numTabs) ? classes.submenuNotLast : ''
       submenu[idx] = (
         <Button
           key={`${idx}_inactive_${themeName}`}
-          className={`${classes.tabButtonStyle} ${classes.submenu} ${notLast}`}
+          className={`${classes.tabButtonStyle} ${classes.submenu} ${classes.submenuNotLast}`}
           onClick={this.handleSubmenuClicked(idx)}
         >{tab.text}</Button>
       )
       submenuActive[idx] = (
         <Button
           key={`${idx}_active_${themeName}`}
-          className={`${classes.tabButtonStyle} ${classes.submenu} ${notLast} ${classes.submenuActive}`}
+          className={`${classes.tabButtonStyle} ${classes.submenu} ${classes.submenuNotLast} ${classes.submenuActive}`}
           onClick={this.handleSubmenuClicked(idx)}
         >{tab.text}</Button>
       )
     })
+    const idx = tabs.length
+    submenu[idx] = (
+      <Button
+        key={`${idx}_inactive_${themeName}`}
+        className={`${classes.tabButtonStyle} ${classes.submenu}`}
+        onClick={this.handleSubmenuClicked(idx)}
+      ><SearchIcon /></Button>
+    )
+    submenuActive[idx] = (
+      <Button
+        key={`${idx}_active_${themeName}`}
+        className={`${classes.tabButtonStyle} ${classes.submenu} ${classes.submenuActive}`}
+        onClick={this.handleSubmenuClicked(idx)}
+      ><SearchIcon /></Button>
+    )
     return { submenu, submenuActive }
   }
 
@@ -382,7 +397,7 @@ class SaleScreen extends PureComponent {
   }
 
   render() {
-    const { classes, order, modifiers, custom, themeName } = this.props
+    const { classes, order, modifiers, custom, themeName, navigation } = this.props
     const {
       skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen, selectedTabIdx
     } = this.state
@@ -391,6 +406,7 @@ class SaleScreen extends PureComponent {
     const isCombo = (selectedLine || {}).itemType === 'COMBO'
     const isOption = (selectedLine || {}).itemType === 'OPTION'
     const submenu = { ...this.submenu, [selectedTabIdx]: this.submenuActive[selectedTabIdx] }
+    const isSearch = ((navigation[1] || {}).groups || []).length === selectedTabIdx
 
     return (
       <div className={classes.containerStyle}>
@@ -464,7 +480,7 @@ class SaleScreen extends PureComponent {
             />
           </div>
           <div className={classes.rightPanel}>
-            {(!isCombo && showModifierScreen) &&
+            {!isSearch && (!isCombo && showModifierScreen) &&
               <div className={classes.wrapper}>
                 <div className={classes.container}>
                   <div className={classes.grid}>
@@ -490,7 +506,7 @@ class SaleScreen extends PureComponent {
                 </div>
               </div>
             }
-            {(isCombo || !showModifierScreen) &&
+            {!isSearch && (isCombo || !showModifierScreen) &&
               <div className={classes.absoluteWrapper}>
                 <NavigationGrid
                   groups={this.groupsByTab[selectedTabIdx]}
@@ -504,6 +520,9 @@ class SaleScreen extends PureComponent {
                   styleTitle={(themeName === 'dark') ? this.styleTitleDark : this.styleTitle}
                 />
               </div>
+            }
+            {isSearch &&
+              <ProductSearch onSellItem={this.sellItem} />
             }
           </div>
         </div>

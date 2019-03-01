@@ -345,6 +345,7 @@ def main():
     pyscripts.subscribe_event_listener("DIALOG_RESP", _dialog_resp_received)
     pyscripts.subscribe_event_listener("ORDER_MODIFIED", _ordermodified_received)
     pyscripts.subscribe_event_listener("SITEF", _sitef_processing_received)
+    pyscripts.subscribe_event_listener("DEVICE_DATA", _device_data_event_received)
 
     # Wait for the persistence layer to startup
     persistence.Driver().open(mbcontext).select("SELECT 1")
@@ -844,7 +845,7 @@ def doSale(pos_id, part_code, qty="", size="", sale_type="EAT_IN", *args):
             order_created = process_new_order(model, pod_type, pos_function, pos_id, pos_ot, price_list, sale_type)
 
         logger.debug("--- doSale before retrieve quantity ---")
-        qty = retrieve_quantity(model, qty)
+        qty = retrieve_quantity(model, qty) or '1'
 
         if is_new_order is True and order_created is False and part_code is None:
             logger.debug("--- doSale before posot.createOrder ---")
@@ -5802,7 +5803,7 @@ def doPriceLookup(pos_id, timeout=45, *args):
             scanner = svc
             break
     if scanner is None:
-        show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", title="$PRICE_LOOKUP", msgtype="critical")
+        show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", msgtype="critical")
         return
     timeout = timeout * 1000
     try:
