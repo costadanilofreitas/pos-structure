@@ -41,14 +41,30 @@ const styles = {
     color: '#ffffff'
   },
   greenBtn: {
-    backgroundColor: '#CDDC39'
-  }
+    backgroundColor: '#CDDC39',
+    color: '#000'
+  },
+  blueBtn: {
+    backgroundColor: '#002AD6',
+    color: '#ffffff'
+  },
+  purpleBtn: {
+    backgroundColor: '#3D007F',
+    color: '#ffffff'
+  },
+  brownBtn: {
+    backgroundColor: '#8B542F',
+    color: '#ffffff'
+  },
 }
 
 export class FunctionScreen extends PureComponent {
   constructor(props) {
     super(props)
     this.availableThemes = _.join(_.map(themes, 'name'), '|')
+    this.state = {
+      supportScreenOpened: false
+    }
   }
 
   switchServerURL = (serverurl) => {
@@ -59,10 +75,12 @@ export class FunctionScreen extends PureComponent {
 
   render() {
     const { custom } = this.props
-    const current = (custom.MIRROR_SCREEN === 'true') ?
-      <I18N id="$LEFT_HANDED" defaultMessage="Left Handed" /> :
-      <I18N id="$RIGHT_HANDED" defaultMessage="Right Handed" />
-    const buttons = {
+    const { supportScreenOpened } = this.state
+    const { ['Authorization Level']: level = '0', ['POS_FUNCTION']: posFunc = '' } = custom
+    // const current = (custom.MIRROR_SCREEN === 'true') ?
+    //   <I18N id="$LEFT_HANDED" defaultMessage="Left Handed" /> :
+    //   <I18N id="$RIGHT_HANDED" defaultMessage="Right Handed" />
+    const mainButtons = {
       0: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doTransfer', '2', 'True']}>
            <I18N id="$SKIM" defaultMessage="Skim" />
          </Button>,
@@ -78,6 +96,11 @@ export class FunctionScreen extends PureComponent {
       6: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['importEmployees']}>
            <I18N id="$UPDATE_USERS" defaultMessage="Update Users" />
          </Button>,
+      6: (Number(level) === 30) ?
+        <Button rounded={true} className="function-btn" style={styles.yellowBtn} onClick={() => this.setState({ supportScreenOpened: true })}>
+          <I18N id="$SUPPORT_MENU" defaultMessage="Support Menu"/>
+        </Button> : null,
+
       7: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['openday', 'false']}>
             <div>
               <I18N id="$OPEN_DAY" defaultMessage="Open Day" />
@@ -95,10 +118,10 @@ export class FunctionScreen extends PureComponent {
       9: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['storewideRestart']}>
             <I18N id="$STOREWIDE_RESTART" defaultMessage="Storewide Restart" />
           </Button>,
-	  10: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doOpenDrawer', 'True']}>
+      10: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doOpenDrawer', 'True']}>
             <I18N id="$OPEN_DRAWER" defaultMessage="Open Drawer" />
-          </Button>, 
-	  12:<Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doVoidPaidSale', 'false', 'true', 'true']}>
+          </Button>,
+      12: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doVoidPaidSale', 'false', 'true', 'true']}>
            <I18N id="$CLOSED_ORDERS" defaultMessage="Closed Orders" />
          </Button>,
       13:<Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doToggleMirrorScreen']}>
@@ -138,10 +161,85 @@ export class FunctionScreen extends PureComponent {
             <I18N id="$SPEEDOFSERVICE" defaultMessage="Speed of Service" />
           </Button>,
       26: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['salesByBrandReport', 'ask', 'BusinessPeriod']}>
-	        <I18N id="$SALESBYBRAND" defaultMessage="Sales by Brand" />
+            <I18N id="$SALESBYBRAND" defaultMessage="Sales by Brand" />
           </Button>,
       27: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doCheckUpdates']}>
             <I18N id="$CHECK_UPDATES" defaultMessage="Check for Updates" />
+          </Button>
+    }
+
+    const supportButtons = {
+      0: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['openday', 'false', 'true']}>
+           <div>
+             <I18N id="$FORCE_OPEN_DAY" defaultMessage="Force Open Day" />
+             <br/>
+             (<I18N id="$THIS_POS" defaultMessage="This POS" />)
+           </div>
+         </Button>,
+      2: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doSearchSatModules']}>
+           <I18N id="$SAT_STATUS" defaultMessage="SAT Status" />
+         </Button>,
+      3: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doGetKDSstatus']}>
+           <I18N id="$KDS_STATUS" defaultMessage="KDS Status" />
+         </Button>,
+      4: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doGetPrinterStatus']}>
+           <I18N id="$PRINTER_STATUS" defaultMessage="Printer Status" />
+         </Button>,
+      5: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doCheckSEFAZ']}>
+           <I18N id="$SEFAZ_CONNECTION" defaultMessage="SEFAZ Connection" />
+         </Button>,
+      6: (posFunc !== 'OT') ?
+        <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doGetSATOperationalStatus']}>
+          <I18N id="$SAT_INFO" defaultMessage="SAT Info" />
+        </Button> : null,
+
+      7: <Button rounded={true} className="function-btn" style={styles.purpleBtn} executeAction={['doPurgeKDSs']}>
+           <I18N id="$KDS_CLEANUP" defaultMessage="KDS Cleanup" />
+         </Button>,
+      8: <Button rounded={true} className="function-btn" style={styles.purpleBtn} executeAction={['doPurgeStoredOrders']}>
+           <I18N id="$STORED_ORDERS_CLEANUP" defaultMessage="Stored Orders Cleanup" />
+         </Button>,
+      10: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doUpdateBlacklist']}>
+            <I18N id="$UPDATE_BLACKLIST" defaultMessage="Update Blacklist" />
+          </Button>,
+      11: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doUpdateVTT']}>
+            <I18N id="$UPDATE_VTT" defaultMessage="Update VTT" />
+          </Button>,
+      12: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doCheckSiTef']}>
+            <I18N id="$SITEF_CONNECTION" defaultMessage="SITEF Connection" />
+          </Button>,
+      13: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doFixPaf']}>
+            <I18N id="$EQUALIZE_PAF" defaultMessage="Equalize PAF" />
+          </Button>,
+
+      14: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doGetPigeonVersions']}>
+            <I18N id="$SOFTWARE_VERSION" defaultMessage="Software Version" />
+          </Button>,
+      15: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doRecreateXMLFiscal']}>
+            <I18N id="$CREATE_FISCAL_XML" defaultMessage="Create Fiscal XML" />
+          </Button>,
+      19: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doReSignXML']}>
+            <I18N id="$RESIGN_XML" defaultMessage="Resign XML" />
+          </Button>,
+      20: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doFixSefazProtocol']}>
+            <I18N id="$FIX_SEFAZ_PROTOCOL" defaultMessage="Fix SEFAZ Protocol" />
+          </Button>,
+
+      21: (posFunc !== 'OT') ?
+        <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doKill']}>
+          <I18N id="$CLOSE_APPLICATION" defaultMessage="Close Application" />
+        </Button> : null,
+      22: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doSyncDeliveryMenu']}>
+            <I18N id="$SYNC_DELIVERY_MENU" defaultMessage="Sync Delivery Menu" />
+          </Button>,
+      23: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doRuptureCleanup']}>
+            <I18N id="$RUPTURE_CLEANUP" defaultMessage="Rupture Cleanup" />
+          </Button>,
+      24: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['changeRemoteOrderStoreStatus']}>
+            <I18N id="$CHANGE_REMOTE_STORE_STATUS" defaultMessage="Change Remote Order Status" />
+          </Button>,
+      27: <Button rounded={true} className="function-btn" style={styles.brownBtn} onClick={() => this.setState({ supportScreenOpened: false })}>
+            <I18N id="$BACK" defaultMessage="Back" />
           </Button>
     }
 
@@ -153,7 +251,7 @@ export class FunctionScreen extends PureComponent {
             direction="column"
             cols={4}
             rows={7}
-            buttons={buttons}
+            buttons={supportScreenOpened ? supportButtons : mainButtons}
           />
         </div>
       </div>

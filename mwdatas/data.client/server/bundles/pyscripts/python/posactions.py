@@ -5897,3 +5897,21 @@ def enterTabNumber(posid, *args):
     if tab_number in (None, ""):
         return
     posot.setOrderCustomProperty("TAB", tab_number)
+
+
+@action
+def doUpdateBlacklist(posid):
+    mbcontext.MB_EasySendMessage("Blacklist", TK_EVT_EVENT, data='\0UpdateBlacklist')
+    show_info_message(posid, "$BLACKLIST_UPDATE_STARTED")
+
+
+@action
+def doSyncDeliveryMenu(posid):
+    mbcontext.MB_EasySendMessage("Ruptura", TK_EVT_EVENT, data='\0FullRuptureRequest')
+    show_info_message(posid, "$DELIVERY_SYNC_STARTED")
+
+
+@action
+def doRuptureCleanup(posid):
+    mbcontext.MB_EasySendMessage("Ruptura", TK_EVT_EVENT, data='\0CleanRupture\0%s' % posid)
+    show_info_message(posid, "$RUPTURE_CLEANUP_STARTED")
