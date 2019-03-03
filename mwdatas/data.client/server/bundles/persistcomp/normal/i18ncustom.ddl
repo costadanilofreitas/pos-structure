@@ -7,7 +7,7 @@
 CREATE TABLE schema_version AS
 SELECT "$Author$" AS Author,
        "$Date$" AS LastModifiedAt,
-       "$Revision: f9d47604aca7364d7699bb478689e13fff6ea49d$" AS Revision;
+       "$Revision: g9d47604aca7364d7699bb478689e13fff6ea49d$" AS Revision;
 
 CREATE TABLE Languages (
     LangCode        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -267,6 +267,8 @@ INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (1,  'LABEL_DUE_AMOUN
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (1,  'COUPON_PREREQ_FAILED', "Not all pre-requirements for coupon code [{0}] were satisfied");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (1,  'ENTER_TAB_NUMBER', "Please enter the Tab's last 3 digits");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (1,  'NO_MODIFIERS_PRODUCT', "No modifiers available for selected product");
+INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (1,  'MODIFIERS_TITLE', "Modifiers");
+INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (1,  'OPTIONS_TITLE', "Options");
 
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'DEBIT_CARD_NOT_PROCESSED', "Não foi possível processar o cartão de débito.\Resposta do servidor: {0}");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'KIOSK_NOT_SALE', "Não é permitido vender esse produto no Kiosk");
@@ -526,3 +528,5 @@ INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'TAKE_OUT', "Par
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'CUSTOMER_NAME', "Nome do Cliente");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'MIN_ORDER_TOTAL', "Desconto {0} requer valor minímo de {1} no total da venda");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'MIN_ORDER_TOTAL_FOR_DISCOUNT', "Valor do desconto ({0}) é maior que o total da venda ({1})");
+INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'MODIFIERS_TITLE', "Modificadores");
+INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'OPTIONS_TITLE', "Opções");
