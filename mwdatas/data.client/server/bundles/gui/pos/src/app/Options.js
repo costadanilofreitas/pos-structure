@@ -3,6 +3,23 @@ import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { NavigationGrid } from 'posui/widgets'
 import _ from 'lodash'
+import injectSheet, { jss } from 'react-jss'
+import { I18N } from 'posui/core'
+
+jss.setup({ insertionPoint: 'posui-css-insertion-point' })
+
+const styles = {
+  container: {
+    width: '100%',
+    height: '98%'
+  },
+  title: {
+    textAlign: 'center',
+    fontWeight: 'bold',
+    fontSize: '4.5vh',
+    position: 'relative'
+  }
+}
 
 class Options extends PureComponent {
 
@@ -42,27 +59,37 @@ class Options extends PureComponent {
   }
 
   render() {
-    const { sellOption } = this.props
+    const { sellOption, classes } = this.props
     const modifierGroup = this.getOptions()
 
     return (
-      <NavigationGrid
-        groups={modifierGroup.groups}
-        sellFunc={(item) => sellOption(item, modifierGroup.itemId)}
-        cols={11}
-        rows={11}
-        maxSpanCols={11}
-        expandCol={7}
-        styleTitle={{
-          fontSize: '1.3vh',
-          color: 'black'
-        }}
-      />
+      <div className={classes.container}>
+        <div className={classes.title}>
+          <I18N id="$OPTIONS_TITLE" defaultMessage="Options" />
+        </div>
+        <NavigationGrid
+          groups={modifierGroup.groups}
+          sellFunc={(item) => sellOption(item, modifierGroup.itemId)}
+          cols={11}
+          rows={11}
+          maxSpanCols={11}
+          expandCol={7}
+          styleTitle={{
+            fontSize: '1.3vh',
+            color: 'black'
+          }}
+        />
+      </div>
     )
   }
 }
 
 Options.propTypes = {
+  /**
+   * Injected classes
+   * @ignore
+   */
+  classes: PropTypes.object,
   /**
    * Navigation state from `navigationReducer`
    */
@@ -98,4 +125,4 @@ function mapStateToProps(state) {
   }
 }
 
-export default connect(mapStateToProps)(Options)
+export default connect(mapStateToProps)(injectSheet(styles)(Options))
