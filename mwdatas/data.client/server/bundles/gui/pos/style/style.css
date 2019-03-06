@@ -104,3 +104,15 @@ body {
 .dialog-body {
   font-size: 1.5vh !important;
 }
+
+.dialog-body-cont {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.message-dialog-root td span {
+  display: flex;
+  text-align: center;
+  margin: 2vw;
+}
