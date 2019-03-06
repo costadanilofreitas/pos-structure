@@ -86,6 +86,12 @@ const styles = (theme) => ({
     height: '100%',
     boxSizing: 'border-box'
   },
+  noProducts: {
+    height: '10vh',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
   loadingSpinner: {
     composes: 'fa fa-spinner fa-spin fa-4x loading-screen-spinner',
     color: '#777777',
@@ -261,7 +267,9 @@ class ProductSearch extends PureComponent {
                   </ScrollPanel>
                 }
                 {(!loading && !hasProducts) &&
-                  <div><I18N id="$NO_PRODUCTS_FOUND" defaultMessage="No products found!" /></div>
+                  <div className={classes.noProducts}>
+                    <I18N id="$NO_PRODUCTS_FOUND" defaultMessage="No products found!" />
+                  </div>
                 }
               </div>
             </div>
