@@ -55,7 +55,7 @@ const styles = {
   brownBtn: {
     backgroundColor: '#8B542F',
     color: '#ffffff'
-  },
+  }
 }
 
 export class FunctionScreen extends PureComponent {
@@ -90,11 +90,11 @@ export class FunctionScreen extends PureComponent {
       2: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doReportSangria']}>
            <I18N id="$SKIM_REPORT" defaultMessage="Skim Report" />
          </Button>,
-      3: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doVoidSale', 'True','4', 'True']}>
+      3: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doVoidSale', 'True', '4', 'True']}>
            <I18N id="$VOID_SALE" defaultMessage="Void Sale" />
          </Button>,
 
-      5: (Number(level) === 60) ?
+      5: (Number(level) === 30) ?
         <Button rounded={true} className="function-btn" style={styles.yellowBtn} onClick={() => this.setState({ supportScreenOpened: true })}>
           <I18N id="$SUPPORT_MENU" defaultMessage="Support Menu"/>
         </Button> : null,

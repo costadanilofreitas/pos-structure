@@ -3630,7 +3630,7 @@ def doTransfer(posid, transfer_type, *args):
             show_info_message(posid, "Nao tem valor suficiente para fazer a sangria", msgtype="error")
             return
 
-    just = None
+    just = ''
     buttons = "$OK|$CANCEL"
 
     if int(transfer_type) == 6:
@@ -3675,7 +3675,7 @@ def doTransfer(posid, transfer_type, *args):
                 if int(transfer_type) != 6 and banana is None:
                     return
         just = just + ";envelope=%s" % banana
-    just = just + ";managerID=%s" % get_custom(model, 'Last Manager ID', None)
+        just = just + ";managerID=%s" % get_custom(model, 'Last Manager ID', None)
     msg = send_message("account%s" % posid, TK_ACCOUNT_TRANSFER, FM_PARAM, "%s\0%s\0%s\0%s\0%s\0%s" % (session, int(transfer_type), descri_key, amount, transfer_id, just or "NULL"), timeout=600 * USECS_PER_SEC)
 
     if msg.token == TK_SYS_ACK:
@@ -5783,7 +5783,6 @@ def doPriceLookup(pos_id, timeout=45, *args):
             scanner = svc
             break
     if scanner is None:
-
         show_info_message(pos_id, "$NO_SCANNER_CONFIGURED", msgtype="critical")
 
         return
