@@ -77,8 +77,11 @@ class CashReport(object):
             operator_id = None
 
         card_brands = None
-        if get_storewide_config("Store.PrintCardBrands", defval="False").lower() == "true":
-            card_brands = self.fiscal_repository.get_card_brands(paid_orders)
+        try:
+            if get_storewide_config("Store.PrintCardBrands", defval="False").lower() == "true":
+                card_brands = self.fiscal_repository.get_card_brands(paid_orders)
+        except Exception as _:
+            pass
 
         count_pos_error = filter(lambda x:x == "error", paid_orders)
         count_pos_error = len(count_pos_error)
