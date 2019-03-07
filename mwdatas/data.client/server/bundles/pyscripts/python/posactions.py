@@ -3316,16 +3316,11 @@ def doShowScreenWithCheck(posid, screen, *args):
 
 
 @action
-def doShowScreenWithAuthorization(posid, screen, level=str(LEVEL_MANAGER), *args):
+def doShowScreenWithAuthorization(posid, level=str(LEVEL_MANAGER), *args):
     model = get_model(posid)
     # Allow entering manager screen even with an order in progress
     # check_current_order(posid, model=model, need_order=False)
-    if screen == '1000':
-        if get_authorization(posid, min_level=int(level), model=model, can_bypass_reader=True, display_title="$MENU_MANAGER"):
-            change_screen(posid, screen)
-    else:
-        if get_authorization(posid, min_level=int(level), model=model, display_title="$MENU_MANAGER"):
-            doShowScreen(posid, screen)
+    return get_authorization(posid, min_level=int(level), model=model, display_title="$MENU_MANAGER")
 
 
 @action
