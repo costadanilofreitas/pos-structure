@@ -84,7 +84,7 @@ class Menu extends PureComponent {
       }
       return ['doTotal']
     case MENU_MANAGER:
-      return ['doAuthorize']
+      return ['doShowScreenWithAuthorization']
     default:
       break
     }

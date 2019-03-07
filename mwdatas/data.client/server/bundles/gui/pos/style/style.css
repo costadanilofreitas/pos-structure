@@ -106,9 +106,7 @@ body {
 }
 
 .dialog-body-cont {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+
 }
 
 .message-dialog-root td span {

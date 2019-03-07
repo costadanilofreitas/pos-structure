@@ -4,7 +4,7 @@ const Logo = () => {
   return (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
          viewBox="0 0 160 160" style={{ enableBackground: 'new 0 0 160 160' }}>
-      <g fill="#ffffff">
+      <g fill="#4d4d4d">
         <path className="st0" d="M46.4,87.5v17.7h-8.9v-22c0-2.5,2-4.5,4.5-4.5h33.2c2.5,0,4.5,2,4.5,4.5v19.7c0,1.8-1,3.4-2.6,4.1l-6.4,3.3 l6.3,3.6c1.6,0.7,2.7,2.3,2.7,4.1v13.8h-9.1v-11.7l-10.8-5.7c-3.3-1.9-3.3-6.3,0.6-8.5l10.1-5.4V87.6L46.4,87.5L46.4,87.5z"/>
       </g>
       <g fill="#0eb5b3">
