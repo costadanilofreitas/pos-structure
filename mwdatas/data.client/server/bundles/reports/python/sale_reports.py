@@ -81,7 +81,11 @@ def _center(s, cols=COLS):
 
 def production_pick_list(production_xml, grouped_items=False, *args):
     global pick_up_type
-    pick_up_type = sysactions.get_storewide_config("Store.pickUpDisplayType", defval="Manager") if pick_up_type is None else pick_up_type
+    try:
+        if pick_up_type is None:
+            pick_up_type = sysactions.get_storewide_config("Store.pickUpDisplayType", defval="Manager")
+    except Exception as _:
+        pick_up_type = 'Manager'
 
     """ Generates a pick list from production XML """
     def _report_header(title, order_t, reprint=False, receipt=False):
