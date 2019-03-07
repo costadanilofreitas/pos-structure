@@ -44,8 +44,12 @@ const styles = (theme) => ({
 })
 
 class Menu extends PureComponent {
+  isOperatorLoggedOut() {
+    const { operator } = this.props
+    return (operator || {}).state !== 'LOGGEDIN'
+  }
   handleClick = (menuItem) => {
-    const { setMenu, order, actionRunning, operator } = this.props
+    const { setMenu, order, actionRunning } = this.props
 
     if (!_.isEmpty(actionRunning)) {
       // there is an action running ignore click
@@ -55,7 +59,7 @@ class Menu extends PureComponent {
     const state = ((order || {})['@attributes'] || {}).state || ''
     switch (id) {
     case MENU_ORDER:
-      if (_.isEmpty(operator)) {
+      if (this.isOperatorLoggedOut()) {
         this.props.showInfoMessageAction('$NEED_TO_LOGIN_FIRST', '5000', 'error')
         return []
       }
@@ -68,13 +72,13 @@ class Menu extends PureComponent {
         this.props.showInfoMessageAction('$NEED_TO_FINISH_ORDER', '5000', 'error')
         return []
       }
-      if (_.isEmpty(operator)) {
+      if (this.isOperatorLoggedOut()) {
         this.props.showInfoMessageAction('$NEED_TO_LOGIN_FIRST', '5000', 'error')
         return []
       }
       break
     case MENU_PAYMENT:
-      if (_.isEmpty(operator)) {
+      if (this.isOperatorLoggedOut()) {
         this.props.showInfoMessageAction('$NEED_TO_LOGIN_FIRST', '5000', 'error')
         return []
       }
