@@ -472,7 +472,8 @@ class SaleScreen extends PureComponent {
                     showSummaryService={false}
                     showSummaryTax={false}
                     showSummaryTip={false}
-                    showSummaryTotal={false}
+                    showSummarySubtotal={false}
+                    showSummaryTotal={true}
                     showSummaryTotalAfterDiscount={false}
                     showFinishedSale={false}
                     autoSelectLine={true}

@@ -266,11 +266,11 @@ class Modifiers extends PureComponent {
           </div>
         }
         {!showMods &&
-          <center>
+          <div>
             <em className={classes.noMods}>
               <I18N id="$NO_MODIFIERS_PRODUCT" defaultMessage="No modifiers available for selected product"/>
             </em>
-          </center>
+          </div>
         }
       </div>
     )
