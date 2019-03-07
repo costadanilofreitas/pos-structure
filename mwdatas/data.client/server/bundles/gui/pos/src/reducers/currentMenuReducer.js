@@ -8,20 +8,19 @@ export default function (state = MENU_UNSELECTED, action) {
   case ORDER_PAID:
   case ORDER_STORED:
     return MENU_ORDER
-  case ORDER_CHANGED:
-    if (state === MENU_UNSELECTED) {
-      const order = action.payload || {}
-      const attributes = order['@attributes'] || {}
-      switch (attributes.state) {
-      case 'TOTALED':
-        return MENU_PAYMENT
-      case 'IN_PROGRESS':
-        return MENU_ORDER
-      default:
-        return MENU_DASHBOARD
-      }
+  case ORDER_CHANGED: {
+    const order = action.payload || {}
+    const attributes = order['@attributes'] || {}
+    switch (attributes.state) {
+    case 'TOTALED':
+      return MENU_PAYMENT
+    case 'IN_PROGRESS':
+    case 'VOIDED':
+      return MENU_ORDER
+    default:
+      return (state === MENU_UNSELECTED) ? MENU_DASHBOARD : state
     }
-    break
+  }
   case CHANGE_CURRENT_MENU:
     return action.payload
   default:
