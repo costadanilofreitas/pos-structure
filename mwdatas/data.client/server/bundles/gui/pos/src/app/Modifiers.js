@@ -214,6 +214,7 @@ class Modifiers extends PureComponent {
         key={`${key}.${selected}.${item.qty}.${item.plu}.${isDefault}`}
         className={buttonClass}
         executeAction={() => sellFunc(item)}
+        blockOnActionRunning={true}
       >
         {(!isDefault || item.isIngredient) && <div className={classes.modQty}>{item.qty}</div>}
         {item.text}
@@ -244,6 +245,7 @@ class Modifiers extends PureComponent {
                     className={selectedClass}
                     rounded={true}
                     onClick={() => this.handleModTypeClick(idx)}
+                    blockOnActionRunning={true}
                   >
                     {modType.text}
                   </Button>
@@ -261,6 +263,7 @@ class Modifiers extends PureComponent {
                   fontSize: '1.3vh',
                   color: 'black'
                 }}
+                buttonProps={{ blockOnActionRunning: true }}
               />
             </div>
           </div>

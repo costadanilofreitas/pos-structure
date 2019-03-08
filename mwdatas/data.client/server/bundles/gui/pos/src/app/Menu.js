@@ -114,6 +114,7 @@ class Menu extends PureComponent {
               }}
               text={menuItem.text}
               defaultText={menuItem.defaultText}
+              blockOnActionRunning={true}
             />
           )
         })}
