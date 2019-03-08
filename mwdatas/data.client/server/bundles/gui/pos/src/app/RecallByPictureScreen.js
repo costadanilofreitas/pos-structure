@@ -122,6 +122,7 @@ class RecallByPictureScreen extends PureComponent {
               className={classes.salePanel}
               order={value}
               showSummary={false}
+              modQtyPrefixes={{}}
             />
           </div>
         )

@@ -313,6 +313,7 @@ class TenderScreen extends PureComponent {
                       order={order}
                       showSummary={true}
                       onHeaderRendered={this.handleHeaderRendered}
+                      modQtyPrefixes={{}}
                     />
                   </div>
                 </div>
