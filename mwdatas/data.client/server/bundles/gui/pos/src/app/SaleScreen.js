@@ -206,6 +206,7 @@ class SaleScreen extends PureComponent {
           key={`${idx}_inactive_${themeName}`}
           className={`${classes.tabButtonStyle} ${classes.submenu} ${classes.submenuNotLast}`}
           onClick={this.handleSubmenuClicked(idx)}
+          blockOnActionRunning={true}
         >{tab.text}</Button>
       )
       submenuActive[idx] = (
@@ -213,6 +214,7 @@ class SaleScreen extends PureComponent {
           key={`${idx}_active_${themeName}`}
           className={`${classes.tabButtonStyle} ${classes.submenu} ${classes.submenuNotLast} ${classes.submenuActive}`}
           onClick={this.handleSubmenuClicked(idx)}
+          blockOnActionRunning={true}
         >{tab.text}</Button>
       )
     })
@@ -222,6 +224,7 @@ class SaleScreen extends PureComponent {
         key={`${idx}_inactive_${themeName}`}
         className={`${classes.tabButtonStyle} ${classes.submenu}`}
         onClick={this.handleSubmenuClicked(idx)}
+          blockOnActionRunning={true}
       ><SearchIcon /></Button>
     )
     submenuActive[idx] = (
@@ -229,6 +232,7 @@ class SaleScreen extends PureComponent {
         key={`${idx}_active_${themeName}`}
         className={`${classes.tabButtonStyle} ${classes.submenu} ${classes.submenuActive}`}
         onClick={this.handleSubmenuClicked(idx)}
+          blockOnActionRunning={true}
       ><SearchIcon /></Button>
     )
     return { submenu, submenuActive }
@@ -275,6 +279,7 @@ class SaleScreen extends PureComponent {
           key={`${order.orderId}_${saleLine.lineNumber}_${idx}_${selected}`}
           className={`${classes.tabButtonStyle} modtab ${clazz}`}
           onClick={() => this.setState({ selectedLine: saleLine })}
+          blockOnActionRunning={true}
         >
           {saleLine.productName}
         </Button>
@@ -308,7 +313,7 @@ class SaleScreen extends PureComponent {
 
       _.forEach(group.groups, (group) => {
         if ((group.text || '').length > 20) {
-          group.text = group.text.substring(0, 20);
+          group.text = group.text.substring(0, 20)
         }
       })
 
@@ -319,7 +324,7 @@ class SaleScreen extends PureComponent {
           items: group.items,
           name: group.name,
           text: null,
-          classes: group.classes || [],
+          classes: group.classes || []
         }]
       }
       if ((group.groups || []).length > 0) {
@@ -425,7 +430,8 @@ class SaleScreen extends PureComponent {
 
   render() {
     const { classes, order, modifiers, custom, themeName, navigation } = this.props
-    const { skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen, selectedTabIdx } = this.state
+    const { skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen,
+      selectedTabIdx } = this.state
     const attributes = order['@attributes'] || {}
     const inProgress = _.includes(['IN_PROGRESS', 'TOTALED'], attributes.state)
     const isCombo = (selectedLine || {}).itemType === 'COMBO'
@@ -434,7 +440,12 @@ class SaleScreen extends PureComponent {
     const isSearch = ((navigation[1] || {}).groups || []).length === selectedTabIdx
 
     const modifierButtons = {
-      3: <Button rounded={true} className="function-btn" onClick={() => this.setState({ showModifierScreen: false })}>
+      3: <Button
+          rounded={true}
+          className="function-btn"
+          onClick={() => this.setState({ showModifierScreen: false })}
+          blockOnActionRunning={true}
+      >
         <I18N id="$OK" defaultMessage="OK"/>
       </Button>
     }
@@ -558,6 +569,7 @@ class SaleScreen extends PureComponent {
                   maxSpanCols={4}
                   filterClass={`${this.NAVIGATION_MENU}`}
                   styleTitle={(themeName === 'dark') ? this.styleTitleDark : this.styleTitle}
+                  buttonProps={{ blockOnActionRunning: true }}
                 />
               </div>
             }

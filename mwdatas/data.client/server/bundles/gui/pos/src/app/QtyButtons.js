@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import { Button } from 'posui/button'
 import { ButtonGrid } from 'posui/widgets'
 import injectSheet, { jss } from 'react-jss'
+import _ from 'lodash'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -52,6 +53,7 @@ class QtyButtons extends PureComponent {
           className={`${classes.qtyButton} ${currentClass}`}
           rounded={true}
           onClick={() => this.handleQtyButtonClicked(qty)}
+          blockOnActionRunning={true}
         >{qty}</Button>
       )
     })
@@ -65,6 +67,7 @@ class QtyButtons extends PureComponent {
         rounded={true}
         executeAction={['requestQuantity']}
         onActionFinish={(response) => this.handleAnyQtyButton(response)}
+        blockOnActionRunning={true}
       >{label}</Button>
     ))
     const qtyButtons = _.zipObject(_.range(11), buttons)

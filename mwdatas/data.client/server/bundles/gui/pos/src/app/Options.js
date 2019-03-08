@@ -78,6 +78,7 @@ class Options extends PureComponent {
             fontSize: '1.3vh',
             color: 'black'
           }}
+          buttonProps={{ blockOnActionRunning: true }}
         />
       </div>
     )

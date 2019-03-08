@@ -217,23 +217,23 @@ class TenderScreen extends PureComponent {
   paymentType = {
     //  To Do Paymente card
     0: <Button executeAction={() => { return this.doTender(this.state.value, '1') }}
-         rounded={true} style={this.tenderButton}>
-         <i style={styles.tenderIcon} className="fa fa-credit-card fa-4x" aria-hidden="true"></i>
+         rounded={true} style={this.tenderButton} blockOnActionRunning={true}>
+         <i style={styles.tenderIcon} className="fa fa-credit-card fa-4x" aria-hidden="true"/>
          <div style={styles.bigTenderText}>Credito</div>
        </Button>,
     1: <Button executeAction={() => { return this.doTender(this.state.value, '2') }}
-         rounded={true} style={this.tenderButton}>
-         <i style={styles.tenderIcon} className="fa fa-credit-card fa-4x" aria-hidden="true"></i>
+         rounded={true} style={this.tenderButton} blockOnActionRunning={true}>
+         <i style={styles.tenderIcon} className="fa fa-credit-card fa-4x" aria-hidden="true"/>
          <div style={styles.bigTenderText}>Debito</div>
        </Button>,
     2: <Button executeAction={() => { return this.doTender(this.state.value, '3') }}
-         rounded={true} style={this.tenderButton}>
-         <i style={styles.tenderIcon} className="fa fa-mobile-phone fa-4x" aria-hidden="true"></i>
+         rounded={true} style={this.tenderButton} blockOnActionRunning={true}>
+         <i style={styles.tenderIcon} className="fa fa-mobile-phone fa-4x" aria-hidden="true"/>
          <div style={styles.bigTenderText}>Maquininha</div>
        </Button>,
     3: <Button executeAction={() => { return this.doTender(this.state.value, '0') }}
-         rounded={true} style={this.tenderButton}>
-         <i style={styles.tenderIcon} className="fa fa-money fa-4x" aria-hidden="true"></i>
+         rounded={true} style={this.tenderButton} blockOnActionRunning={true}>
+         <i style={styles.tenderIcon} className="fa fa-money fa-4x" aria-hidden="true"/>
          <div style={styles.bigTenderText}>Dinheiro</div>
        </Button>
   }
@@ -256,25 +256,33 @@ class TenderScreen extends PureComponent {
       0: <Button
            executeAction={() => { return this.doTender(this.state.nextDollar, '0') }}
            rounded={true}
-           style={styles.quickTender}>
+           style={styles.quickTender}
+           blockOnActionRunning={true}
+         >
            <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> {this.state.nextDollar}
          </Button>,
       1: <Button
            executeAction={() => { return this.doTender('10.00', '0') }}
            style={styles.quickTender}
-           rounded={true}>
+           rounded={true}
+           blockOnActionRunning={true}
+         >
            <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> 10,00
          </Button>,
       2: <Button
            executeAction={() => { return this.doTender('20.00', '0') }}
            style={styles.quickTender}
-           rounded={true}>
+           rounded={true}
+           blockOnActionRunning={true}
+         >
            <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> 20,00
          </Button>,
       3: <Button
            executeAction={() => { return this.doTender('50.00', '0') }}
            style={styles.quickTender}
-           rounded={true}>
+           rounded={true}
+           blockOnActionRunning={true}
+         >
            <I18N id="$L10N_CURRENCY_SYMBOL" defaultMessage="$" /> 50,00
          </Button>
     }
@@ -387,6 +395,7 @@ class TenderScreen extends PureComponent {
                        }}
                        text="$BACK_TO_ORDER"
                        defaultText="Back to Order"
+                       blockOnActionRunning={true}
                      />,
                   1: <Button
                        rounded={true}
@@ -394,6 +403,7 @@ class TenderScreen extends PureComponent {
                        executeAction={() => ['doSetCustomerName']}
                        text="$CUSTOMER_NAME"
                        defaultText="Customer Name"
+                       blockOnActionRunning={true}
                      />,
                   2: <Button
                        rounded={true}
@@ -401,6 +411,7 @@ class TenderScreen extends PureComponent {
                        executeAction={() => ['doSetCustomerDocument']}
                        text="$CUSTOMER_DOC"
                        defaultText="Customer Document"
+                       blockOnActionRunning={true}
                      />,
                   8: <Button
                        rounded={true}
@@ -408,6 +419,7 @@ class TenderScreen extends PureComponent {
                        executeAction={['doStoreOrder']}
                        text="$SAVE_ORDER"
                        defaultText="Save Order"
+                       blockOnActionRunning={true}
                      />
                 }}
               />
