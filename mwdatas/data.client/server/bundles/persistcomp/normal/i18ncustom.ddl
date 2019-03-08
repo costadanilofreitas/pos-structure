@@ -546,3 +546,4 @@ INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'VOIDED_REPORT',
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'RESTAURANT_SALES_Business_Period', "Vendas por Data de Negócio");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'PRODUCT_MIX_BUSINESS_PERIOD', "Mix de Produtos por Data de Negócio");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'SALESBYBRAND', "Vendas por Bandeira");
+INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'DAY_CLOSURE', "Fechamento do dia");
