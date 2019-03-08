@@ -4,12 +4,10 @@ import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import { I18N } from 'posui/core'
 import { Button } from 'posui/button'
-import { ButtonGrid, SaleTypeSelector, NumPad } from 'posui/widgets'
-import { SalePanel } from 'posui/sale-panel'
+import { ButtonGrid } from 'posui/widgets'
 import { ensureDecimals } from 'posui/utils'
 import injectSheet, { jss } from 'react-jss'
 import setMenuAction from '../actions/setMenuAction'
-import {DataTable, ScrollPanel} from "./RecallScreen";
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -20,7 +18,7 @@ const styles = {
   },
   tenderDivGrid: {
     padding: '0.1vh'
-  },
+  }
 }
 
 class TenderDivision extends PureComponent {
@@ -29,10 +27,10 @@ class TenderDivision extends PureComponent {
 
     const totalGross = ensureDecimals(Number((this.props.order['@attributes'] || {}).totalGross || '0'))
     const tenderLength = totalGross.length
-    this.div2 = ensureDecimals(Math.ceil(totalGross * 100 / 2) / 100).padStart(tenderLength)
-    this.div3 = ensureDecimals(Math.ceil(totalGross * 100 / 3) / 100).padStart(tenderLength)
-    this.div4 = ensureDecimals(Math.ceil(totalGross * 100 / 4) / 100).padStart(tenderLength)
-    this.div5 = ensureDecimals(Math.ceil(totalGross * 100 / 5) / 100).padStart(tenderLength)
+    this.div2 = ensureDecimals(Math.ceil((totalGross * 100) / 2) / 100).padStart(tenderLength)
+    this.div3 = ensureDecimals(Math.ceil((totalGross * 100) / 3) / 100).padStart(tenderLength)
+    this.div4 = ensureDecimals(Math.ceil((totalGross * 100) / 4) / 100).padStart(tenderLength)
+    this.div5 = ensureDecimals(Math.ceil((totalGross * 100) / 5) / 100).padStart(tenderLength)
   }
 
   getMaxNumPadValue(x) {
@@ -102,7 +100,7 @@ TenderDivision.propTypes = {
   /**
    * Order state from `orderReducer`
    */
-  style: PropTypes.shape({height:PropTypes.string.required}),
+  style: PropTypes.shape({ height: PropTypes.string.required })
 }
 
 TenderDivision.defaultProps = {

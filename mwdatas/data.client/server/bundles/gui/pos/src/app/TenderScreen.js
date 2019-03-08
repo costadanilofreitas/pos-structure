@@ -11,7 +11,6 @@ import injectSheet, { jss } from 'react-jss'
 import TenderDivision from './TenderDivision'
 import { MENU_ORDER } from '../reducers/menuReducer'
 import setMenuAction from '../actions/setMenuAction'
-import {DataTable, ScrollPanel} from './RecallScreen';
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -166,7 +165,7 @@ const styles = {
   customerNameLine: {
     fontSize: '1.5vh',
     paddingTop: '0.4vh'
-  },
+  }
 }
 
 class TenderScreen extends PureComponent {
@@ -349,7 +348,7 @@ class TenderScreen extends PureComponent {
             <div className={classes.rightPanel}>
               <div className={classes.absoluteWrapper}>
                 <TenderDivision
-                  setNumPadValue={(value) => this.setState({value: value})}
+                  setNumPadValue={(v) => this.setState({ value: v })}
                   style={{ height: '15%', position: 'relative' }}
                 />
                 <NumPad

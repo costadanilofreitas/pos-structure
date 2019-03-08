@@ -8,7 +8,7 @@ import { setThemeAction } from 'posui/actions'
 import { DialogList } from 'posui/dialogs'
 import injectSheet, { jss } from 'react-jss'
 import { loadProductDataAction } from '../actions'
-import { themes } from '../constants/themes'
+import themes from '../constants/themes'
 import { Menu, MainScreen, CustomMessageDialog } from '.'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })

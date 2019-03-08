@@ -5,7 +5,7 @@ import _ from 'lodash'
 import { I18N } from 'posui/core'
 import { Button } from 'posui/button'
 import { ButtonGrid } from 'posui/widgets'
-import { themes } from '../constants/themes'
+import themes from '../constants/themes'
 
 const styles = {
   container: {
