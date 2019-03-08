@@ -210,7 +210,7 @@ class ProductSearch extends PureComponent {
       // no filter selected, return everything
       return data
     }
-    let dataFiltered = _.filter(data, (obj) => {
+    return _.filter(data, (obj) => {
       return _.some(searchFields, key => {
         const value = _.get(obj, key)
         return (
@@ -220,7 +220,6 @@ class ProductSearch extends PureComponent {
         )
       })
     })
-    return dataFiltered
   }
 
   render() {

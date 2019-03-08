@@ -5911,3 +5911,8 @@ def doSyncDeliveryMenu(posid):
 def doRuptureCleanup(posid):
     mbcontext.MB_EasySendMessage("Ruptura", TK_EVT_EVENT, data='\0CleanRupture\0%s' % posid)
     show_info_message(posid, "$RUPTURE_CLEANUP_STARTED")
+
+
+@action
+def isPyscriptsOnline(posid):
+    return True

@@ -6,6 +6,7 @@ import { I18N } from 'posui/core'
 import { Button } from 'posui/button'
 import { ButtonGrid, ContextButton } from 'posui/widgets'
 import injectSheet, { jss } from 'react-jss'
+import _ from 'lodash'
 import { MENU_PAYMENT } from '../reducers/menuReducer'
 import setMenuAction from '../actions/setMenuAction'
 

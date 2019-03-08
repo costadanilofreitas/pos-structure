@@ -311,12 +311,6 @@ class SaleScreen extends PureComponent {
     _.forEach(groups, (group, idx) => {
       let tempGroups = []
 
-      _.forEach(group.groups, (group) => {
-        if ((group.text || '').length > 20) {
-          group.text = group.text.substring(0, 20)
-        }
-      })
-
       if ((group.items || []).length > 0) {
         // this tab does not have sub-categories, but it has items, so handle them as a single
         // sub-category with no title
@@ -328,7 +322,11 @@ class SaleScreen extends PureComponent {
         }]
       }
       if ((group.groups || []).length > 0) {
-        tempGroups = [...tempGroups, ...group.groups]
+        // group names should not have more than 20 characters
+        const newGroups = _.map(group.groups, (childGroup) => {
+          return { ...childGroup, text: (childGroup.text || '').substring(0, 20) }
+        })
+        tempGroups = [...tempGroups, ...newGroups]
       }
       groupsByTab[idx] = tempGroups
     })

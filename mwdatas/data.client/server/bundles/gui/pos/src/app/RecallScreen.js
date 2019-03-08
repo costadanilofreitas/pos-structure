@@ -241,8 +241,12 @@ class RecallScreen extends PureComponent {
     return (
       <div className={classes.container}>
         <div className={classes.titlePanel}>
-          <div className={classes.title}><I18N id="$SAVED_ORDERS" defaultMessage="Saved Orders" /></div>
-          <Button className={classes.refresh} onClick={this.retrieveOrders}><i className="fa fa-refresh fa-2x" aria-hidden="true"></i></Button>
+          <div className={classes.title}>
+            <I18N id="$SAVED_ORDERS" defaultMessage="Saved Orders" />
+          </div>
+          <Button className={classes.refresh} onClick={this.retrieveOrders}>
+            <i className="fa fa-refresh fa-2x" aria-hidden="true"/>
+          </Button>
         </div>
         <div className={classes.ordersPanel}>
           <div className={classes.absoluteWrapper}>

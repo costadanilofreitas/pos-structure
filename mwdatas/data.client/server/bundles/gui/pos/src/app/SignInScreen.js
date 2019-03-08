@@ -5,10 +5,10 @@ import _ from 'lodash'
 import { I18N } from 'posui/core'
 import { Button } from 'posui/button'
 import injectSheet, { jss } from 'react-jss'
+import { bindActionCreators } from 'redux'
 import Logo from './Logo'
 import setMenuAction from '../actions/setMenuAction'
 import { MENU_ORDER } from '../reducers/menuReducer'
-import {bindActionCreators} from "redux";
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -90,7 +90,7 @@ class SignInScreen extends PureComponent {
             disabled={busy}
             executeAction={() => ((loggedIn) ? ['logoffuser'] : ['loginuser'])}
             onActionFinish={(resp) => {
-              if ( (resp === 'True') && loggedIn) {
+              if ((resp === 'True') && loggedIn) {
                 setMenu(MENU_ORDER)
               }
             }}
