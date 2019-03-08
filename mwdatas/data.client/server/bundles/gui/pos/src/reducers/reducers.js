@@ -3,7 +3,7 @@ import {
   posIdReducer, loadingReducer, localeReducer, navigationReducer, infoMessageReducer,
   customModelReducer, operatorReducer, posStateReducer, mwActionReducer, dialogsReducer,
   orderReducer, modifiersReducer, orderLastTimestampReducer, drawerStateReducer,
-  globalTimerReducer, timeDeltaReducer, themeReducer
+  globalTimerReducer, timeDeltaReducer, themeReducer, workingModeReducer
 } from 'posui/reducers'
 import menuReducer from './menuReducer'
 import currentMenuReducer from './currentMenuReducer'
@@ -29,7 +29,8 @@ const rootReducer = combineReducers({
   globalTimer: globalTimerReducer,
   timeDelta: timeDeltaReducer,
   theme: themeReducer,
-  products: productDataReducer
+  products: productDataReducer,
+  workingMode: workingModeReducer
 })
 
 export default rootReducer
