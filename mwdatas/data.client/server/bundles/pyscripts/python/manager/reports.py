@@ -98,7 +98,7 @@ def productMixReportByPeriod(posid, date_type="BusinessPeriod", *args):
 
     dlg_id = None
     try:
-        dlg_id = show_messagebox(posid, message="$PLEASE_WAIT", title="$PROCESSING", icon="info", buttons="", asynch=True, timeout=180000)
+        # dlg_id = show_messagebox(posid, message="$PLEASE_WAIT", title="$PROCESSING", icon="info", buttons="", asynch=True, timeout=180000)
         print_report(posid, model, True, "new_pmix_report", date_type, posid, selected_pos_id, start, end, store_id)
     finally:
         if dlg_id:

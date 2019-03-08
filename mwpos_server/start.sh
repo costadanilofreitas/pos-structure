@@ -17,5 +17,5 @@ export PYTHONHOME=$(pwd)/../python
 export HVLOGFILE=$DATADIR/logs/hv.log
 # export HVLOGLEVEL=56
 export HVMAXLOGFILES=120
-nohup ./genclient --node server --local ../genesis --data $DATADIR --tcp "127.0.0.1:$MWAPP_PORT" --force 1 &
+nohup ./genclient --local ../genesis --data $DATADIR --notime 1 --force 1 -- node server &
 popd>/dev/null
