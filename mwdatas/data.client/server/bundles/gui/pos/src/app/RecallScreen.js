@@ -6,6 +6,7 @@ import { Button } from 'posui/button'
 import { ScrollPanel, DataTable } from 'posui/widgets'
 import { xmlToJson, parseXml, ensureArray } from 'posui/utils'
 import injectSheet, { jss } from 'react-jss'
+import _ from 'lodash'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -86,6 +87,21 @@ const styles = (theme) => ({
   }
 })
 
+const ActionButton = (props) => (
+  <Button
+    rounded={true}
+    style={{
+      backgroundColor: '#b9663d',
+      color: 'white',
+      margin: '0.2vh',
+      height: '4vh',
+      width: '31%',
+      float: 'right'
+    }}
+    {...props}
+  />
+)
+
 class RecallScreen extends PureComponent {
 
   constructor(props) {
@@ -132,30 +148,15 @@ class RecallScreen extends PureComponent {
   actionRenderer = (line) => {
     return (
       <div>
-        <Button
-          rounded={true}
-          style={{ backgroundColor: '#b9663d', color: 'white', margin: '0.2vh', height: '4vh', width: '31%', float: 'right' }}
-          executeAction={() => {
-            return ['doRecallNext', '', line.orderId]
-          }}>
+        <ActionButton executeAction={['doRecallNext', '', line.orderId]}>
           <I18N id="$RECALL" defaultMessage="Recall" />
-        </Button>
-        <Button
-          rounded={true}
-          style={{ backgroundColor: '#b9663d', color: 'white', margin: '0.2vh', height: '4vh', width: '31%', float: 'right' }}
-          executeAction={() => {
-            return ['doPreviewOrder', line.orderId, line.session.pos]
-          }}>
+        </ActionButton>
+        <ActionButton executeAction={['doPreviewOrder', line.orderId, line.session.pos]}>
           <I18N id="$ORDER_PREVIEW" defaultMessage="Preview" />
-        </Button>
-        <Button
-          rounded={true}
-          style={{ backgroundColor: '#b9663d', color: 'white', margin: '0.2vh', height: '4vh', width: '31%', float: 'right' }}
-          executeAction={() => {
-            return ['doVoidStoredOrder', line.orderId, line.session.pos]
-          }}>
+        </ActionButton>
+        <ActionButton executeAction={['doVoidStoredOrder', line.orderId, line.session.pos]}>
           <I18N id="$CANCEL" defaultMessage="Cancel" />
-        </Button>
+        </ActionButton>
       </div>
     )
   }
@@ -240,8 +241,12 @@ class RecallScreen extends PureComponent {
     return (
       <div className={classes.container}>
         <div className={classes.titlePanel}>
-          <div className={classes.title}><I18N id="$SAVED_ORDERS" defaultMessage="Saved Orders" /></div>
-          <Button className={classes.refresh} onClick={this.retrieveOrders}><i className="fa fa-refresh fa-2x" aria-hidden="true"></i></Button>
+          <div className={classes.title}>
+            <I18N id="$SAVED_ORDERS" defaultMessage="Saved Orders" />
+          </div>
+          <Button className={classes.refresh} onClick={this.retrieveOrders}>
+            <i className="fa fa-refresh fa-2x" aria-hidden="true"/>
+          </Button>
         </div>
         <div className={classes.ordersPanel}>
           <div className={classes.absoluteWrapper}>

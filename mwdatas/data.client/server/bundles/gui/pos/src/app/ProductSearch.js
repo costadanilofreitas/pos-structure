@@ -186,6 +186,7 @@ class ProductSearch extends PureComponent {
         executeAction={() => onSellItem(line)}
         text="$SELL"
         defaultText="Sell"
+        blockOnActionRunning={true}
       />
     )
   }
@@ -209,7 +210,7 @@ class ProductSearch extends PureComponent {
       // no filter selected, return everything
       return data
     }
-    let dataFiltered = _.filter(data, (obj) => {
+    return _.filter(data, (obj) => {
       return _.some(searchFields, key => {
         const value = _.get(obj, key)
         return (
@@ -219,7 +220,6 @@ class ProductSearch extends PureComponent {
         )
       })
     })
-    return dataFiltered
   }
 
   render() {
@@ -234,8 +234,13 @@ class ProductSearch extends PureComponent {
           <div className={classes.titleWrapper}>
             <div className={classes.titleTopCont}>
               <div className={classes.title}><I18N id="$PRODUCT_SEARCH" defaultMessage="Product Search" /></div>
-              <Button className={classes.priceLookup} executeAction={['doPriceLookup']} rounded={true}>
-                <i className={`${classes.barCodeIcon} fa fa-barcode fa-2x`} aria-hidden="true"></i>
+              <Button
+                className={classes.priceLookup}
+                executeAction={['doPriceLookup']}
+                rounded={true}
+                blockOnActionRunning={true}
+              >
+                <i className={`${classes.barCodeIcon} fa fa-barcode fa-2x`} aria-hidden="true"/>
                 <I18N id="$PRICE_LOOKUP" defaultMessage="Price Lookup" />
               </Button>
             </div>

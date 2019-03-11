@@ -1,4 +1,4 @@
-export const themes = [
+const themes = [
   {
     /* shared with posui */
     name: 'default',
@@ -151,3 +151,4 @@ export const themes = [
     }
   }
 ]
+export default themes

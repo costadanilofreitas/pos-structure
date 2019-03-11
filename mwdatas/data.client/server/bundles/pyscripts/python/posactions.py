@@ -2022,8 +2022,8 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
 
             tender_details = ""
             if tendertype["electronicTypeId"] in (1, 2):
-                tender_details = json.dumps({"CNPJAuth": '',
-                                             "TransactionProcessor": '',
+                tender_details = json.dumps({"CNPJAuth": xml.attrib["CNPJAuth"],
+                                             "TransactionProcessor": xml.attrib["TransactionProcessor"],
                                              "Bandeira": xml.attrib["Bandeira"],
                                              "IdAuth": xml.attrib["IdAuth"],
                                              "AuthCode": xml.attrib["AuthCode"]})
@@ -5911,3 +5911,8 @@ def doSyncDeliveryMenu(posid):
 def doRuptureCleanup(posid):
     mbcontext.MB_EasySendMessage("Ruptura", TK_EVT_EVENT, data='\0CleanRupture\0%s' % posid)
     show_info_message(posid, "$RUPTURE_CLEANUP_STARTED")
+
+
+@action
+def isPyscriptsOnline(posid):
+    return True

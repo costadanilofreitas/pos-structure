@@ -5,7 +5,7 @@ import _ from 'lodash'
 import { I18N } from 'posui/core'
 import { Button } from 'posui/button'
 import { ButtonGrid } from 'posui/widgets'
-import { themes } from '../constants/themes'
+import themes from '../constants/themes'
 
 const styles = {
   container: {
@@ -58,6 +58,10 @@ const styles = {
   }
 }
 
+const FunctionButton = (props) => (
+  <Button rounded={true} className="function-btn" blockOnActionRunning={true} {...props}/>
+)
+
 export class FunctionScreen extends PureComponent {
   constructor(props) {
     super(props)
@@ -81,166 +85,172 @@ export class FunctionScreen extends PureComponent {
     //   <I18N id="$LEFT_HANDED" defaultMessage="Left Handed" /> :
     //   <I18N id="$RIGHT_HANDED" defaultMessage="Right Handed" />
     const mainButtons = {
-      0: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doTransfer', '2', 'True']}>
+      0: <FunctionButton style={styles.yellowBtn} executeAction={['doTransfer', '2', 'True']}>
            <I18N id="$SKIM" defaultMessage="Skim" />
-         </Button>,
-      1: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doTransfer', '3', 'True']}>
+         </FunctionButton>,
+      1: <FunctionButton style={styles.yellowBtn} executeAction={['doTransfer', '3', 'True']}>
            <I18N id="$CASH_PAID_IN" defaultMessage="Cash Paid In" />
-         </Button>,
-      2: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doReportSangria']}>
+         </FunctionButton>,
+      2: <FunctionButton style={styles.yellowBtn} executeAction={['doReportSangria']}>
            <I18N id="$SKIM_REPORT" defaultMessage="Skim Report" />
-         </Button>,
-      3: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['doVoidSale', 'True', '4', 'True']}>
+         </FunctionButton>,
+      3: <FunctionButton style={styles.yellowBtn} executeAction={['doVoidSale', 'True', '4', 'True']}>
            <I18N id="$VOID_SALE" defaultMessage="Void Sale" />
-         </Button>,
+         </FunctionButton>,
 
       5: (Number(level) === 30) ?
-        <Button rounded={true} className="function-btn" style={styles.yellowBtn} onClick={() => this.setState({ supportScreenOpened: true })}>
+        <FunctionButton
+          style={styles.yellowBtn}
+          onClick={() => this.setState({ supportScreenOpened: true })}
+        >
           <I18N id="$SUPPORT_MENU" defaultMessage="Support Menu"/>
-        </Button> : null,
-      6: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['importEmployees']}>
+        </FunctionButton> : null,
+      6: <FunctionButton style={styles.greenBtn} executeAction={['importEmployees']}>
            <I18N id="$UPDATE_USERS" defaultMessage="Update Users" />
-         </Button>,
-      7: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['openday', 'false']}>
-            <div>
-              <I18N id="$OPEN_DAY" defaultMessage="Open Day" />
-              <br/>
-              (<I18N id="$THIS_POS" defaultMessage="This POS" />)
-            </div>
-          </Button>,
-      8: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['closeday', 'false']}>
-            <div>
-              <I18N id="$CLOSE_DAY" defaultMessage="Close Day" />
-              <br/>
-              (<I18N id="$THIS_POS" defaultMessage="This POS" />)
-            </div>
-          </Button>,
-      9: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['storewideRestart']}>
-            <I18N id="$STOREWIDE_RESTART" defaultMessage="Storewide Restart" />
-          </Button>,
-      10: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doOpenDrawer', 'True']}>
+         </FunctionButton>,
+      7: <FunctionButton style={styles.redBtn} executeAction={['openday', 'false']}>
+           <div>
+             <I18N id="$OPEN_DAY" defaultMessage="Open Day" />
+             <br/>
+             (<I18N id="$THIS_POS" defaultMessage="This POS" />)
+           </div>
+         </FunctionButton>,
+      8: <FunctionButton style={styles.redBtn} executeAction={['closeday', 'false']}>
+           <div>
+             <I18N id="$CLOSE_DAY" defaultMessage="Close Day" />
+             <br/>
+             (<I18N id="$THIS_POS" defaultMessage="This POS" />)
+           </div>
+         </FunctionButton>,
+      9: <FunctionButton style={styles.redBtn} executeAction={['storewideRestart']}>
+           <I18N id="$STOREWIDE_RESTART" defaultMessage="Storewide Restart" />
+         </FunctionButton>,
+      10: <FunctionButton style={styles.redBtn} executeAction={['doOpenDrawer', 'True']}>
             <I18N id="$OPEN_DRAWER" defaultMessage="Open Drawer" />
-          </Button>,
-      12: <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doVoidPaidSale', 'false', 'true', 'true']}>
+          </FunctionButton>,
+      12: <FunctionButton style={styles.redBtn} executeAction={['doVoidPaidSale', 'false', 'true', 'true']}>
            <I18N id="$CLOSED_ORDERS" defaultMessage="Closed Orders" />
-         </Button>,
-      13: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doToggleMirrorScreen']}>
+         </FunctionButton>,
+      13: <FunctionButton style={styles.greenBtn} executeAction={['doToggleMirrorScreen']}>
            <I18N id="$MIRROR_SCREEN" defaultMessage="Mirror Screen" />
-         </Button>,
-      14: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['cashReport', 'ask', 'RealDate']}>
+         </FunctionButton>,
+      14: <FunctionButton style={styles.darkBtn} executeAction={['cashReport', 'ask', 'RealDate']}>
             <I18N id="$RESTAURANT_SALES_REAL_DATE" defaultMessage="Restaurant Sales Real Date" />
-          </Button>,
-      15: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['cashReport', 'none', 'xml', 'none']}>
+          </FunctionButton>,
+      15: <FunctionButton style={styles.darkBtn} executeAction={['cashReport', 'none', 'xml', 'none']}>
             <I18N id="$RESTAURANT_SALES_XML" defaultMessage="Restaurant Sales XML" />
-          </Button>,
-      16: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['productMixReportByPeriod', 'RealDate']}>
+          </FunctionButton>,
+      16: <FunctionButton style={styles.darkBtn} executeAction={['productMixReportByPeriod', 'RealDate']}>
             <I18N id="$PRODUCT_MIX_REAL_DATE" defaultMessage="Product Mix Real Date" />
-          </Button>,
-      17: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['doPrintLogoffReport']}>
+          </FunctionButton>,
+      17: <FunctionButton style={styles.darkBtn} executeAction={['doPrintLogoffReport']}>
             <I18N id="$LOGOFF_REPORT" defaultMessage="Logoff Report" />
-          </Button>,
-      18: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['voidedOrdersReport', 'ask', 'RealDate']}>
+          </FunctionButton>,
+      18: <FunctionButton style={styles.darkBtn} executeAction={['voidedOrdersReport', 'ask', 'RealDate']}>
             <I18N id="$VOIDED_REPORT" defaultMessage="Voided Orders Report" />
-          </Button>,
-      20: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['selectTheme', this.availableThemes]}>
+          </FunctionButton>,
+      20: <FunctionButton style={styles.greenBtn} executeAction={['selectTheme', this.availableThemes]}>
             <I18N id="$CHANGE_THEME" defaultMessage="Change Theme" />
-          </Button>,
-      21: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['cashReport', 'ask', 'BusinessPeriod']}>
+          </FunctionButton>,
+      21: <FunctionButton style={styles.darkBtn} executeAction={['cashReport', 'ask', 'BusinessPeriod']}>
             <I18N id="$RESTAURANT_SALES_Business_Period" defaultMessage="Restaurant Sales Business Period" />
-          </Button>,
-      22: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['cashReport', 'current', 'SessionId']}>
+          </FunctionButton>,
+      22: <FunctionButton style={styles.darkBtn} executeAction={['cashReport', 'current', 'SessionId']}>
             <I18N id="$FLASH_REPORT" defaultMessage="Flash Report" />
-          </Button>,
-      23: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['productMixReportByPeriod', 'BusinessPeriod']}>
+          </FunctionButton>,
+      23: <FunctionButton style={styles.darkBtn} executeAction={['productMixReportByPeriod', 'BusinessPeriod']}>
             <I18N id="$PRODUCT_MIX_BUSINESS_PERIOD" defaultMessage="Product Mix Business Period" />
-          </Button>,
-      24: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['hourlySalesReport']}>
+          </FunctionButton>,
+      24: <FunctionButton style={styles.darkBtn} executeAction={['hourlySalesReport']}>
             <I18N id="$HOURLY_SALES" defaultMessage="Hourly Sales" />
-          </Button>,
-      25: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['speedOfServiceReport']}>
+          </FunctionButton>,
+      25: <FunctionButton style={styles.darkBtn} executeAction={['speedOfServiceReport']}>
             <I18N id="$SPEEDOFSERVICE" defaultMessage="Speed of Service" />
-          </Button>,
-      26: <Button rounded={true} className="function-btn" style={styles.darkBtn} executeAction={['salesByBrandReport', 'ask', 'BusinessPeriod']}>
+          </FunctionButton>,
+      26: <FunctionButton style={styles.darkBtn} executeAction={['salesByBrandReport', 'ask', 'BusinessPeriod']}>
             <I18N id="$SALESBYBRAND" defaultMessage="Sales by Brand" />
-          </Button>,
-      27: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doCheckUpdates']}>
+          </FunctionButton>,
+      27: <FunctionButton style={styles.greenBtn} executeAction={['doCheckUpdates']}>
             <I18N id="$CHECK_UPDATES" defaultMessage="Check for Updates" />
-          </Button>
+          </FunctionButton>
     }
 
     const supportButtons = {
-      0: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['openday', 'false', 'true']}>
+      0: <FunctionButton style={styles.greenBtn} executeAction={['openday', 'false', 'true']}>
            <div>
              <I18N id="$FORCE_OPEN_DAY" defaultMessage="Force Open Day" />
              <br/>
              (<I18N id="$THIS_POS" defaultMessage="This POS" />)
            </div>
-         </Button>,
-      2: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doSearchSatModules']}>
+         </FunctionButton>,
+      2: <FunctionButton style={styles.blueBtn} executeAction={['doSearchSatModules']}>
            <I18N id="$SAT_STATUS" defaultMessage="SAT Status" />
-         </Button>,
-      3: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doGetKDSstatus']}>
+         </FunctionButton>,
+      3: <FunctionButton style={styles.blueBtn} executeAction={['doGetKDSstatus']}>
            <I18N id="$KDS_STATUS" defaultMessage="KDS Status" />
-         </Button>,
-      4: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doGetPrinterStatus']}>
+         </FunctionButton>,
+      4: <FunctionButton style={styles.blueBtn} executeAction={['doGetPrinterStatus']}>
            <I18N id="$PRINTER_STATUS" defaultMessage="Printer Status" />
-         </Button>,
-      5: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doCheckSEFAZ']}>
+         </FunctionButton>,
+      5: <FunctionButton style={styles.blueBtn} executeAction={['doCheckSEFAZ']}>
            <I18N id="$SEFAZ_CONNECTION" defaultMessage="SEFAZ Connection" />
-         </Button>,
+         </FunctionButton>,
       6: (posFunc !== 'OT') ?
-        <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doGetSATOperationalStatus']}>
+        <FunctionButton style={styles.blueBtn} executeAction={['doGetSATOperationalStatus']}>
           <I18N id="$SAT_INFO" defaultMessage="SAT Info" />
-        </Button> : null,
+        </FunctionButton> : null,
 
-      7: <Button rounded={true} className="function-btn" style={styles.purpleBtn} executeAction={['doPurgeKDSs']}>
+      7: <FunctionButton style={styles.purpleBtn} executeAction={['doPurgeKDSs']}>
            <I18N id="$KDS_CLEANUP" defaultMessage="KDS Cleanup" />
-         </Button>,
-      8: <Button rounded={true} className="function-btn" style={styles.purpleBtn} executeAction={['doPurgeStoredOrders']}>
+         </FunctionButton>,
+      8: <FunctionButton style={styles.purpleBtn} executeAction={['doPurgeStoredOrders']}>
            <I18N id="$STORED_ORDERS_CLEANUP" defaultMessage="Stored Orders Cleanup" />
-         </Button>,
-      10: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doUpdateBlacklist']}>
+         </FunctionButton>,
+      10: <FunctionButton style={styles.blueBtn} executeAction={['doUpdateBlacklist']}>
             <I18N id="$UPDATE_BLACKLIST" defaultMessage="Update Blacklist" />
-          </Button>,
-      11: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doUpdateVTT']}>
+          </FunctionButton>,
+      11: <FunctionButton style={styles.blueBtn} executeAction={['doUpdateVTT']}>
             <I18N id="$UPDATE_VTT" defaultMessage="Update VTT" />
-          </Button>,
-      12: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doCheckSiTef']}>
+          </FunctionButton>,
+      12: <FunctionButton style={styles.blueBtn} executeAction={['doCheckSiTef']}>
             <I18N id="$SITEF_CONNECTION" defaultMessage="SITEF Connection" />
-          </Button>,
-      13: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doFixPaf']}>
+          </FunctionButton>,
+      13: <FunctionButton style={styles.blueBtn} executeAction={['doFixPaf']}>
             <I18N id="$EQUALIZE_PAF" defaultMessage="Equalize PAF" />
-          </Button>,
+          </FunctionButton>,
 
-      14: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doGetPigeonVersions']}>
+      14: <FunctionButton style={styles.greenBtn} executeAction={['doGetPigeonVersions']}>
             <I18N id="$SOFTWARE_VERSION" defaultMessage="Software Version" />
-          </Button>,
-      15: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doRecreateXMLFiscal']}>
+          </FunctionButton>,
+      15: <FunctionButton style={styles.greenBtn} executeAction={['doRecreateXMLFiscal']}>
             <I18N id="$CREATE_FISCAL_XML" defaultMessage="Create Fiscal XML" />
-          </Button>,
-      19: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doReSignXML']}>
+          </FunctionButton>,
+      19: <FunctionButton style={styles.greenBtn} executeAction={['doReSignXML']}>
             <I18N id="$RESIGN_XML" defaultMessage="Resign XML" />
-          </Button>,
-      20: <Button rounded={true} className="function-btn" style={styles.greenBtn} executeAction={['doFixSefazProtocol']}>
+          </FunctionButton>,
+      20: <FunctionButton style={styles.greenBtn} executeAction={['doFixSefazProtocol']}>
             <I18N id="$FIX_SEFAZ_PROTOCOL" defaultMessage="Fix SEFAZ Protocol" />
-          </Button>,
+          </FunctionButton>,
 
       21: (posFunc !== 'OT') ?
-        <Button rounded={true} className="function-btn" style={styles.redBtn} executeAction={['doKill']}>
+        <FunctionButton style={styles.redBtn} executeAction={['doKill']}>
           <I18N id="$CLOSE_APPLICATION" defaultMessage="Close Application" />
-        </Button> : null,
-      22: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doSyncDeliveryMenu']}>
+        </FunctionButton> : null,
+      22: <FunctionButton style={styles.blueBtn} executeAction={['doSyncDeliveryMenu']}>
             <I18N id="$SYNC_DELIVERY_MENU" defaultMessage="Sync Delivery Menu" />
-          </Button>,
-      23: <Button rounded={true} className="function-btn" style={styles.blueBtn} executeAction={['doRuptureCleanup']}>
+          </FunctionButton>,
+      23: <FunctionButton style={styles.blueBtn} executeAction={['doRuptureCleanup']}>
             <I18N id="$RUPTURE_CLEANUP" defaultMessage="Rupture Cleanup" />
-          </Button>,
-      24: <Button rounded={true} className="function-btn" style={styles.yellowBtn} executeAction={['changeRemoteOrderStoreStatus']}>
+          </FunctionButton>,
+      24: <FunctionButton style={styles.yellowBtn} executeAction={['changeRemoteOrderStoreStatus']}>
             <I18N id="$CHANGE_REMOTE_STORE_STATUS" defaultMessage="Change Remote Order Status" />
-          </Button>,
-      27: <Button rounded={true} className="function-btn" style={styles.brownBtn} onClick={() => this.setState({ supportScreenOpened: false })}>
+          </FunctionButton>,
+      27: <FunctionButton
+            style={styles.brownBtn}
+            onClick={() => this.setState({ supportScreenOpened: false })}
+          >
             <I18N id="$BACK" defaultMessage="Back" />
-          </Button>
+          </FunctionButton>
     }
 
     return (
