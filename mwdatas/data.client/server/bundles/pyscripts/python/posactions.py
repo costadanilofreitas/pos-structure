@@ -1788,6 +1788,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
         session = get_operator_session(model)
         pod_type = get_podtype(model)
         round_donation_value = 0.0
+        offline_bandeira = None
 
         xml_order = get_current_order(model)
         if xml_order.get("state") != "TOTALED":
@@ -1805,6 +1806,27 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
         if tendertype is None:
             show_messagebox(pos_id, message="$INVALID_TENDER_TYPE|%s" % tender_type_id, icon="error")
             return
+
+        if tender_type_id == TenderType.external_card:
+            valuable_bandeiras = ["1 - Débito",
+                                  "2 - Visa",
+                                  "3 - Mastercard",
+                                  "4 - American Express",
+                                  "5 - Elo",
+                                  "6 - Outros Crédito",
+                                  "7 - Vale Refeição"]
+            valuable_to_real = {0: 99990,  # see BandeiraCartão table on fiscal_persistcomp
+                                1: 1,
+                                2: 2,
+                                3: 4,
+                                4: 31,
+                                5: 99991,
+                                6: 99992}
+
+            if not offline_bandeira:
+                offline_bandeira = valuable_to_real[show_listbox(pos_id, valuable_bandeiras, message="Selecione o Cartão:")]
+
+
 
         # Check manager authorization
         if tendertype['needAuth'] and not get_authorization(pos_id, min_level=LEVEL_MANAGER, model=model):
@@ -1962,7 +1984,8 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                         params_fiscal["receipt_merchant"] = base64.b64decode(xml.attrib["ReceiptMerchant"]).decode('iso-8859-1')
                         params_fiscal["receipt_customer"] = base64.b64decode(xml.attrib["ReceiptCustomer"]).decode('iso-8859-1')
                         params_fiscal["payment_id"] = id_fila
-
+                    if offline_bandeira is not None:
+                        params_fiscal["bandeira"] = offline_bandeira
                     conn.pquery("fiscal_savePaymentData", **params_fiscal)
                 except Exception as _:
                     sys_log_exception("Erro salvando dados fiscais")

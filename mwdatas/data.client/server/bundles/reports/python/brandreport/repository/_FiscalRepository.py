@@ -25,6 +25,6 @@ class FiscalRepository(BaseRepository):
                           CASE WHEN bc.Descricao IS NOT NULL THEN bc.Descricao ELSE 'OUTROS' END AS Brand, pd.Type as Type, SUM(pd.Amount) as Amount, COUNT(pd.OrderId)
                           FROM fiscal.PaymentData pd
                           LEFT JOIN fiscal.BandeiraCartao bc on pd.Bandeira = bc.Bandeira
-                          WHERE pd.Type IN (1,2) AND pd.OrderId IN ({0})
+                          WHERE pd.Type IN (1,2,3) AND pd.OrderId IN ({0})
                           GROUP BY bc.Descricao, pd.Type
                           ORDER BY Type ASC, Amount DESC"""
