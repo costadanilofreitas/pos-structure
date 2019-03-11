@@ -4,7 +4,7 @@ import { connect } from 'react-redux'
 import { Button } from 'posui/button'
 import { NavigationGrid, ButtonGrid, SaleTypeSelector } from 'posui/widgets'
 import { SalePanel } from 'posui/sale-panel'
-import { getFirstOpenOption, findClosestParent } from 'posui/utils'
+import { getAnyOpenOption, findClosestParent } from 'posui/utils'
 import { I18N } from 'posui/core'
 import injectSheet, { jss } from 'react-jss'
 import _ from 'lodash'
@@ -409,18 +409,21 @@ class SaleScreen extends PureComponent {
       const nextOrder = nextProps.order || {}
       let newSelectedLine = selectedLine
       const lastModifiedLine = (nextOrder['@attributes'] || {}).lastModifiedLine
+      let hasOpenOption = false
       if (lastModifiedLine) {
-        const line = getFirstOpenOption(nextOrder.SaleLine, lastModifiedLine)
+        const line = getAnyOpenOption(nextOrder.SaleLine, lastModifiedLine)
         if (line) {
           newSelectedLine = line
+          hasOpenOption = true
         }
       }
       // check if selected line is a modifier and try to find closest parent
       const nextParent = findClosestParent(nextOrder, newSelectedLine)
-      if (!_.isEqual(nextParent, selectedLine)) {
+      if (hasOpenOption || !_.isEqual(nextParent, selectedLine)) {
         this.setState({
           selectedLine: nextParent,
-          showModifierScreen: true
+          showModifierScreen: true,
+          skipAutoSelect: true
         })
       }
     }
@@ -488,6 +491,7 @@ class SaleScreen extends PureComponent {
                     skipAutoSelect={skipAutoSelect}
                     onLineClicked={this.handleLineClicked}
                     onHeaderRendered={this.handleHeaderRendered}
+                    modQtyPrefixes={{}}
                   />
                 </div>
               </div>
@@ -534,6 +538,7 @@ class SaleScreen extends PureComponent {
                     }
                     {(isOption) &&
                       <Options
+                        order={order}
                         selectedLine={selectedLine}
                         selectedParent={selectedParent}
                         sellOption={this.sellOption}

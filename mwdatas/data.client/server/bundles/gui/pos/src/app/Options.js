@@ -1,8 +1,10 @@
 import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
-import { NavigationGrid } from 'posui/widgets'
 import _ from 'lodash'
+import memoize from 'memoize-one'
+import { NavigationGrid } from 'posui/widgets'
+import { Button } from 'posui/button'
 import injectSheet, { jss } from 'react-jss'
 import { I18N } from 'posui/core'
 
@@ -18,6 +20,15 @@ const styles = {
     fontWeight: 'bold',
     fontSize: '4.5vh',
     position: 'relative'
+  },
+  optQty: {
+    position: 'absolute',
+    right: '2px',
+    top: '2px'
+  },
+  opt: {
+    fontSize: '1.4vh',
+    backgroundColor: '#ffe082'
   }
 }
 
@@ -58,9 +69,53 @@ class Options extends PureComponent {
     }
   }
 
+  getOptQty = memoize((order, selectedLine) => {
+    const optQty = {}
+    let selectedLineLevel = parseFloat(selectedLine.level, 10)
+    let foundLevel = null
+    _.forEach(order.SaleLine || [], (line) => {
+      const lineAttrs = line['@attributes'] || {}
+      if (lineAttrs === selectedLine) {
+        foundLevel = selectedLineLevel
+      } else if (foundLevel !== null) {
+        const level = parseFloat(lineAttrs.level, 10)
+        if (level > foundLevel) {
+          if (!_.has(optQty, lineAttrs.partCode)) {
+            optQty[lineAttrs.partCode] = 0
+          }
+          optQty[lineAttrs.partCode] += parseInt(lineAttrs.qty, 10)
+        } else {
+          return false
+        }
+      }
+      return true
+    })
+    return optQty
+  })
+
+  handleRenderButton = (optQty) => (item, key, sellFunc) => {
+    const { classes } = this.props
+    const selected = Boolean(item.selected)
+    const qty = optQty[item.plu]
+
+    return (
+      <Button
+        key={`${key}.${selected}.${item.qty}.${item.plu}`}
+        className={classes.opt}
+        executeAction={() => sellFunc(item)}
+        blockOnActionRunning
+        rounded
+      >
+        {(qty > 0) && <div className={classes.optQty}>{qty}</div>}
+        {item.text}
+      </Button>
+    )
+  }
+
   render() {
-    const { sellOption, classes } = this.props
+    const { sellOption, classes, order, selectedLine } = this.props
     const modifierGroup = this.getOptions()
+    const optQty = this.getOptQty(order, selectedLine)
 
     return (
       <div className={classes.container}>
@@ -70,10 +125,11 @@ class Options extends PureComponent {
         <NavigationGrid
           groups={modifierGroup.groups}
           sellFunc={(item) => sellOption(item, modifierGroup.itemId)}
+          onRenderSaleButton={this.handleRenderButton(optQty)}
           cols={11}
           rows={11}
           maxSpanCols={11}
-          expandCol={7}
+          expandCol={5}
           styleTitle={{
             fontSize: '1.3vh',
             color: 'black'
@@ -91,6 +147,10 @@ Options.propTypes = {
    * @ignore
    */
   classes: PropTypes.object,
+  /**
+   * Order state from `orderReducer`
+   */
+  order: PropTypes.object.isRequired,
   /**
    * Navigation state from `navigationReducer`
    */
