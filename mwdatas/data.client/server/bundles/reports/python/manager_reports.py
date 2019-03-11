@@ -115,8 +115,8 @@ def _fmt_number(number, decimalPlaces=2, decimalSep='.', thousandsSep=','):
     return sign + number
 
 
-def hourlySales(pos_id, period, pos, store_id="", *args):
-
+def hourlySales(posid, period, pos, store_id="", *args):
+    #pydevd.settrace('localhost', port=9123, stdoutToServer=True, stderrToServer=True, suspend=False)
     if pos == '0':
         # get a pos list
         msg = mbcontext.MB_EasySendMessage("PosController", TK_POS_GETPOSLIST)
@@ -124,228 +124,187 @@ def hourlySales(pos_id, period, pos, store_id="", *args):
             sys_log_error("Could not retrieve PosList")
             raise Exception("Could not retrieve PosList")
 
-        poslist = sorted(map(int, msg.data.split("\0")))
+        pos_list = sorted(map(int, msg.data.split("\0")))
     else:
-        poslist = [pos]
+        pos_list = [pos]
 
-    hourly = defaultdict(lambda: {
-        'Transactions': 0, 'TotalGross': ZERO, 'TotalNet': ZERO, 'TotalDiscount': ZERO, 'GiftCardsTotalAmount': ZERO,
-        'EatIn_Transactions': 0, 'EatIn_TotalGross': ZERO, 'EatIn_TotalNet': ZERO, 'EatIn_TotalDiscount': ZERO, 'EatIn_GiftCardsTotalAmount': ZERO,
-        'TakeOut_Transactions': 0, 'TakeOut_TotalGross': ZERO, 'TakeOut_TotalNet': ZERO, 'TakeOut_TotalDiscount': ZERO, 'TakeOut_GiftCardsTotalAmount': ZERO,
-        'DriveThru_Transactions': 0, 'DriveThru_TotalGross': ZERO, 'DriveThru_TotalNet': ZERO, 'DriveThru_TotalDiscount': ZERO, 'DriveThru_GiftCardsTotalAmount': ZERO
-    })
+    order_repository = OrderRepository(mbcontext, pos_list, u"")
+    account_repository = AccountRepository(mbcontext)
+    tender_repository = TenderRepository(mbcontext)
+    fiscal_repository = FiscalRepository(mbcontext)
+    pos_ctrl_repository = PosCtrlRepository(mbcontext)
+    operator_id = None
+    report_pos = None
 
-    # copy struct hourly
-    kiosk_hourly = copy.copy(hourly)
-    delivery_hourly = copy.copy(hourly)
-    drive_hourly = copy.copy(hourly)
+    cash_report = CashReport(order_repository, account_repository, tender_repository, fiscal_repository,
+                             pos_ctrl_repository, store_id)
+    pos_id = int(posid)
 
-    pos_error = []
-    cursor = None
-    for pos_db_id in poslist:
-        conn = None
+    report_query = cash_report.generate_hourly_sale(report_pos, period, period)
+    hourly = defaultdict(lambda: {'Store_Transaction': ZERO,
+                                  'DriveThru_Transaction': ZERO,
+                                  'Kiosk_Transaction': ZERO,
+                                  'Store_Total': ZERO,
+                                  'DriveThru_Total': ZERO,
+                                  'Kiosk_Total': ZERO,
+                                  'Store_Transaction_Accumulated': ZERO,
+                                  'DriveThru_Transaction_Accumulated': ZERO,
+                                  'Kiosk_Transaction_Accumulated': ZERO,
+                                  'Store_Total_Accumulated': ZERO,
+                                  'DriveThru_Total_Accumulated': ZERO,
+                                  'Kiosk_Total_Accumulated': ZERO})
+
+    store_transaction_accumulated = ZERO
+    drive_thru_transaction_accumulated = ZERO
+    kiosk_transaction_accumulated = ZERO
+
+    store_total_accumulated = ZERO
+    drive_thru_total_accumulated = ZERO
+    kiosk_total_accumulated = ZERO
+
+    for row in report_query:
+        store_type = row[0]
+        order_date = row[1]
+        order_hour = row[2]
+        order_minute = row[3]
+        total_hour = row[4]
+        total_transaction = row[5]
         try:
-            # opens the database connection
-            conn = dbd.open(mbcontext, dbname=str(pos_db_id))
-
-            # reserve the database connection
-            conn.transaction_start()
-
-            # set the period
-            conn.query("DELETE FROM temp.ReportsPeriod")
-            conn.query("INSERT INTO temp.ReportsPeriod(StartPeriod,EndPeriod) VALUES(%s,%s)" % (period, period))
-
-            # get the data
-            cursor = conn.select("Select * from temp.HourlySalesReportView WHERE PosId='%s' AND BusinessPeriod='%s';" % (pos_db_id, period))
-            for row in cursor:
-                Day, Time, Transactions, TotalGross, TotalNet, TotalDiscount, GiftCardsTotalAmount, EIT, EIG, EIN, EID, EIGC, TOT, TOG, TON, TOD, TOGC, DTT, DTG, DTN, DTD, DTGC, PodType = map(row.get_entry, ("SlotDay", "SlotTime", "Transactions", "TotalGross", "TotalNet", "TotalDiscount", "GiftCardsTotalAmount", "EatIn_Transactions", "EatIn_TotalGross", "EatIn_TotalNet", "EatIn_TotalDiscount", "EatIn_GiftCardsTotalAmount", "TakeOut_Transactions", "TakeOut_TotalGross", "TakeOut_TotalNet", "TakeOut_TotalDiscount", "TakeOut_GiftCardsTotalAmount", "DriveThru_Transactions", "DriveThru_TotalGross", "DriveThru_TotalNet", "DriveThru_TotalDiscount", "DriveThru_GiftCardsTotalAmount", "PODType"))
-
-                slot = hourly[Day, Time]
-
-                if PodType == 'KK':
-                    kiosk_slot = kiosk_hourly[Day, Time]
-                    kiosk_slot['EatIn_Transactions'] += D(EIT or 0)
-                    kiosk_slot['EatIn_TotalGross'] += D(EIG or 0)
-                    kiosk_slot['TakeOut_Transactions'] += D(TOT or 0)
-                    kiosk_slot['TakeOut_TotalGross'] += D(TOG or 0)
-
-                elif PodType == 'DL':
-                    delivery_slot = delivery_hourly[Day, Time]
-                    delivery_slot['Transactions'] += int(Transactions or 0)
-                    delivery_slot['TotalGross'] += D(TotalGross or 0)
-
-                elif PodType == 'DT':
-                    drive_slot = drive_hourly[Day, Time]
-                    drive_slot['DriveThru_Transactions'] += D(DTT or 0)
-                    drive_slot['DriveThru_TotalGross'] += D(DTG or 0)
-                    drive_slot['DriveThru_TotalNet'] += D(DTN or 0)
-                    drive_slot['DriveThru_TotalDiscount'] += D(DTD or 0)
-                    drive_slot['DriveThru_GiftCardsTotalAmount'] += D(DTGC or 0)
-
-                else:
-                    slot['Transactions'] += int(Transactions or 0)
-                    slot['TotalGross'] += D(TotalGross or 0)
-                    slot['TotalNet'] += D(TotalNet or 0)
-                    slot['TotalDiscount'] += D(TotalDiscount or 0)
-                    slot['GiftCardsTotalAmount'] += D(GiftCardsTotalAmount or 0)
-                    slot['EatIn_Transactions'] += D(EIT or 0)
-                    slot['EatIn_TotalGross'] += D(EIG or 0)
-                    slot['EatIn_TotalNet'] += D(EIN or 0)
-                    slot['EatIn_TotalDiscount'] += D(EID or 0)
-                    slot['EatIn_GiftCardsTotalAmount'] += D(EIGC or 0)
-                    slot['TakeOut_Transactions'] += D(TOT or 0)
-                    slot['TakeOut_TotalGross'] += D(TOG or 0)
-                    slot['TakeOut_TotalNet'] += D(TON or 0)
-                    slot['TakeOut_TotalDiscount'] += D(TOD or 0)
-                    slot['TakeOut_GiftCardsTotalAmount'] += D(TOGC or 0)
-
+            slot = hourly[order_date, str(order_hour) + ":" + str(order_minute).zfill(2)]
+            if store_type == 'STORE':
+                store_transaction_accumulated += int(total_transaction or 0)
+                store_total_accumulated += D(total_hour or 0)
+                slot['Store_Transaction'] = int(total_transaction or 0)
+                slot['Store_Total'] = D(total_hour or 0)
+                slot['Store_Transaction_Accumulated'] = store_transaction_accumulated
+                slot['Store_Total_Accumulated'] = store_total_accumulated
+            elif store_type == "DT":
+                drive_thru_transaction_accumulated += int(total_transaction or 0)
+                drive_thru_total_accumulated += D(total_hour or 0)
+                slot['DriveThru_Transaction'] = int(total_transaction or 0)
+                slot['DriveThru_TotalGross'] = D(total_hour or 0)
+                slot['DriveThru_Transaction_Accumulated'] = drive_thru_transaction_accumulated
+                slot['DriveThru_Total_Accumulated'] = drive_thru_total_accumulated
+            else:
+                kiosk_transaction_accumulated += int(total_transaction or 0)
+                kiosk_total_accumulated += D(total_hour or 0)
+                slot['Kiosk_Transaction'] = int(total_transaction or 0)
+                slot['Kiosk_TotalGross'] = D(total_hour or 0)
+                slot['Kiosk_Transaction_Accumulated'] = kiosk_transaction_accumulated
+                slot['Kiosk_Total_Accumulated'] = kiosk_total_accumulated
         except Exception as ex:
-            pos_error.append(pos_db_id)
-            sys_log_exception("Erro POS: " + str(pos_db_id) + " Mensagem: " + ex.message)
-        finally:
-            # close database connection
-            if conn:
-                conn.close()
+            sys_log_exception('erro %s' % ex)
+            pass
 
     # create string I/O to append the report info
-    report = StringIO()
-    if not cursor:
-        return
+    try:
+        report = StringIO()
 
-    #         11        21        31      |
-    # 12345678901234567890123456789012345678
-    #
-    # ======================================
-    #          Hourly Sales Report
-    #   Data/hora.....: 03/26/2009 13:06:12
-    #   Dia Util......: 03/26/2009
-    #   ID Operador ..: 01 (Reg # 01)
-    # ======================================
-    #  Slot Day
-    #  Time    NT     disc      net    gross
-    # --------------------------------------
-    #  03/26/2009
-    #  13:00   123 1234.67 12345.78 12345.78
-    #       EI 123 1234.67 12345.78 12345.78
-    #       TO 123 1234.67 12345.78 12345.78
-    #       DT 123 1234.67 12345.78 12345.78
-    # ======================================
+        #         11        21        31      |
+        # 12345678901234567890123456789012345678
+        #
+        # ======================================
+        #          Hourly Sales Report
+        #   Data/hora.....: 03/26/2009 13:06:12
+        #   Dia Util......: 03/26/2009
+        #   ID Operador ..: 01 (Reg # 01)
+        # ======================================
+        #  Slot Day
+        #  Time    NT     disc      net    gross
+        # --------------------------------------
+        #  03/26/2009
+        #  13:00   123 1234.67 12345.78 12345.78
+        #       EI 123 1234.67 12345.78 12345.78
+        #       TO 123 1234.67 12345.78 12345.78
+        #       DT 123 1234.67 12345.78 12345.78
+        # ======================================
 
-    store_id = store_id.zfill(5)
-    # header
-    print_poslist = 'Todos' if len(poslist) > 1 else poslist
-    if pos_error:
-        title = _center("Relatorio Horario de Vendas (Parcial)")
-    else:
+        store_id = store_id.zfill(5)
+        # header
+        print_poslist = 'Todos' if len(pos_list) > 1 else pos_list
+        # if pos_error:
+        #     title = _center("Relatorio Horario de Vendas (Parcial)")
+        # else:
+        #     title = _center("Relatorio Horario de Vendas")
         title = _center("Relatorio Horario de Vendas")
-    current_datetime = time.strftime(DATE_TIME_FMT)
-    business_period = "%02d/%02d/%04d" % (int(period[6:8]), int(period[4:6]), int(period[:4]))
-    report.write(
-        """%(SEPARATOR)s
-        %(title)s
-          Loja..........: %(store_id)s
-          Data/hora.....: %(current_datetime)s
-          Dia Util......: %(business_period)s
-          POS incluido..: %(print_poslist)s
-        """ % _join(globals(), locals()))
-    if pos_error:
-        report.write("  POS erro......: %s\n" % pos_error)
-    report.write("%s\n" % (SEPARATOR))
-    # report.write("Data\n")
-    report.write(" Tipo  Hora  NT    Total  NT Acumulado\n")
-    report.write("%s\n" % (SINGLE_SEPARATOR))
+        current_datetime = time.strftime(DATE_TIME_FMT)
+        business_period = "%02d/%02d/%04d" % (int(period[6:8]), int(period[4:6]), int(period[:4]))
+        report.write(
+            """%(SEPARATOR)s
+    %(title)s
+      Loja..........: %(store_id)s
+      Data/hora.....: %(current_datetime)s
+      Dia Util......: %(business_period)s
+      POS incluido..: %(print_poslist)s
+    """ % _join(globals(), locals()))
+        # if pos_error:
+        #     report.write("  POS erro......: %s\n" % pos_error)
+        report.write("%s\n" % (SEPARATOR))
+        # report.write("Data\n")
+        report.write(" Tipo  Hora  NT    Total  NT Acumulado\n")
+        report.write("%s\n" % (SINGLE_SEPARATOR))
 
-    listDT = hourly.keys()
-    listDT.sort()
-    lastDay = ""
-    running_totals = {'Transactions': 0, 'TotalDiscount': ZERO, 'TotalNet': ZERO, 'TotalGross': ZERO, 'StoreTransactions': ZERO, 'StoreTotalGross': ZERO}
-    # Copy struct running_totals
-    kiosk_running_totals = copy.copy(running_totals)
-    delivery_running_totals = copy.copy(running_totals)
-    drive_running_totals = copy.copy(running_totals)
+        listDT = hourly.keys()
+        lastDay = ""
+        listDT.sort()
+        dt_lanes = int(read_swconfig(mbcontext, "Store.DTLanes") or 0)
+        kiosk = int(read_swconfig(mbcontext, "Store.Kiosk") or 0)
 
-    show_total = False
-    for key in listDT:
-        Day, Time = key
+        for key in listDT:
+            Day, Time = key
 
-        if (lastDay != Day):
-            report.write(" %02d/%02d/%04d\n" % (int(Day[8:10]), int(Day[5:7]), int(Day[:4])))
-            lastDay = Day
+            if (lastDay != Day):
+                report.write(" %02d/%02d/%04d\n" % (int(Day[8:10]), int(Day[5:7]), int(Day[:4])))
+                lastDay = Day
 
-        v = hourly[key]
-        kiosk_v = kiosk_hourly[key]
-        delivery_v = delivery_hourly[key]
-        drive_v = drive_hourly[key]
+            v = hourly[key]
 
-        # eLanes request - remove GC sold from net&gross amounts
-        v["TotalNet"] -= v["GiftCardsTotalAmount"]
-        v["TotalGross"] -= v["GiftCardsTotalAmount"]
-        v["EatIn_TotalNet"] -= v["EatIn_GiftCardsTotalAmount"]
-        v["EatIn_TotalGross"] -= v["EatIn_GiftCardsTotalAmount"]
-        v["TakeOut_TotalNet"] -= v["TakeOut_GiftCardsTotalAmount"]
-        v["TakeOut_TotalGross"] -= v["TakeOut_GiftCardsTotalAmount"]
+            store_transaction = v['Store_Transaction']
+            drive_thru_transaction = v['DriveThru_Transaction']
+            kiosk_transaction = v['Kiosk_Transaction']
 
-        drive_v["DriveThru_TotalNet"] -= drive_v["DriveThru_GiftCardsTotalAmount"]
-        drive_v["DriveThru_TotalGross"] -= drive_v["DriveThru_GiftCardsTotalAmount"]
+            store_total = v['Store_Total']
+            drive_thru_total = v['DriveThru_Total']
+            kiosk_total = v['Kiosk_Total']
 
-        store_transactions = v['EatIn_Transactions'] + v['TakeOut_Transactions']
-        store_total_gross = v['EatIn_TotalGross'] + v['TakeOut_TotalGross']
+            store_transaction_accumulated = v['Store_Transaction_Accumulated']
+            drive_thru_transaction_accumulated = v['DriveThru_Transaction_Accumulated']
+            kiosk_transaction_accumulated = v['Kiosk_Transaction_Accumulated']
 
-        kiosk_store_transactions = kiosk_v['EatIn_Transactions'] + kiosk_v['TakeOut_Transactions']
-        kiosk_store_total_gross = kiosk_v['EatIn_TotalGross'] + kiosk_v['TakeOut_TotalGross']
+            store_total_accumulated = v['Store_Total_Accumulated']
+            drive_thru_total_accumulated = v['DriveThru_Total_Accumulated']
+            kiosk_total_accumulated = v['Kiosk_Total_Accumulated']
 
-        running_totals['TotalDiscount'] += v['TotalDiscount']
-        running_totals['TotalNet'] += v['TotalNet']
+            report.write(" LOJA  %s %03d %8.2f %03d %8.2f\n" % (Time,
+                                                                store_transaction,
+                                                                store_total,
+                                                                store_transaction_accumulated,
+                                                                store_total_accumulated))
 
-        running_totals['StoreTransactions'] += store_transactions
-        running_totals['StoreTotalGross'] += store_total_gross
+            if dt_lanes > 0:
+                report.write(" DRIVE %s %03d %8.2f %03d %8.2f\n" % (Time,
+                                                                    drive_thru_transaction,
+                                                                    drive_thru_total,
+                                                                    drive_thru_transaction_accumulated,
+                                                                    drive_thru_total_accumulated))
 
-        kiosk_running_totals['StoreTransactions'] += kiosk_store_transactions
-        kiosk_running_totals['StoreTotalGross'] += kiosk_store_total_gross
+            if kiosk > 0:
+                report.write(" KIOSK %s %03d %8.2f %03d %8.2f\n" % (Time,
+                                                                    kiosk_transaction,
+                                                                    kiosk_total,
+                                                                    kiosk_transaction_accumulated,
+                                                                    kiosk_total_accumulated))
 
-        delivery_running_totals['StoreTransactions'] += delivery_v['Transactions']
-        delivery_running_totals['StoreTotalGross'] += delivery_v['TotalGross']
+            if dt_lanes > 0 or kiosk > 0:
+                report.write(" TOTAL %s %03d %8.2f %03d %8.2f\n\n" % (Time,
+                                                                      store_transaction + drive_thru_transaction + kiosk_transaction,
+                                                                      store_total + drive_thru_total + kiosk_total,
+                                                                      store_transaction_accumulated + drive_thru_transaction_accumulated + kiosk_transaction_accumulated,
+                                                                      store_total_accumulated + drive_thru_total_accumulated + kiosk_total_accumulated))
 
-        drive_running_totals['StoreTransactions'] += drive_v['DriveThru_Transactions']
-        drive_running_totals['StoreTotalGross'] += drive_v['DriveThru_TotalGross']
-
-        running_totals['Transactions'] = running_totals['StoreTransactions'] \
-                                         + kiosk_running_totals['StoreTransactions'] \
-                                         + delivery_running_totals['StoreTransactions'] \
-                                         + drive_running_totals['StoreTransactions']
-        running_totals['TotalGross'] = running_totals['StoreTotalGross'] \
-                                       + kiosk_running_totals['StoreTotalGross'] \
-                                       + delivery_running_totals['StoreTotalGross'] \
-                                       + drive_running_totals['StoreTotalGross']
-
-        totals_list = [store_transactions, drive_v['DriveThru_Transactions'], kiosk_store_transactions, delivery_v['Transactions']]
-        count_totals = sum(i > 0 for i in totals_list)
-
-        show_total = True if count_totals > 1 else show_total
-        report.write("\n") if show_total else None
-
-        if running_totals['StoreTransactions'] > 0:
-            report.write(" LOJA  %s %03d %8.2f %03d %8.2f\n" % (Time, store_transactions, store_total_gross, running_totals['StoreTransactions'], running_totals['StoreTotalGross']))
-
-        if drive_running_totals['StoreTransactions'] > 0:
-            report.write(" DRIVE %s %03d %8.2f %03d %8.2f\n" % (Time, drive_v['DriveThru_Transactions'], drive_v['DriveThru_TotalGross'], drive_running_totals['StoreTransactions'], drive_running_totals['StoreTotalGross']))
-            v['Transactions'] += drive_v['DriveThru_Transactions']
-            v['TotalGross'] += drive_v['DriveThru_TotalGross']
-
-        if kiosk_running_totals['StoreTransactions'] > 0:
-            report.write(" KIOSK %s %03d %8.2f %03d %8.2f\n" % (Time, kiosk_store_transactions, kiosk_store_total_gross, kiosk_running_totals['StoreTransactions'], kiosk_running_totals['StoreTotalGross']))
-            v['Transactions'] += kiosk_store_transactions
-            v['TotalGross'] += kiosk_store_total_gross
-
-        if delivery_running_totals['StoreTransactions'] > 0:
-            report.write(" DLY   %s %03d %8.2f %03d %8.2f\n" % (Time, delivery_v['Transactions'], delivery_v['TotalGross'], delivery_running_totals['StoreTransactions'], delivery_running_totals['StoreTotalGross']))
-            v['Transactions'] += delivery_v['Transactions']
-            v['TotalGross'] += delivery_v['TotalGross']
-
-        if show_total:
-            report.write(" TOTAL %s %03d %8.2f %03d %8.2f\n" % (Time, v['Transactions'], v['TotalGross'], running_totals['Transactions'], running_totals['TotalGross']))
-
-    report.write("%s\n" % (SEPARATOR))
+        report.write("%s\n" % (SEPARATOR))
+    except Exception as ex:
+        sys_log_exception('erro %s' % ex)
     return report.getvalue()
 
 
