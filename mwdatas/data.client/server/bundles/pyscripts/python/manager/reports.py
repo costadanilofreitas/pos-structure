@@ -5,11 +5,14 @@ import os
 import time
 
 import persistence
+import json
 from helper import config_logger
-from msgbus import TK_EVT_EVENT, TK_SYS_ACK, FM_STRING
-from sysactions import get_model, show_keyboard, is_valid_date, show_info_message, print_report, action, \
-    get_user_information, generate_report, show_listbox, show_messagebox, get_storewide_config, send_message, \
-    close_asynch_dialog
+from msgbus import TK_EVT_EVENT, TK_SYS_ACK, TK_SYS_NAK, FM_STRING, FM_PARAM
+from bustoken import TK_RUPTURA_GET_ENABLED, TK_RUPTURA_GET_DISABLED, \
+    TK_RUPTURA_ENABLE_ITEM, TK_RUPTURA_DISABLE_ITEM, TK_RUPTURA_IS_PROCESSED
+from sysactions import get_model, show_keyboard, is_valid_date, show_info_message, print_report, action, get_user_information, \
+    generate_report, show_listbox, show_messagebox, get_storewide_config, send_message, get_operator_session, close_asynch_dialog
+
 
 mbcontext = None
 poslist = []
@@ -98,7 +101,7 @@ def productMixReportByPeriod(posid, date_type="BusinessPeriod", *args):
 
     dlg_id = None
     try:
-        # dlg_id = show_messagebox(posid, message="$PLEASE_WAIT", title="$PROCESSING", icon="info", buttons="", asynch=True, timeout=180000)
+        dlg_id = show_messagebox(posid, message="$PLEASE_WAIT", title="$PROCESSING", icon="info", buttons="", asynch=True, timeout=180000)
         print_report(posid, model, True, "new_pmix_report", date_type, posid, selected_pos_id, start, end, store_id)
     finally:
         if dlg_id:
@@ -325,6 +328,8 @@ def checkoutReport(posid, *args):
                 if row.get_entry("closeTime") and (int(row.get_entry("operatorId")) == int(operatorid) or int(operatorid) == 0):
                     sessions.append(dict([(col, row.get_entry(col)) for col in session_cols]))
                     options.append(get_option(sessions[-1]))
+
+            conn.transaction_end()
         finally:
             if conn:
                 conn.close()

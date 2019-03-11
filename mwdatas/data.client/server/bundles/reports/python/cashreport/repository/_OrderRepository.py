@@ -73,6 +73,30 @@ class OrderRepository(BaseRepository):
         # type: (datetime, datetime) -> List[Order]
         return []
 
+    def get_hourly_sale(self, report_pos, initial_date, end_date):
+        # type: (unicode, Optional[datetime], Optional[datetime]) -> List[object]
+        def inner_func(conn):
+            # type: (Connection) -> List[object]
+            try:
+                initial_date_formatted = initial_date[:4] + '-' + initial_date[4:6] + '-' + initial_date[6:]
+                end_date_formatted = end_date[:4] + '-' + end_date[4:6] + '-' + end_date[6:]
+                query = self._QueryHourlySale.format(initial_date_formatted, end_date_formatted)
+
+                order_by_hour = [(str(x.get_entry(0)),
+                                 str(x.get_entry(1)),
+                                 int(x.get_entry(2)),
+                                 int(x.get_entry(3)),
+                                 float(x.get_entry(4)),
+                                 int(x.get_entry(5))) for x in conn.select(query)]
+
+                return list(order_by_hour)
+            except Exception, ex:
+                sys_log_exception('erro: %s' % ex)
+                return list()
+
+        report_pos_list = self.pos_list if report_pos is None else (report_pos,)
+        return self.execute_in_all_databases_returning_flat_list(inner_func, report_pos_list)
+
     def _get_paid_orders(self, report_type, initial_date, end_date, operator_id, session_id, report_pos):
         # type: (unicode, Optional[datetime], Optional[datetime], Optional[unicode], Optional[unicode]) -> List[Order]
         def inner_func(conn):
@@ -373,3 +397,51 @@ left join OrderCustomProperties ocp
 on ocp.OrderId = o.OrderId and ocp.Key = 'DONATION_VALUE'
 left join OrderCustomProperties vrs on vrs.OrderId = o.OrderId and vrs.Key = 'VOID_REASON_ID'
 where o.SessionId = '{0}' and o.StateId = 4"""
+
+    _QueryHourlySale = """
+SELECT storetype, 
+       orderdate, 
+       hora, 
+       minuto, 
+       SUM(totalgross) total,
+	   count(1) total_transcations
+FROM   (SELECT ( CASE 
+                   WHEN distributionpoint == 'DT' THEN 'DT' 
+                   ELSE CASE WHEN distributionpoint == 'KK' THEN 'KK'
+				   ELSE 'STORE' 
+				  END 
+                 END )                                      StoreType, 
+               Strftime('%Y-%m-%d', orderdate, 'localtime') OrderDate, 
+               Strftime('%H', orderdate, 'localtime')       HORA, 
+               ( CASE 
+                   WHEN Cast(Strftime('%M', orderdate, 'localtime')AS INT) > 29 
+                 THEN 
+                   '30' 
+                   ELSE '00' 
+                 END )                                      AS MINUTO, 
+               o.totalgross 
+        FROM   orders o 
+               inner join ordertender ot 
+                       ON o.orderid = ot.orderid 
+               inner join ( 
+                          -- Busca as Orders do dia que estamos interessadosh  
+                          SELECT orderid, 
+                                 value OrderDate 
+                           FROM   ordercustomproperties 
+                           WHERE  KEY = 'FISCALIZATION_DATE' 
+                                  AND Strftime('%Y-%m-%d', value, 'localtime') 
+                                      >= 
+                                      '{}' 
+                                  AND Strftime('%Y-%m-%d', value, 'localtime') 
+                                      <= 
+                                      '{}') 
+                                                            od 
+                       ON o.orderid = od.orderid 
+               left join ordercustomproperties ocp 
+                      ON ocp.orderid = o.orderid 
+                         AND ocp.KEY = 'DONATION_VALUE' 
+        WHERE  o.stateid = 5) a 
+GROUP  BY storetype, 
+          orderdate, 
+          hora, 
+          minuto  """

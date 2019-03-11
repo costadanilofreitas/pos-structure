@@ -28,11 +28,11 @@ class CashReport(object):
         for tender_tuple in self.tender_repository.get_tender_names():
             self.tender_names_dict[tender_tuple[0]] = tender_tuple[1]
 
-    def generate_cash_report_by_real_date(self, pos_id, report_pos, initial_date, end_date, operator_id):
+    def generate_cash_report_by_real_date(self, pos_id, report_pos, initial_date, end_date, operator_id, business_period=None, codigo_centro=None, close_time=None):
         # type: (int, Optional[unicode], datetime, datetime, unicode) -> str
         return self._generate_cash_report(self.TypeRealDate, pos_id, report_pos, initial_date, end_date, operator_id, None)
 
-    def generate_cash_report_by_business_period(self, pos_id, report_pos, initial_date, end_date, operator_id, business_period=None, codigo_centro=None, close_time=None):
+    def generate_cash_report_by_business_period(self, pos_id, report_pos, initial_date, end_date, operator_id):
         # type: (int, Optional[unicode], datetime, datetime, unicode, Optional[unicode], Optional[unicode], Optional[datetime]) -> str
 
         if business_period is None:
@@ -414,3 +414,6 @@ class CashReport(object):
         }
 
         return json.dumps(response)
+
+    def generate_hourly_sale(self, report_pos, initial_date, end_date):
+        return self.order_repository.get_hourly_sale(report_pos, initial_date, end_date)
