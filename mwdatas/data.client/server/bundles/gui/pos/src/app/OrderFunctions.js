@@ -188,82 +188,14 @@ class OrderFunctions extends PureComponent {
                   text="$DELETE_LINE"
                   defaultText="Delete Line"
                 />
-                <ContextButton
+                <Button
                   className={classes.functionButton}
-                  style={styles.contextButtonStyle}
-                  classNameButton={classes.contextButton}
-                  styleContextMenu={styles.contextMenu}
-                  styleArrow={styles.arrow}
-                  buttonText={this.optionsButton}>
-                  <Button
-                    style={styles.clearOrderButton}
-                    executeAction={function () {
-                      this.closeContextMenu()
-                      return ['doVoidSale']
-                    }}
-                    text="$CLEAR_ORDER"
-                    defaultText="Clear Order"
-                  />
-                  <Button
-                    style={styles.specialInstructionsButton}
-                    selectedLine={this.props.selectedLine || {}}
-                    getCommentId={this.getCommentId(this.props.selectedLine || {})}
-                    executeAction={function () {
-                      const { lineNumber, level, itemId, partCode } = this.selectedLine
-                      this.closeContextMenu()
-                      return ['doComment', lineNumber || '', level || '', itemId || '', partCode || '', this.getCommentId()]
-                    }}
-                    onActionFinish={() => this.afterVoid(this.props.selectedLine) }
-                    text="$SPECIAL_INSTRUCTION"
-                    defaultText="Special Instruction"
-                  />
-                  <Button
-                    style={styles.repeatItemButton}
-                    selectedLine={this.props.selectedLine || {}}
-                    executeAction={function () {
-                      this.closeContextMenu()
-                      return ['doDuplicateLine', this.selectedLine.lineNumber]
-                    }}
-                    text="$REPEAT_ITEM"
-                    defaultText="Repeat Item"
-                  />
-                  <Button
-                    style={styles.miacButton}
-                    selectedLine={this.props.selectedLine || {}}
-                    selectedQty={this.props.selectedQty || 1}
-                    executeAction={function () {
-                      const { lineNumber, selectedQty } = this.selectedLine
-                      this.closeContextMenu()
-                      return ['doMakeCombo', lineNumber || '', 'M', selectedQty]
-                    }}
-                    text="$MAKE_IT_A_COMBO"
-                    defaultText="Make it a Combo"
-                  />
-                  <Button
-                    style={styles.miacButton}
-                    selectedLine={this.props.selectedLine || {}}
-                    selectedQty={this.props.selectedQty || 1}
-                    executeAction={function () {
-                      const { lineNumber, selectedQty } = this.selectedLine
-                      this.closeContextMenu()
-                      return ['doUpsize', 1, lineNumber || '', '', selectedQty]
-                    }}
-                    text="$UPSIZE"
-                    defaultText="Up Size"
-                  />
-                  <Button
-                    style={styles.miacButton}
-                    selectedLine={this.props.selectedLine || {}}
-                    selectedQty={this.props.selectedQty || 1}
-                    executeAction={function () {
-                      const { lineNumber, selectedQty } = this.selectedLine
-                      this.closeContextMenu()
-                      return ['doUpsize', 0, lineNumber || '', '', selectedQty]
-                    }}
-                    text="$DOWNSIZE"
-                    defaultText="Down Size"
-                  />
-                </ContextButton>
+                  style={styles.redButton}
+                  selectedLine={this.props.selectedLine || {}}
+                  executeAction={() => ['doVoidSale']}
+                  text="$CLEAR_ORDER"
+                  defaultText="Clear Order"
+                />
                 <Button
                   className={classes.functionButton}
                   style={styles.modifyButton}
