@@ -190,3 +190,6 @@ INSERT INTO BandeiraCartao VALUES (87,'Refeisul',1,7798,'Other Cards','Credito')
 INSERT INTO BandeiraCartao VALUES (10088,'Refeisul',2,7798,'Other Cards','Combustivel');
 INSERT INTO BandeiraCartao VALUES (10089,'Refeisul',2,7798,'Other Cards','Alimentacao');
 INSERT INTO BandeiraCartao VALUES (125,'VISANET - ESPECIFICAÇÃO 4.1',0,7798,'Other Cards', ''); -- type 0
+INSERT INTO BandeiraCartao VALUES (99990,'Débito - Exteno',2,7798,'Other Cards', 'Débito');
+INSERT INTO BandeiraCartao VALUES (99991,'Crédito Outros - Exteno',2,7798,'Other Cards', 'Crédito');
+INSERT INTO BandeiraCartao VALUES (99992,'Vale Refeição - Exteno',2,7798,'Other Cards', 'Voucher');

@@ -183,7 +183,7 @@ class BrandReport(object):
                                                                    locale.format("%.2f", total_tender.value, True))
         else:
             for total_tender in total_tender_by_type_list:
-                if total_tender.tender_type not in (TenderType.credit, TenderType.debit):
+                if total_tender.tender_type not in (TenderType.credit, TenderType.debit, TenderType.external_card):
                     body += u" {0:.<16}: [{1:>4}] R${2:>10}\n".format(total_tender.tender_name,
                                                                       total_tender.quantity,
                                                                       locale.format("%.2f", total_tender.value, True))
