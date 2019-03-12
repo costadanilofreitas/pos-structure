@@ -1807,7 +1807,9 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
             show_messagebox(pos_id, message="$INVALID_TENDER_TYPE|%s" % tender_type_id, icon="error")
             return
 
-        if tender_type_id == TenderType.external_card:
+        if int(tender_type_id) == TenderType.external_card:
+
+
             valuable_bandeiras = ["1 - Débito",
                                   "2 - Visa",
                                   "3 - Mastercard",
@@ -1824,7 +1826,8 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                                 6: 99992}
 
             if not offline_bandeira:
-                offline_bandeira = valuable_to_real[show_listbox(pos_id, valuable_bandeiras, message="Selecione o Cartão:")]
+                offline_bandeira = show_listbox(pos_id, valuable_bandeiras, message="Selecione o Cartão:")
+                offline_bandeira = valuable_to_real[offline_bandeira]
 
 
 
@@ -5755,11 +5758,11 @@ def _get_products(pos_id="1"):
         model = get_model(pos_id)
         query = """SELECT P.ProductCode, P.ProductName, Price.DefaultUnitPrice AS UnitPrice, PCP.CustomParamValue AS BarCode, NULLIF(Production.JITLines,'None') AS ProductionLine
                    FROM ProductClassification PC
-                   JOIN Product P ON P.ProductCode=PC.ProductCode
-                   LEFT JOIN Production ON Production.ProductCode=P.ProductCode
-                   LEFT JOIN Price ON Price.ProductCode=P.ProductCode AND Context IS NULL AND CURRENT_DATE BETWEEN Price.ValidFrom AND Price.ValidThru AND PriceListId='EI'
-                   LEFT JOIN ProductCustomParams PCP ON PCP.ProductCode=P.ProductCode AND PCP.CustomParamId='BarCode'
-                   WHERE PC.ClassCode=1 ORDER BY P.ProductName"""
+				   Left Join Product P on PC.ProductCode = P.ProductCode and PC.ClassCode = 1
+                   Left JOIN Production ON Production.ProductCode=P.ProductCode
+                   JOIN Price ON Price.ProductCode=P.ProductCode AND Context IS NULL AND CURRENT_DATE BETWEEN Price.ValidFrom AND Price.ValidThru AND PriceListId='EI' AND UnitPrice >0
+                   Left JOIN ProductCustomParams PCP ON PCP.ProductCode=P.ProductCode AND PCP.CustomParamId='BarCode'
+                   WHERE PC.ProductCode not in (select ProductCode from ProductClassification where ClassCode <> 1 ) ORDER BY P.ProductName"""
         prodlist = []
         try:
             conn = persistence.Driver().open(mbcontext, pos_id)
