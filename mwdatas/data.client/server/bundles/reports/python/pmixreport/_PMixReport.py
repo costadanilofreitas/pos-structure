@@ -118,7 +118,17 @@ class PMixReport(object):
 
         body = u"Codigo   Descricao                 Qtd\n"
         for order_item in order_items:
-            body += u"{0:0>7}  {1:<23} {2:>5}\n".format(order_item.pcode, order_item.name, order_item.quantity)
+            body += u"{0:0>7}  {1:<23} {2:>5}\n".format(order_item.pcode, self._unicode_2_ascii(order_item.name), order_item.quantity)
         body += u"======================================\n"
 
         return body
+
+    def _unicode_2_ascii(self, data):
+        import unicodedata
+        # punctuation = {0x2018: 0x27, 0x2019: 0x27, 0x201C: 0x22, 0x201D: 0x22}
+        # data = data.translate(punctuation)
+        data = data.decode('UTF-8')
+        data = unicode(data)
+        data = unicodedata.normalize('NFKD', data)
+        data = data.encode('ascii', 'ignore')
+        return data
