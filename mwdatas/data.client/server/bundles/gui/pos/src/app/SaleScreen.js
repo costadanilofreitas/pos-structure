@@ -525,7 +525,7 @@ class SaleScreen extends PureComponent {
             />
           </div>
           <div className={classes.rightPanel}>
-            {!isSearch && (!isCombo && showModifierScreen && inProgress) &&
+            {!isCombo && showModifierScreen && inProgress &&
               <div className={classes.wrapper}>
                 <div className={classes.container}>
                   <div className={classes.grid}>
@@ -577,7 +577,7 @@ class SaleScreen extends PureComponent {
                 />
               </div>
             }
-            {isSearch &&
+            {isSearch && (isCombo || !showModifierScreen || !inProgress) &&
               <ProductSearch onSellItem={this.sellItem} />
             }
           </div>
