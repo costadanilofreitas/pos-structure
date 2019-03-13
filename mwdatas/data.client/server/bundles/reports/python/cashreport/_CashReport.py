@@ -29,16 +29,16 @@ class CashReport(object):
             self.tender_names_dict[tender_tuple[0]] = tender_tuple[1]
 
     def generate_cash_report_by_real_date(self, pos_id, report_pos, initial_date, end_date, operator_id, business_period=None, codigo_centro=None, close_time=None):
-        # type: (int, Optional[unicode], datetime, datetime, unicode) -> str
-        return self._generate_cash_report(self.TypeRealDate, pos_id, report_pos, initial_date, end_date, operator_id, None)
-
-    def generate_cash_report_by_business_period(self, pos_id, report_pos, initial_date, end_date, operator_id):
-        # type: (int, Optional[unicode], datetime, datetime, unicode, Optional[unicode], Optional[unicode], Optional[datetime]) -> str
+        # type: (int, Optional[unicode], datetime, datetime, Optional[unicode], Optional[unicode], Optional[unicode], datetime) -> str
 
         if business_period is None:
-            return self._generate_cash_report(self.TypeBusinessPeriod, pos_id, report_pos, initial_date, end_date, operator_id, None)
+            return self._generate_cash_report(self.TypeRealDate, pos_id, report_pos, initial_date, end_date, operator_id, None)
         else:
             return self._generate_cash_report_json(pos_id, report_pos, initial_date, end_date, operator_id, business_period, codigo_centro, close_time)
+
+    def generate_cash_report_by_business_period(self, pos_id, report_pos, initial_date, end_date, operator_id):
+        # type: (int, Optional[unicode], datetime, datetime, unicode) -> str
+        return self._generate_cash_report(self.TypeBusinessPeriod, pos_id, report_pos, initial_date, end_date, operator_id, None)
 
     def generate_cash_report_by_session_id(self, pos_id, session_id):
         # type: (int, unicode) -> str

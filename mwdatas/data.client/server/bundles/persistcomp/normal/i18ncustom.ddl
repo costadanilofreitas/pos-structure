@@ -549,3 +549,5 @@ INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'SALESBYBRAND', 
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'DAY_CLOSURE', "Fechamento do dia");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'DAY_OPENING', "Abertura do dia");
 INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'MENU_MANAGER', "Menu Gerente");
+INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'AUTHENTICATION_NOT_AUTHORIZED', "Usuário não autorizado");
+INSERT INTO Messages(LangCode, MessageKey, Message) VALUES (4,  'CUSTOMER_DOCUMENT', "Documento do cliente");

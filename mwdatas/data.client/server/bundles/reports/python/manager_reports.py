@@ -993,7 +993,7 @@ def new_cash_report(date_type, pos_id, report_pos, initial_date, end_date, opera
     elif date_type == "SessionId":
         report = cash_report.generate_cash_report_by_session_id(pos_id, session_id)
     elif date_type == "JsonBusinessPeriod":
-        report = cash_report.generate_cash_report_by_business_period(pos_id, report_pos, initial_date, end_date, operator_id, business_period, codigo_centro, close_time)
+        report = cash_report.generate_cash_report_by_real_date(pos_id, report_pos, initial_date, end_date, operator_id, business_period, codigo_centro, close_time)
     else:
         report = cash_report.generate_cash_report_by_xml(pos_id, initial_date, end_date)
 
