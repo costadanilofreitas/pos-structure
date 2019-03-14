@@ -1705,7 +1705,11 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
     def cancel_sale_and_payments(error_message=""):
         if get_nf_type(pos_id) == "PAF":
             data = '\x00'.join(map(str, [fpcmds.FPRN_SALECANCEL, '', '', '']))
-            mbcontext.MB_EasySendMessage("FiscalPrinter%s" % pos_id, TK_FISCAL_CMD, format=FM_PARAM, data=data)
+            try:
+                mbcontext.MB_EasySendMessage("FiscalPrinter%s" % pos_id, TK_FISCAL_CMD, format=FM_PARAM, data=data)
+            except MBException:
+                time.sleep(0.5)
+                mbcontext.MB_EasySendMessage("FiscalPrinter%s" % pos_id, TK_FISCAL_CMD, format=FM_PARAM, data=data)
         close_asynch_dialog(pos_id, dlgid) if dlgid else None
         show_messagebox(pos_id, "$CANCELED_SALE|{0}".format(error_message), title="$ERROR", icon="error", buttons="$OK")
         posot.clearTenders(int(pos_id))
@@ -5215,11 +5219,16 @@ def doReportSangria(posid, *args):
                     continue
 
             if message is not None:
-                msg = mbcontext.MB_EasySendMessage("printer%s" % posid, TK_PRN_PRINT, FM_PARAM, message)
-                if msg.token == TK_SYS_ACK:
-                    show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
-                else:
-                    show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
+                try:
+                    msg = mbcontext.MB_EasySendMessage("printer%s" % posid, TK_PRN_PRINT, FM_PARAM, message)
+                except MBException:
+                    time.sleep(0.5)
+                    msg = mbcontext.MB_EasySendMessage("printer%s" % posid, TK_PRN_PRINT, FM_PARAM, message)
+                finally:
+                    if msg.token == TK_SYS_ACK:
+                        show_info_message(posid, "$OPERATION_SUCCEEDED", msgtype="success")
+                    else:
+                        show_info_message(posid, "$OPERATION_FAILED", msgtype="error")
         except Exception as _:
             show_info_message(posid, "Erro ao imprimir relatório", msgtype="error")
 
@@ -5382,11 +5391,16 @@ def doReportBKOffice(pos_id, *args):
                     continue
 
             if message is not None:
-                msg = mbcontext.MB_EasySendMessage("printer%s" % pos_id, TK_PRN_PRINT, FM_PARAM, message)
-                if msg.token == TK_SYS_ACK:
-                    show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
-                else:
-                    show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
+                try:
+                    msg = mbcontext.MB_EasySendMessage("printer%s" % pos_id, TK_PRN_PRINT, FM_PARAM, message)
+                except MBException:
+                    time.sleep(0.5)
+                    msg = mbcontext.MB_EasySendMessage("printer%s" % pos_id, TK_PRN_PRINT, FM_PARAM, message)
+                finally:
+                    if msg.token == TK_SYS_ACK:
+                        show_info_message(pos_id, "$OPERATION_SUCCEEDED", msgtype="success")
+                    else:
+                        show_info_message(pos_id, "$OPERATION_FAILED", msgtype="error")
         except Exception as _:
             show_info_message(pos_id, "Erro ao imprimir relatório", msgtype="error")
 
