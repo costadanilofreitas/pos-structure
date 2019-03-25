@@ -41,12 +41,28 @@ class Options extends PureComponent {
   getOptions() {
     const { selectedLine, modifiers } = this.props
     // get parent part code
-    const parentPartCode = _.last(_.split(selectedLine.itemId, '.'))
-    const currentModifier = modifiers.modifiers[parentPartCode] || {}
-    let groups = []
+    const productPartCode = _.split(selectedLine.itemId, '.')
+    let parentPartCode = productPartCode.pop()
+    const groups = []
+    const isOption = (selectedLine || {}).itemType === 'OPTION'
+    let optionPart
+    let currentModifier
+    let text
+    let subst = ''
     let partCode = selectedLine.partCode
-    const optionPart = currentModifier.parts[partCode]
-    const text = modifiers.descriptions[partCode]
+    if (isOption) {
+      text = modifiers.descriptions[partCode]
+      currentModifier = modifiers.modifiers[parentPartCode] || {}
+      optionPart = currentModifier.parts[partCode]
+    } else if (parentPartCode > 1) {
+      subst = partCode
+      partCode = parentPartCode
+      text = modifiers.descriptions[parentPartCode]
+      parentPartCode = productPartCode.pop()
+      currentModifier = modifiers.modifiers[parentPartCode] || {}
+      optionPart = currentModifier.parts[partCode]
+      partCode = ''
+    }
     if (optionPart) {
       const options = (optionPart.data || {}).options || []
       groups.push({
@@ -65,6 +81,7 @@ class Options extends PureComponent {
     }
     return {
       itemId: `${selectedLine.itemId}.${partCode}`,
+      subst,
       groups
     }
   }
@@ -124,7 +141,7 @@ class Options extends PureComponent {
         </div>
         <NavigationGrid
           groups={modifierGroup.groups}
-          sellFunc={(item) => sellOption(item, modifierGroup.itemId)}
+          sellFunc={(item) => sellOption(item, modifierGroup.itemId, modifierGroup.subst)}
           onRenderSaleButton={this.handleRenderButton(optQty)}
           cols={11}
           rows={11}

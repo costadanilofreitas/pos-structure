@@ -5,6 +5,7 @@ import { Button } from 'posui/button'
 import { NavigationGrid } from 'posui/widgets'
 import injectSheet, { jss } from 'react-jss'
 import { I18N } from 'posui/core'
+import Options from './Options'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -228,54 +229,49 @@ class Modifiers extends PureComponent {
     const renderInfo = this.renderInfo()
     const showMods = _.sum(renderInfo.colsNeededByGroup) > 0
     return (
-      <div className={`${classes.container} ${className}`}>
-        <div className={classes.title}>
-          <I18N id="$MODIFIERS_TITLE" defaultMessage="Modifiers" />
-        </div>
+        <div>
         {showMods &&
-          <div className={classes.modsCont}>
-            <div className={classes.modTypesBox}>
-              {_.map(MOD_TYPES, (modType, idx) => {
-                const selected = (selectedModType === idx)
-                const selectedClass = (selected) ? classes.modTypeButtonSelected : ''
-                return (
-                  <Button
-                    key={`${idx}_${selected}`}
-                    style={styles.modTypeButton}
-                    className={selectedClass}
-                    rounded={true}
-                    onClick={() => this.handleModTypeClick(idx)}
-                    blockOnActionRunning={true}
-                  >
-                    {modType.text}
-                  </Button>
-                )
-              })}
+          <div className={`${classes.container} ${className}`}>
+            <div className={classes.title}>
+              <I18N id="$MODIFIERS_TITLE" defaultMessage="Modifiers"/>
             </div>
-            <div className={classes.modGroupsBox}>
-              <NavigationGrid
-                groups={renderInfo.groups || []}
-                sellFunc={this.handleSellModifier}
-                onRenderSaleButton={this.handleRenderButton}
-                cols={MAX_COLS}
-                expandCol={expandCol}
-                styleTitle={{
-                  fontSize: '1.3vh',
-                  color: 'black'
-                }}
-                buttonProps={{ blockOnActionRunning: true }}
-              />
+            <div className={classes.modsCont}>
+              <div className={classes.modTypesBox}>
+                {_.map(MOD_TYPES, (modType, idx) => {
+                  const selected = (selectedModType === idx)
+                  const selectedClass = (selected) ? classes.modTypeButtonSelected : ''
+                  return (
+                      <Button
+                          key={`${idx}_${selected}`}
+                          style={styles.modTypeButton}
+                          className={selectedClass}
+                          rounded={true}
+                          onClick={() => this.handleModTypeClick(idx)}
+                          blockOnActionRunning={true}
+                      >
+                        {modType.text}
+                      </Button>
+                  )
+                })}
+              </div>
+              <div className={classes.modGroupsBox}>
+                <NavigationGrid
+                    groups={renderInfo.groups || []}
+                    sellFunc={this.handleSellModifier}
+                    onRenderSaleButton={this.handleRenderButton}
+                    cols={MAX_COLS}
+                    expandCol={expandCol}
+                    styleTitle={{
+                      fontSize: '1.3vh',
+                      color: 'black'
+                    }}
+                    buttonProps={ { blockOnActionRunning: true } }
+                />
+              </div>
             </div>
           </div>
         }
-        {!showMods &&
-          <center>
-            <em className={classes.noMods}>
-              <I18N id="$NO_MODIFIERS_PRODUCT" defaultMessage="No modifiers available for selected product"/>
-            </em>
-          </center>
-        }
-      </div>
+        </div>
     )
   }
 }

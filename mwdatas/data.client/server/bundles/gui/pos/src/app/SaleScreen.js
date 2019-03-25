@@ -2,7 +2,7 @@ import React, { PureComponent } from 'react'
 import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import { Button } from 'posui/button'
-import { NavigationGrid, ButtonGrid, SaleTypeSelector } from 'posui/widgets'
+import { NavigationGrid, ButtonGrid } from 'posui/widgets'
 import { SalePanel } from 'posui/sale-panel'
 import { getAnyOpenOption, findClosestParent } from 'posui/utils'
 import { I18N } from 'posui/core'
@@ -14,7 +14,7 @@ import OrderFunctions from './OrderFunctions'
 import Options from './Options'
 import Modifiers from './Modifiers'
 import ProductSearch from './ProductSearch'
-
+import { SaleTypeSelector2 } from '../widgets'
 
 jss.setup({ insertionPoint: 'posui-css-insertion-point' })
 
@@ -163,7 +163,8 @@ class SaleScreen extends PureComponent {
       selectedParent: {},
       selectedTabIdx: 0,
       selectedQty: 1,
-      skipAutoSelect: false
+      skipAutoSelect: false,
+      saleType: true
     }
     const { submenu, submenuActive } = this.getSubmenu(props)
     this.submenu = submenu
@@ -187,12 +188,26 @@ class SaleScreen extends PureComponent {
     }
   }
 
+
   handleSubmenuClicked = (idx) => () => {
     this.setState({
       showModifierScreen: false,
       selectedTabIdx: idx,
       skipAutoSelect: true
     })
+  }
+
+  changeSaleType = () =>{
+    const { saleType } = this.state
+    const type = saleType ? false : true
+    this.setState({
+      saleType: type
+    })
+  }
+
+  printSaleType = () =>{
+    const { saleType } = this.state
+    return saleType ? 'EAT_IN' : 'TAKE_OUT'
   }
 
   getSubmenu(props) {
@@ -337,14 +352,22 @@ class SaleScreen extends PureComponent {
     const { selectedLine } = this.state
     const qty = this.state.selectedQty
     this.setState({ selectedQty: 1, skipAutoSelect: false })
-    return ['doCompleteOption', this.NAVIGATION_MENU, item.plu, qty, selectedLine.lineNumber]
+    return ['doCompleteOption', this.NAVIGATION_MENU, item.plu, qty, selectedLine.lineNumber, '', this.printSaleType()]
   }
 
-  sellOption = (item, itemId) => {
+  sellOption = (item, itemId, subst) => {
     const { selectedLine } = this.state
+    const { partCode } = selectedLine || {}
+    const level = parseInt((selectedLine || {}).level || '0', 10)
+    let fullItemId = ''
+    if (level > 0 && subst) {
+      if (itemId && partCode) {
+        fullItemId = `${itemId}${subst}`
+      }
+    }
     const qty = this.state.selectedQty
     this.setState({ selectedQty: 1, skipAutoSelect: false })
-    return ['doOption', itemId, item.plu, qty, selectedLine.lineNumber]
+    return ['doCompleteOption', this.NAVIGATION_MENU, item.plu, qty, selectedLine.lineNumber, '', this.printSaleType(), fullItemId]
   }
 
   sellModifier = (item, selectedLine, modType) => {
@@ -384,12 +407,15 @@ class SaleScreen extends PureComponent {
       })
       return
     }
+    const newSelectedLine = findClosestParent(order, line)
     let newShowModifierScreen = showModifierScreen
-    if (line.itemType === 'OPTION') {
+    if ((line.itemType === 'OPTION') || (newSelectedLine.level !== '0')) {
       newShowModifierScreen = true
+    } else {
+      newShowModifierScreen = false
     }
     this.setState({
-      selectedLine: findClosestParent(order, line),
+      selectedLine: newSelectedLine,
       selectedParent: parentLine,
       skipAutoSelect: userClicked,
       showModifierScreen: newShowModifierScreen
@@ -432,11 +458,12 @@ class SaleScreen extends PureComponent {
   render() {
     const { classes, order, modifiers, custom, themeName, navigation } = this.props
     const { skipAutoSelect, selectedQty, selectedLine, selectedParent, showModifierScreen,
-      selectedTabIdx } = this.state
+      selectedTabIdx, saleType } = this.state
     const attributes = order['@attributes'] || {}
     const inProgress = _.includes(['IN_PROGRESS', 'TOTALED'], attributes.state)
     const isCombo = (selectedLine || {}).itemType === 'COMBO'
     const isOption = (selectedLine || {}).itemType === 'OPTION'
+    const levelZero = (selectedLine || {}).level === '0'
     const submenu = { ...this.submenu, [selectedTabIdx]: this.submenuActive[selectedTabIdx] }
     const isSearch = ((navigation[1] || {}).groups || []).length === selectedTabIdx
 
@@ -466,7 +493,7 @@ class SaleScreen extends PureComponent {
             <div className={classes.leftFlexContainer}>
               <div className={classes.saleTypeBox}>
                 <div className={classes.absoluteWrapper}>
-                  <SaleTypeSelector rounded={true} border={true} direction="row" />
+                  <SaleTypeSelector2 orderType={saleType} changeType={this.changeSaleType.bind(this)} rounded={true} border={true} direction="row" />
                 </div>
               </div>
               <div className={classes.salePanelBox}>
@@ -536,7 +563,7 @@ class SaleScreen extends PureComponent {
                         sellModifier={this.sellModifier}
                       />
                     }
-                    {(isOption) &&
+                    {((isOption) || (!levelZero)) &&
                       <Options
                         order={order}
                         selectedLine={selectedLine}
@@ -615,7 +642,9 @@ SaleScreen.propTypes = {
   /**
    * Current theme name
    */
-  themeName: PropTypes.string
+  themeName: PropTypes.string,
+
+  onClickExecute: PropTypes.func
 }
 
 SaleScreen.defaultProps = {
