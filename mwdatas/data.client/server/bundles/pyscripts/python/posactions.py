@@ -1152,11 +1152,13 @@ def get_nf_type(posid=1, *args):
     return nf_type
 
 @action
-def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", *args):
+def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", subst='', *args):
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
+    if subst:
+        doClearOptionItem(posid, line_number, subst)
     if len(list_categories) > 0:
-        if _cache.is_not_order_kiosk(pcode, get_podtype(get_model(posid)) or None, list_categories):
+        if _cache.is_not_order_kiosk(pcode, get_podtype(get_model(int(posid))) or None, list_categories):
             show_info_message(posid, '$KIOSK_NOT_SALE', msgtype='error')
             raise StopAction
 
