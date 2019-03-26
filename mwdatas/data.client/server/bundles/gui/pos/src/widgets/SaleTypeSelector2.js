@@ -206,7 +206,7 @@ class SalePanelHeader2 extends PureComponent {
           <Button
             style={{ ...styleButton, ...styleButtonEatIn, ...(saleType ? styleEatInSelected : styleUnselected) }}
             className={`${classes.saleTypeSelectorButton} ${buttonClass} ${classes.saleTypeSelectorButtonEatIn} ${topBorder} ${topRound} ${topClass}`}
-             onClick={this.props.changeType}>
+             onClick={changeType}>
             <i className={classes.saleTypeSelectorIcon} style={styleIcon}></i>
             <div key={ST_EAT_IN} className={classes.saleTypeSelectorText} style={styleText}>
               <I18N id={ST_EAT_IN} defaultMessage="Eat-in" />
@@ -215,7 +215,7 @@ class SalePanelHeader2 extends PureComponent {
           <Button
             style={{ ...styleButton, ...styleButtonTakeOut, ...(saleType ? styleUnselected : styleTakeOutSelected) }}
             className={`${classes.saleTypeSelectorButton} ${buttonClass} ${classes.saleTypeSelectorButtonTakeOut} ${bottomBorder} ${bottomRound} ${bottomClass}`}
-             onClick={this.props.changeType}>
+             onClick={changeType}>
             <i className={classes.saleTypeSelectorIcon} style={styleIcon}></i>
             <div key={ST_TAKE_OUT} className={classes.saleTypeSelectorText} style={styleText}>
               <I18N id={ST_TAKE_OUT} defaultMessage="Take-out" />

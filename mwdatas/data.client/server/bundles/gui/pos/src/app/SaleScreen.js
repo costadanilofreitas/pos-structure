@@ -199,7 +199,7 @@ class SaleScreen extends PureComponent {
 
   changeSaleType = () =>{
     const { saleType } = this.state
-    const type = saleType ? false : true
+    const type = !saleType
     this.setState({
       saleType: type
     })
