@@ -1,6 +1,0 @@
-export { default as App } from './App'
-export { default as SignInScreen } from './SignInScreen'
-export { default as FunctionScreen } from './FunctionScreen'
-export { default as MainScreen } from './MainScreen'
-export { default as SaleScreen } from './SaleScreen'
-export { default as TenderScreen } from './TenderScreen'
