@@ -151,7 +151,7 @@ class RecallScreen extends PureComponent {
         <ActionButton executeAction={['doRecallNext', '', line.orderId]}>
           <I18N id="$RECALL" defaultMessage="Recall" />
         </ActionButton>
-        <ActionButton executeAction={['doPreviewOrder', line.orderId, line.session.pos]}>
+        <ActionButton executeAction={['doPreviewOrder', line.orderId]}>
           <I18N id="$ORDER_PREVIEW" defaultMessage="Preview" />
         </ActionButton>
         <ActionButton executeAction={['doVoidStoredOrder', line.orderId, line.session.pos]}>
