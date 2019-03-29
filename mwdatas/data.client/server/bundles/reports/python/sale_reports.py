@@ -228,7 +228,7 @@ N Parceiro..: {1}
         try:
             items_keys = ("qty", "default_qty", "item_type", "description", "modifier_label", "only", "min_qty", "level", "line_number", "part_code")
             qty, default_qty, item_type, name, label, only_flag, min_qty, item_level, line_number, part_code = map(item.get, items_keys)
-
+            name = _unicode_2_ascii(name)
             only = (only_flag == "true")
 
             item_level = int(float(item_level)) if item_level else 0
@@ -238,8 +238,8 @@ N Parceiro..: {1}
         if item_level == 0 and qty == "0":
             return  # Ignore Removed Items
 
-        #if item_type in ("INGREDIENT", "CANADD") and (((qty == default_qty) and (only_level == 0)) or ((qty == min_qty) and (only_level > 0)) or item_level != level):
-        #    return  # Ignore this item
+        if item_type in ("INGREDIENT", "CANADD") and (((qty == default_qty) and (only_level == 0)) or ((qty == min_qty) and (only_level > 0)) or item_level != level):
+            return  # Ignore this item
 
         if item_type in "COMBO" and qty == default_qty and int(qty) == 0:
             return  # Ignore Empty COMBOS
@@ -492,6 +492,16 @@ N Parceiro..: {1}
 
         return order_sum
 
+    def _unicode_2_ascii(self, data):
+        import unicodedata
+        # punctuation = {0x2018: 0x27, 0x2019: 0x27, 0x201C: 0x22, 0x201D: 0x22}
+        # data = data.translate(punctuation)
+        data = data.decode('UTF-8')
+        data = unicode(data)
+        data = unicodedata.normalize('NFKD', data)
+        data = data.encode('ascii', 'ignore')
+        return data
+
     def get_parsed_sale_lines(active_sale_lines):
         sale_line_dict = {}
         categories = []
@@ -640,3 +650,4 @@ def get_store_id(pos_id):
             if conn:
                 conn.close()
     return store_id
+
