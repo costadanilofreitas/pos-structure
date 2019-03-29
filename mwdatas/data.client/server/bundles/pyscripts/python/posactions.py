@@ -851,7 +851,7 @@ def doSale(pos_id, part_code, qty="", size="", sale_type="EAT_IN", *args):
             order_created = process_new_order(model, pod_type, pos_function, pos_id, pos_ot, price_list, sale_type)
 
         logger.debug("--- doSale before retrieve quantity ---")
-        qty = retrieve_quantity(model, qty) or '1'
+        qty = retrieve_quantity(model, qty)
 
         if is_new_order is True and order_created is False and part_code is None:
             logger.debug("--- doSale before posot.createOrder ---")
@@ -1152,11 +1152,13 @@ def get_nf_type(posid=1, *args):
     return nf_type
 
 @action
-def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", *args):
+def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", subst='', *args):
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
+    if subst:
+        doClearOptionItem(posid, line_number, subst)
     if len(list_categories) > 0:
-        if _cache.is_not_order_kiosk(pcode, get_podtype(get_model(posid)) or None, list_categories):
+        if _cache.is_not_order_kiosk(pcode, get_podtype(get_model(int(posid))) or None, list_categories):
             show_info_message(posid, '$KIOSK_NOT_SALE', msgtype='error')
             raise StopAction
 
@@ -2582,7 +2584,7 @@ def do_recall_order(pos_id, order_id, originator_pos_id=None, check_date=True):
     for line_number in deleted_line_numbers:
         queries.append("""UPDATE orderdb.CurrentOrderItem SET OrderedQty = 0 where OrderId = %(order_id)s AND LineNumber = %(line_number)s""" % locals())
 
-    queries.append("""UPDATE orderdb.CurrentOrderItem SET DefaultQty = 0 WHERE OrderId = %(order_id)s AND DefaultQty is NULL""" % locals())
+#    queries.append("""UPDATE orderdb.CurrentOrderItem SET DefaultQty = 0 WHERE OrderId = %(order_id)s AND DefaultQty is NULL""" % locals())
     logger.debug("Queries Prontas - Order %s" % order_id)
 
     if queries:
@@ -4203,6 +4205,49 @@ def doVoidPaidSale(posid, request_authorization="true", allpos="false", requestd
         #                   msgtype="critical")
         show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
                         icon="error")
+
+@action
+def doPreviewOrder(pos_id, order_id):
+
+    model = get_model(pos_id)
+    preview_data = []
+    # check_operator_logged(posid, model=model, can_be_blocked=False)
+    posot = get_posot(model)
+    order_pict = posot.orderPicture(orderid=order_id)
+    order = etree.XML(order_pict).find("Order")
+    order_posid = int(order.attrib["originatorId"][3:])
+    order_gross = float(order.attrib["totalGross"])
+    order_created_date = datetime.datetime.strptime(str(order.attrib["createdAt"]), "%Y-%m-%dT%H:%M:%S.%f")
+    order_timestamp = order_created_date.strftime('%H:%M')
+    order_type = str(order.attrib["podType"])
+    partner = ""
+    logger.debug(order_pict)
+    if order.get('custom_properties'):
+        partner = order["custom_properties"]["PARTNER"] if "PARTNER" in order["custom_properties"] else ""
+    descr = "{}{:02} #{:04} {} R${:.2f}".format(order_type, order_posid, int(order_id) % 10000, order_timestamp,
+                                                order_gross)
+    if partner != "":
+        short_reference = order["custom_properties"]["SHORT_REFERENCE"] if "SHORT_REFERENCE" in order[
+            "custom_properties"] else order_id
+        if partner.upper() == "APP":
+            descr += " APP{}".format(short_reference)
+        else:
+            descr += " DLY{}".format(short_reference)
+    baseurl = "/mwapp/services/PosController/POS%d/?token=TK_POS_EXECUTEACTION&format=2&isBase64=true&payload=" % int(
+        pos_id)
+
+    payload = base64.b64encode("\0".join(("doOrderPicture", pos_id, order_id)))
+    url = baseurl + payload
+    preview_data.append((order_id, descr, url))
+    while True:
+        selected = show_order_preview(pos_id, preview_data, buttons="$RECALL|$CLOSE", onthefly=True,
+                                      title="Pedido %s" % order_id)
+        if (selected is None) or (selected[0] == "1"):
+            return  # Timeout, or the user cancelled
+        if selected[0] == "0":
+            doRecallNext(pos_id, "", order_id)
+            return
+
 
 
 @action

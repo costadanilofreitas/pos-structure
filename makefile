@@ -7,7 +7,7 @@ STANDARD_DATA_DIR := mwdatas/data.client
 STANDARD_BOH_DATA_DIR := mwdatas/data.mwboh
 STANDARD_COMMON_DIR := $(STANDARD_DATA_DIR)/server/common
 STANDARD_COMMON_OBJS :=
-STANDARD_COMMON_UI_OBJS := ui/gui_client_pos.zip
+STANDARD_COMMON_UI_OBJS := ui/gui_client_pos.zip ui/gui_client_mobpos.zip
 DDL_FILES := $(STANDARD_DATA_DIR)/server/bundles/persistcomp/normal/i18ncustom.ddl
 # OUTPUT_PLATFORMS := darwin-x86_64 linux-redhat-x86_64 linux-ubuntu-i686 linux-ubuntu-x86_64 windows-x86
 OUTPUT_PLATFORMS := linux-redhat-x86_64 windows-x86
@@ -103,6 +103,8 @@ $(info Build dir: $(BUILDDIR))
 
 STANDARD_COMMON_OBJS := $(addprefix $(STANDARD_COMMON_DIR)/,$(STANDARD_COMMON_OBJS))
 STANDARD_COMMON_UI_OBJS := $(addprefix $(STANDARD_COMMON_DIR)/,$(STANDARD_COMMON_UI_OBJS))
+
+
 
 DATA_POS_EXCLUSIONS :=
 
@@ -302,8 +304,11 @@ standard-common-objs: $(STANDARD_COMMON_OBJS)
 standard-common-ui-objs: $(STANDARD_COMMON_UI_OBJS)
 	$(info $@: Done!)
 	
-$(STANDARD_COMMON_DIR)/ui/gui_client_pos.zip: $(shell find $(STANDARD_DATA_DIR)/server/bundles/gui/pos/src -type f -iname "*.js" -o -iname "*.json" -o -iname "*css" -o -iname "*.html")
-	cd $(STANDARD_DATA_DIR)/server/bundles/gui/pos && $(MAKE) && mkdir -p ../../../../../../$(dir $@) &&  mv $(notdir $@) ../../../../../../$(dir $@)
+$(STANDARD_COMMON_DIR)/ui/gui_client_pos.zip: $(shell find $(BASEDIR)/src/gui/pos/src -type f -iname "*.js" -o -iname "*.json" -o -iname "*css" -o -iname "*.html")
+	cd $(BASEDIR)/src/gui/pos && $(MAKE) && mkdir -p $(BASEDIR)/$(dir $@) &&  mv $(notdir $@) $(BASEDIR)/$(dir $@)
+	
+$(STANDARD_COMMON_DIR)/ui/gui_client_mobpos.zip: $(shell find $(BASEDIR)/src/gui/mobpos/src -type f -iname "*.js" -o -iname "*.json" -o -iname "*css" -o -iname "*.html")
+	cd $(BASEDIR)/src/gui/mobpos && $(MAKE) && mkdir -p $(BASEDIR)/$(dir $@) &&  mv $(notdir $@) $(BASEDIR)/$(dir $@)
 
 $(FLAKE_APP_FILES): $(FLAKE_OUT_DIR)/%.flake: %.py
 	test -d $(dir $@) || mkdir -p $(dir $@)
@@ -333,8 +338,10 @@ clean: clean-common
 	rm -rf $(TMPDIR)
 	rm -f manifest.xml
 	rm -f genesis.tar
-	cd $(STANDARD_DATA_DIR)/server/bundles/gui/pos && $(MAKE) clean
+	cd $(BASEDIR)/src/gui/pos && $(MAKE) clean
+	cd $(BASEDIR)/src/gui/mobpos && $(MAKE) clean
 	rm -rf $(FLAKE_OUT_DIR)
 	rm -rf $(dir $(STANDARD_COMMON_OBJS))
 	rm -rf $(dir $(STANDARD_COMMON_UI_OBJS))
+	rm -rf $(dir $(MOBILE_COMMON_UI_OBJS))
 	rm -f $(PACKAGE_PREFIX)_*.genpkg
