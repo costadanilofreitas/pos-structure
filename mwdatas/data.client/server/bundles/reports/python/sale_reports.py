@@ -225,18 +225,21 @@ N Parceiro..: {1}
         except Exception as ex_tag:
             sys_log_exception("Error reading Tags in PickList print - Exception %s" % str(ex_tag))
             pass
+        try:
+            items_keys = ("qty", "default_qty", "item_type", "description", "modifier_label", "only", "min_qty", "level", "line_number", "part_code")
+            qty, default_qty, item_type, name, label, only_flag, min_qty, item_level, line_number, part_code = map(item.get, items_keys)
 
-        items_keys = ("qty", "default_qty", "item_type", "description", "modifier_label", "only", "min_qty", "level", "line_number", "part_code")
-        qty, default_qty, item_type, name, label, only_flag, min_qty, item_level, line_number, part_code = map(item.get, items_keys)
+            only = (only_flag == "true")
 
-        only = (only_flag == "true")
-        item_level = int(item_level) if item_level else 0
+            item_level = int(float(item_level)) if item_level else 0
+        except Exception as e:
+            sys_log_exception("Error item_level %s" % str(e))
 
         if item_level == 0 and qty == "0":
             return  # Ignore Removed Items
 
-        if item_type in ("INGREDIENT", "CANADD") and (((qty == default_qty) and (only_level == 0)) or ((qty == min_qty) and (only_level > 0)) or item_level != level):
-            return  # Ignore this item
+        #if item_type in ("INGREDIENT", "CANADD") and (((qty == default_qty) and (only_level == 0)) or ((qty == min_qty) and (only_level > 0)) or item_level != level):
+        #    return  # Ignore this item
 
         if item_type in "COMBO" and qty == default_qty and int(qty) == 0:
             return  # Ignore Empty COMBOS
