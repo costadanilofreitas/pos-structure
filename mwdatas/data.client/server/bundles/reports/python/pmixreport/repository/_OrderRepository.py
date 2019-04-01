@@ -132,6 +132,6 @@ on o.OrderId = od.OrderId"""
         FROM OrderItem t
         JOIN OrderItem u ON t.OrderId = u.OrderId AND t.LineNumber = u.LineNumber
         JOIN Orders s ON t.OrderId = s.OrderId
-        WHERE s.StateId = 5 AND u.OrderId IN ({0}) AND t.Level = '0' AND COALESCE(t.OrderedQty, 0) <> '0' AND COALESCE(u.OrderedQty, 0) <> '0' AND u.PriceKey IS NOT NULL) T
+        WHERE s.StateId = 5 AND u.OrderId IN ({0}) AND t.Level = '0'  AND u.PriceKey IS NOT NULL) T
     GROUP BY PartCode, ItemId) where SOMA is not null
     """
