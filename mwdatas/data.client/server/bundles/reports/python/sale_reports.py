@@ -225,12 +225,15 @@ N Parceiro..: {1}
         except Exception as ex_tag:
             sys_log_exception("Error reading Tags in PickList print - Exception %s" % str(ex_tag))
             pass
+        try:
+            items_keys = ("qty", "default_qty", "item_type", "description", "modifier_label", "only", "min_qty", "level", "line_number", "part_code")
+            qty, default_qty, item_type, name, label, only_flag, min_qty, item_level, line_number, part_code = map(item.get, items_keys)
+            name = _unicode_2_ascii(name)
+            only = (only_flag == "true")
 
-        items_keys = ("qty", "default_qty", "item_type", "description", "modifier_label", "only", "min_qty", "level", "line_number", "part_code")
-        qty, default_qty, item_type, name, label, only_flag, min_qty, item_level, line_number, part_code = map(item.get, items_keys)
-
-        only = (only_flag == "true")
-        item_level = int(item_level) if item_level else 0
+            item_level = int(float(item_level)) if item_level else 0
+        except Exception as e:
+            sys_log_exception("Error item_level %s" % str(e))
 
         if item_level == 0 and qty == "0":
             return  # Ignore Removed Items
@@ -489,6 +492,16 @@ N Parceiro..: {1}
 
         return order_sum
 
+    def _unicode_2_ascii(data):
+        import unicodedata
+        # punctuation = {0x2018: 0x27, 0x2019: 0x27, 0x201C: 0x22, 0x201D: 0x22}
+        # data = data.translate(punctuation)
+        # data = data.decode('UTF-8')
+        data = unicode(data)
+        data = unicodedata.normalize('NFKD', data)
+        data = data.encode('ascii', 'ignore')
+        return data
+
     def get_parsed_sale_lines(active_sale_lines):
         sale_line_dict = {}
         categories = []
@@ -637,3 +650,4 @@ def get_store_id(pos_id):
             if conn:
                 conn.close()
     return store_id
+
