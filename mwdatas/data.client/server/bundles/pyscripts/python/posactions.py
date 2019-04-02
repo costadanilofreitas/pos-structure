@@ -330,7 +330,7 @@ def _device_data_event_received(params):
             return
         barcode = base64.b64decode(device.text).strip()
         if barcode and barcode in _product_by_barcode:
-            doSale(str(pos_id), "1." + _product_by_barcode[barcode]['plu'])
+            doCompleteOption(str(pos_id), "1", _product_by_barcode[barcode]['plu'])
         else:
             sys_log_info("Scanned barcode {0} not found on the product database!".format(barcode))
     except:
@@ -804,7 +804,7 @@ def register_eft_after_payment(posid, orderid, tender_seq_id, auth_code, card_bi
 # Action handlers
 #
 @action
-def doSale(pos_id, part_code, qty="", size="", sale_type="EAT_IN", *args):
+def doSale(pos_id, part_code, qty="1", size="", sale_type="EAT_IN", *args):
     """ doSale(posid, pcode, qty="", size="")
     Sells an item, creating a new order for it if necessary
     @param pos_id: POS id
@@ -1152,7 +1152,7 @@ def get_nf_type(posid=1, *args):
     return nf_type
 
 @action
-def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", subst='', *args):
+def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sale_type="EAT_IN", subst='', *args):
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
     if subst:
