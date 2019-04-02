@@ -5819,7 +5819,7 @@ def _get_products(pos_id="1"):
                    FROM ProductClassification PC
 				   Left Join Product P on PC.ProductCode = P.ProductCode and PC.ClassCode = 1
                    Left JOIN Production ON Production.ProductCode=P.ProductCode
-                   JOIN Price ON Price.ProductCode=P.ProductCode AND Context IS NULL AND CURRENT_DATE BETWEEN Price.ValidFrom AND Price.ValidThru AND PriceListId='EI' AND UnitPrice >0
+                   JOIN Price ON Price.ProductCode=P.ProductCode AND (Context IS NULL OR Context = 1) AND CURRENT_DATE BETWEEN Price.ValidFrom AND Price.ValidThru AND PriceListId='EI' AND UnitPrice >0
                    Left JOIN ProductCustomParams PCP ON PCP.ProductCode=P.ProductCode AND PCP.CustomParamId='BarCode'
                    WHERE PC.ProductCode not in (select ProductCode from ProductClassification where ClassCode <> 1 ) and PC.ProductCode not in (select ClassCode from ProductClassification where ClassCode <> 1 ) ORDER BY P.ProductName"""
         prodlist = []
