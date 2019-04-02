@@ -960,11 +960,11 @@ def new_order_properties(pod_type, pos_function, pos_id, pos_ot):
     if get_nf_type(pos_id) == "PAF":
         logger.debug("--- doSale before customer info ---")
         customer_doc = get_customer_doc(pos_id, pos_ot)
-        customer_name = get_customer_name(pos_id, pos_ot)
+        # customer_name = get_customer_name(pos_id, pos_ot)
         get_and_fill_customer_address(pos_id, pos_ot)
         logger.debug("--- doSale after customer info ---")
         pre_sale = get_paf_pre_sale(pod_type, pos_ot, pos_function)
-        dict_sale = update_custom_properties(customer_doc, customer_name, pre_sale)
+        dict_sale = update_custom_properties(customer_doc, pre_sale=pre_sale)
 
     return dict_sale
 
@@ -1501,7 +1501,7 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
             close_asynch_dialog(pos_id, dlg_id)
 
         if get_nf_type(pos_id) != "PAF":
-            fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=True)
+            fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=False)
 
     except Exception as ex:
         if isinstance(ex, OrderTakerException):
@@ -1583,7 +1583,7 @@ def doStoreOrder(pos_id, totalize="none", *args):
             return
 
     if totalize.lower() != "true" and get_nf_type(pos_id) != "PAF":
-        fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=True)
+        fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=False)
 
     # Pre-venda
     pre_venda = None
@@ -1629,7 +1629,7 @@ def fill_customer_properties(model, pod_function, pos_id, pos_ot, get_doc=False,
     if (customer_doc == default_doc) and (customer_name == default_name):
         return
 
-    order_properties_dict = update_custom_properties(customer_doc, customer_name)
+    order_properties_dict = update_custom_properties(customer_doc)
     if len(order_properties_dict) > 0:
         pos_ot.setOrderCustomProperties(order_properties_dict)
 
