@@ -325,10 +325,16 @@ def _device_data_event_received(params):
         # extract POS id from device name
         # XXX: we are assuming that the device name is scannerXX where XX is the destination POS number
         pos_id = int(device_name[7:])
+        try:
+            sys_log_info("----> Scanned barcode on pos_id {0} ".format(pos_id))
+            sys_log_info("----> Scanner status on pos_id {0} ".format(_scanner_sale_paused[pos_id]))
+        except:
+            pass
         if pos_id in _scanner_sale_paused and _scanner_sale_paused[pos_id]:
             # scanner sale is paused, don't try to sell
             return
-        barcode = base64.b64decode(device.text).strip()
+        barcode = int(base64.b64decode(device.text).strip())
+        sys_log_info("----> Scanned barcode {0} ".format(barcode))
         if barcode and barcode in _product_by_barcode:
             doCompleteOption(str(pos_id), "1", _product_by_barcode[barcode]['plu'])
         else:
@@ -1156,6 +1162,7 @@ def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sa
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
     if subst:
+
         doClearOptionItem(posid, line_number, subst)
     if len(list_categories) > 0:
         if _cache.is_not_order_kiosk(pcode, get_podtype(get_model(int(posid))) or None, list_categories):
@@ -1629,7 +1636,7 @@ def fill_customer_properties(model, pod_function, pos_id, pos_ot, get_doc=False,
     if (customer_doc == default_doc) and (customer_name == default_name):
         return
 
-    order_properties_dict = update_custom_properties(customer_doc)
+    order_properties_dict = update_custom_properties(customer_doc, customer_name)
     if len(order_properties_dict) > 0:
         pos_ot.setOrderCustomProperties(order_properties_dict)
 
@@ -5684,6 +5691,7 @@ def doClearOptionItem(posid, linenumber="", itemid="", *args):
         return False  # Nothing to clear
     # Clear the option
     posot = get_posot(model)
+    posot.blkopnotify = True
     try:
         posot.clearOption(posid, linenumber, "", itemid)
         return True
@@ -5694,6 +5702,8 @@ def doClearOptionItem(posid, linenumber="", itemid="", *args):
         # show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
         show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
                         icon="error")
+    finally:
+        posot.blkopnotify = False
     return False
 
 
@@ -5836,7 +5846,7 @@ def _get_products(pos_id="1"):
                     "prodline": prodline
                 }
                 prodlist.append(product)
-                _product_by_barcode[barcode] = product
+                _product_by_barcode[int(barcode)] = product
         except:
             sys_log_exception("Error getting product list")
         finally:
