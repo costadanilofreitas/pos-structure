@@ -1,6 +1,7 @@
 # encoding: utf-8
 import os
 import iso8601
+from systools import sys_log_info, sys_log_debug, sys_log_exception, sys_log_error
 from helper import BaseRepository
 from msgbus import MBEasyContext
 from ..model import Order, OrderItem
@@ -57,7 +58,8 @@ class OrderRepository(BaseRepository):
                             all_order_items[pcode].quantity += quantity
 
                 return list(all_order_items.values())
-            except:
+            except Exception as e:
+                sys_log_error("get order error: %s" % str(e))
                 return list({"error": "error"}.values())
 
         return self.execute_in_all_databases_returning_flat_list(inner_func, self.pos_list)
@@ -123,12 +125,13 @@ on o.OrderId = od.OrderId"""
 
 
     _OrderItemsQuery = """\
-    SELECT PartCode, SUM(OrderedQty), ItemId
+    SELECT * FROM (
+    SELECT PartCode, SUM(OrderedQty) as SOMA, ItemId
     FROM
         (SELECT u.PartCode, CASE u.level WHEN '0' THEN u.OrderedQty ELSE t.OrderedQty * u.OrderedQty END OrderedQty, u.ItemId, u.OrderId
         FROM OrderItem t
         JOIN OrderItem u ON t.OrderId = u.OrderId AND t.LineNumber = u.LineNumber
         JOIN Orders s ON t.OrderId = s.OrderId
-        WHERE s.StateId = 5 AND u.OrderId IN ({0}) AND t.Level = '0' AND COALESCE(t.OrderedQty, 0) <> '0' AND COALESCE(u.OrderedQty, 0) <> '0' AND u.PriceKey IS NOT NULL) T
-    GROUP BY PartCode, ItemId
+        WHERE s.StateId = 5 AND u.OrderId IN ({0}) AND t.Level = '0'  AND u.PriceKey IS NOT NULL) T
+    GROUP BY PartCode, ItemId) where SOMA is not null
     """

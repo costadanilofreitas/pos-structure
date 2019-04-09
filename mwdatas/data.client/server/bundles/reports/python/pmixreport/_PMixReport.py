@@ -118,7 +118,7 @@ class PMixReport(object):
 
         body = u"Codigo   Descricao                 Qtd\n"
         for order_item in order_items:
-            body += u"{0:0>7}  {1:<23} {2:>5}\n".format(order_item.pcode, self._unicode_2_ascii(order_item.name), order_item.quantity)
+            body += u"{0:0>7}  {1:<23} {2:>5}\n".format(order_item.pcode, self._unicode_2_ascii(order_item.name)[:23], order_item.quantity)
         body += u"======================================\n"
 
         return body
