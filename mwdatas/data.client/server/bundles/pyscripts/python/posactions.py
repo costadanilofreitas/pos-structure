@@ -330,7 +330,7 @@ def _device_data_event_received(params):
             return
         barcode = base64.b64decode(device.text).strip()
         if barcode and barcode in _product_by_barcode:
-            doSale(str(pos_id), "1." + _product_by_barcode[barcode]['plu'])
+            doCompleteOption(str(pos_id), "1", _product_by_barcode[barcode]['plu'])
         else:
             sys_log_info("Scanned barcode {0} not found on the product database!".format(barcode))
     except:
@@ -804,7 +804,7 @@ def register_eft_after_payment(posid, orderid, tender_seq_id, auth_code, card_bi
 # Action handlers
 #
 @action
-def doSale(pos_id, part_code, qty="", size="", sale_type="EAT_IN", *args):
+def doSale(pos_id, part_code, qty="1", size="", sale_type="EAT_IN", *args):
     """ doSale(posid, pcode, qty="", size="")
     Sells an item, creating a new order for it if necessary
     @param pos_id: POS id
@@ -960,11 +960,11 @@ def new_order_properties(pod_type, pos_function, pos_id, pos_ot):
     if get_nf_type(pos_id) == "PAF":
         logger.debug("--- doSale before customer info ---")
         customer_doc = get_customer_doc(pos_id, pos_ot)
-        customer_name = get_customer_name(pos_id, pos_ot)
+        # customer_name = get_customer_name(pos_id, pos_ot)
         get_and_fill_customer_address(pos_id, pos_ot)
         logger.debug("--- doSale after customer info ---")
         pre_sale = get_paf_pre_sale(pod_type, pos_ot, pos_function)
-        dict_sale = update_custom_properties(customer_doc, customer_name, pre_sale)
+        dict_sale = update_custom_properties(customer_doc, pre_sale=pre_sale)
 
     return dict_sale
 
@@ -1152,7 +1152,7 @@ def get_nf_type(posid=1, *args):
     return nf_type
 
 @action
-def doCompleteOption(posid, context, pcode, qty="", line_number="", size="", sale_type="EAT_IN", subst='', *args):
+def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sale_type="EAT_IN", subst='', *args):
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
     if subst:
@@ -1501,7 +1501,7 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
             close_asynch_dialog(pos_id, dlg_id)
 
         if get_nf_type(pos_id) != "PAF":
-            fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=True)
+            fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=False)
 
     except Exception as ex:
         if isinstance(ex, OrderTakerException):
@@ -1583,7 +1583,7 @@ def doStoreOrder(pos_id, totalize="none", *args):
             return
 
     if totalize.lower() != "true" and get_nf_type(pos_id) != "PAF":
-        fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=True)
+        fill_customer_properties(model, pod_function, pos_id, posot, get_doc=True, get_name=False)
 
     # Pre-venda
     pre_venda = None
@@ -1629,7 +1629,7 @@ def fill_customer_properties(model, pod_function, pos_id, pos_ot, get_doc=False,
     if (customer_doc == default_doc) and (customer_name == default_name):
         return
 
-    order_properties_dict = update_custom_properties(customer_doc, customer_name)
+    order_properties_dict = update_custom_properties(customer_doc)
     if len(order_properties_dict) > 0:
         pos_ot.setOrderCustomProperties(order_properties_dict)
 
@@ -5819,7 +5819,7 @@ def _get_products(pos_id="1"):
                    FROM ProductClassification PC
 				   Left Join Product P on PC.ProductCode = P.ProductCode and PC.ClassCode = 1
                    Left JOIN Production ON Production.ProductCode=P.ProductCode
-                   JOIN Price ON Price.ProductCode=P.ProductCode AND Context IS NULL AND CURRENT_DATE BETWEEN Price.ValidFrom AND Price.ValidThru AND PriceListId='EI' AND UnitPrice >0
+                   JOIN Price ON Price.ProductCode=P.ProductCode AND (Context IS NULL OR Context = 1) AND CURRENT_DATE BETWEEN Price.ValidFrom AND Price.ValidThru AND PriceListId='EI' AND UnitPrice >0
                    Left JOIN ProductCustomParams PCP ON PCP.ProductCode=P.ProductCode AND PCP.CustomParamId='BarCode'
                    WHERE PC.ProductCode not in (select ProductCode from ProductClassification where ClassCode <> 1 ) and PC.ProductCode not in (select ClassCode from ProductClassification where ClassCode <> 1 ) ORDER BY P.ProductName"""
         prodlist = []
