@@ -314,33 +314,49 @@ def _device_data_event_received(params):
     When a scanner event is received, we should try so sell the item on the POS or, if price
     lookup mode is on, just ignore and let the sysactions handle the scanner dialog
     """
-    global _product_by_barcode, _scanner_sale_paused
+    global _product_by_barcode, _scanner_sale_paused, _scan_dialog, dialog_timeout
     data, subject, p_type, asynch, pos_id = params[:5]
     try:
         device = etree.XML(data).find("Device")
+        logger.info("Data {0} ".format(data))
+        
         device_name = str(device.get("name"))
+
         if not device_name.startswith("scanner"):
             # just processing scanner events, ignoring other devices
             return
+
+
         # extract POS id from device name
         # XXX: we are assuming that the device name is scannerXX where XX is the destination POS number
         pos_id = int(device_name[7:])
-        try:
-            sys_log_info("----> Scanned barcode on pos_id {0} ".format(pos_id))
-            sys_log_info("----> Scanner status on pos_id {0} ".format(_scanner_sale_paused[pos_id]))
-        except:
-            pass
+
         if pos_id in _scanner_sale_paused and _scanner_sale_paused[pos_id]:
             # scanner sale is paused, don't try to sell
             return
-        barcode = int(base64.b64decode(device.text).strip())
-        sys_log_info("----> Scanned barcode {0} ".format(barcode))
+
+        barcode = int(base64.b64decode(device.text).strip('\0'))
+        logger.info("Barcode {0} ".format(barcode))
+
         if barcode and barcode in _product_by_barcode:
-            doCompleteOption(str(pos_id), "1", _product_by_barcode[barcode]['plu'])
+            sale_xml = doCompleteOption(str(pos_id), "1", _product_by_barcode[barcode]['plu'])
+            #logger.info("Sale {0} ".format(sale_xml))
+            #qty = etree.XML(sale_xml).attrib['qty']
+            #logger.info("Dialog {0} ".format(_scan_dialog))
+
+            #if not update_messagebox(pos_id,_scan_dialog,'%s %s'%(qty, _product_by_barcode[barcode]['name']),'SCANNER','info','',dialog_timeout, True ):
+            #    dialog_timeout = 1500
+            #    _scan_dialog = show_messagebox(pos_id, '%s %s'%(qty, _product_by_barcode[barcode]['name']), 'SCANNER','info','',dialog_timeout, True )
+            #    logger.info("RECRIOU ")
+
+            #else:
+            #    dialog_timeout += 1500
+            #    logger.info("REAPROVEITOU ")
+
         else:
-            sys_log_info("Scanned barcode {0} not found on the product database!".format(barcode))
+            logger.info("Scanned barcode {0} not found on the product database!".format(barcode))
     except:
-        sys_log_exception('Exception processing device data event')
+        logger.exception('Exception processing device thread')
 
 
 #
@@ -858,6 +874,7 @@ def doSale(pos_id, part_code, qty="1", size="", sale_type="EAT_IN", *args):
 
         logger.debug("--- doSale before retrieve quantity ---")
         qty = retrieve_quantity(model, qty)
+        doChangeQuantity(int(pos_id), '', 1)
 
         if is_new_order is True and order_created is False and part_code is None:
             logger.debug("--- doSale before posot.createOrder ---")
@@ -3861,6 +3878,7 @@ def requestQuantity(posid, *args):
             if int(amount) > 99:
                 show_info_message(posid, "Quantidade máxima de itens excedida", msgtype="info")
                 amount = None
+            doChangeQuantity(posid,'',amount)
 
         return amount or ""
 
@@ -4451,8 +4469,9 @@ def doChangeQuantity(posid, line_numbers, qty, is_absolute=False):
     model = get_model(posid)
     posot = get_posot(model)
     pod_function = get_posfunction(model) if get_podtype(model) in ("DT", "FC") else get_podtype(model)
-
+    
     if set_product_quantity_pre:
+        
         set_custom(posid, "pre_quantity", qty)
         return
 
@@ -5846,7 +5865,8 @@ def _get_products(pos_id="1"):
                     "prodline": prodline
                 }
                 prodlist.append(product)
-                _product_by_barcode[int(barcode)] = product
+                if barcode:
+                    _product_by_barcode[int(barcode)] = product
         except:
             sys_log_exception("Error getting product list")
         finally:
@@ -5885,7 +5905,7 @@ def doPriceLookup(pos_id, timeout=45, *args):
         finally:
             close_asynch_dialog(pos_id, dlg_id)
         if barcode is not None:
-            barcode = base64.b64decode(barcode).strip()
+            barcode = int(base64.b64decode(barcode).strip())
             if barcode and barcode in _product_by_barcode:
                 show_messagebox(pos_id, message="{0}: {1}".format(_product_by_barcode[barcode]['name'], _product_by_barcode[barcode]['price']), title="$PRICE_LOOKUP")
     finally:
