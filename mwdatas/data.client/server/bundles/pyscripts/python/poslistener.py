@@ -10,12 +10,15 @@ import re
 import logging
 import string
 from xml.etree import cElementTree as etree
+
+from posot import OrderTakerException
 from systools import sys_log_info, sys_log_exception
 # Our modules
 import pyscripts
 from pyscriptscache import cache as _cache
-from sysactions import get_model, translate_message, write_ldisplay, get_poslist, has_current_order, is_operator_logged, get_custom_params, \
-    get_cfg, get_business_period, show_messagebox, show_info_message, get_posot, get_current_order, format_date, get_podtype, get_posfunction, close_asynch_dialog
+from sysactions import get_model, translate_message, write_ldisplay, get_poslist, has_current_order, get_podtype, \
+    get_custom_params, get_cfg, get_business_period, show_messagebox, show_info_message, get_posot, get_current_order, \
+    format_date, get_posfunction, close_asynch_dialog, is_operator_logged, show_any_dialog
 from msgbus import FM_PARAM
 from bustoken import TK_SITEF_FINISH_PAYMENT
 from msgbus import TK_SYS_ACK
@@ -479,7 +482,7 @@ def event_msr_data(params):
 
 def sitef_status_update(params):
     message, pos_id = params[0].split(';')
-    show_info_message(pos_id, message, timeout=180000)
+    show_info_message(pos_id, message, timeout=5000)
 # END def sitef_status_update
 
 
