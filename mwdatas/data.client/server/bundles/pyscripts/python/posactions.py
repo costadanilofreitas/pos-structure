@@ -314,7 +314,7 @@ def _device_data_event_received(params):
     When a scanner event is received, we should try so sell the item on the POS or, if price
     lookup mode is on, just ignore and let the sysactions handle the scanner dialog
     """
-    global _product_by_barcode, _scanner_sale_paused, _scan_dialog, dialog_timeout
+    global _product_by_barcode, _scanner_sale_paused
     data, subject, p_type, asynch, pos_id = params[:5]
     try:
         device = etree.XML(data).find("Device")
@@ -1857,7 +1857,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
 
             if not offline_bandeira:
                 offline_bandeira = show_listbox(pos_id, valuable_bandeiras, message="Selecione o Cartão:")
-                offline_bandeira = valuable_to_real[offline_bandeira]
+                offline_bandeira = valuable_to_real[offline_bandeira] if offline_bandeira else None
 
 
 
