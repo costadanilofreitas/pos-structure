@@ -319,7 +319,7 @@ def _device_data_event_received(params):
     try:
         device = etree.XML(data).find("Device")
         logger.info("Data {0} ".format(data))
-        
+
         device_name = str(device.get("name"))
 
         if not device_name.startswith("scanner"):
@@ -943,7 +943,7 @@ def handle_synchronization_error(pos_id, pos_ot, dlgid=None):
         show_messagebox(pos_id, "$SYNCHRONIZATION_ERROR", "$ERROR", timeout=600000)
         try:
             if not has_current_order(get_model(pos_id)):
-                return 
+                return
             pos_ot.voidOrder(pos_id)
             return
         except Exception as ex:
@@ -1440,7 +1440,7 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
             return
 
     if is_day_blocked(model):
-        #show_info_message(pos_id, "$POS_IS_BLOCKED_BY_TIME", msgtype="critical")
+        # show_info_message(pos_id, "$POS_IS_BLOCKED_BY_TIME", msgtype="critical")
         show_messagebox(pos_id, message="$POS_IS_BLOCKED_BY_TIME", icon="error")
         return
 
@@ -1471,7 +1471,7 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
         option = _list_open_options(order)
         if option is not None:
             prod_name = get_line_product_name(model, int(option.get("lineNumber")))
-            #show_info_message(pos_id, "$NEED_TO_RESOLVE_OPTION|%s" % (prod_name.encode("UTF-8")), msgtype="critical")
+            # show_info_message(pos_id, "$NEED_TO_RESOLVE_OPTION|%s" % (prod_name.encode("UTF-8")), msgtype="critical")
             show_messagebox(pos_id, message="$NEED_TO_RESOLVE_OPTION|%s" % (prod_name.encode("UTF-8")), icon="error")
             return
 
@@ -1532,13 +1532,14 @@ def doTotal(pos_id, screen_number="", dlg_id=-1, is_recall=False, *args):
             if handle_order_taker_exception(pos_id, posot, ex, mbcontext):
                 return
 
-        #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
+        # show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
         show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
         if is_recall:
             raise ex
 
     finally:
         logger.debug("Order Totalizada - POS %s" % pos_id)
+
     return True
 # END of doTotal
 
@@ -1722,7 +1723,6 @@ def doChangeEFT(posid, *args):
 @action
 def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmation="false", *args):
     logger.debug("--- doTender START ---")
-
 
     if not pafecflistenter_component_found(pos_id):
         return
@@ -2536,7 +2536,7 @@ def doRecallNext(pos_id, screen_number="", order_id="", totalize=False, originat
             else:
                 show_info_message(pos_id, "Pedido número %s já recuperado em outro caixa" % order_id, msgtype="critical")
                 logger.debug("Recall pedido já recuperado em outro caixa - Order %s - PosId %s" % (order_id, pos_id))
-                
+
             sys_log_info("$ERROR_CODE_INFO|%d|%s - POS %s" % (e.getErrorCode(), e.getErrorDescr(), pos_id))
         except Exception as ex:
             sys_log_exception("Erro recuperando pedido - %s" % str(ex))
@@ -4469,9 +4469,9 @@ def doChangeQuantity(posid, line_numbers, qty, is_absolute=False):
     model = get_model(posid)
     posot = get_posot(model)
     pod_function = get_posfunction(model) if get_podtype(model) in ("DT", "FC") else get_podtype(model)
-    
+
     if set_product_quantity_pre:
-        
+
         set_custom(posid, "pre_quantity", qty)
         return
 
