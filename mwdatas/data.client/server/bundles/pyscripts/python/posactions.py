@@ -1178,11 +1178,14 @@ def get_nf_type(posid=1, *args):
 def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sale_type="EAT_IN", subst='', *args):
     logger.debug("--- doCompleteOption START ---")
     list_categories = sell_categories[int(posid)]
+    model = get_model(posid)
+    posot = get_posot(model)
     if subst:
-
+        posot.blkopnotify = True
         doClearOptionItem(posid, line_number, subst)
+        posot.blkopnotify = False
     if len(list_categories) > 0:
-        if _cache.is_not_order_kiosk(pcode, get_podtype(get_model(int(posid))) or None, list_categories):
+        if _cache.is_not_order_kiosk(pcode, get_podtype(model) or None, list_categories):
             show_info_message(posid, '$KIOSK_NOT_SALE', msgtype='error')
             raise StopAction
 
@@ -1193,7 +1196,7 @@ def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sa
     logger.debug("--- waitOrder START ---")
     # Waits a maximum of 5 seconds for the order to "arrive" at the POS model
     time_limit = (time.time() + 5.0)
-    while (time.time() < time_limit) and (not has_current_order(get_model(posid))):
+    while (time.time() < time_limit) and (not has_current_order(model)):
         time.sleep(0.1)
     logger.debug("--- waitOrder END ---")
 
@@ -1205,13 +1208,14 @@ def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sa
         # Waits a maximum of 5 seconds for NewLine "arrive" at POS model
         while (time.time() < time_limit) and (sale_line > order_line):
             time.sleep(0.1)
-            if get_current_order(get_model(posid)).findall('SaleLine'):
-                sale_lines = get_current_order(get_model(posid)).findall('SaleLine')
+            if get_current_order(model).findall('SaleLine'):
+                sale_lines = get_current_order(model).findall('SaleLine')
                 order_line = int(max(sale_lines, key=lambda x: int(x.attrib['lineNumber'])).attrib['lineNumber'])
         logger.debug("--- waitNewLine START ---")
 
         checkShowModifierScreen(posid, sale_xml, "350")
     logger.debug("--- doCompleteOption END ---")
+
     return sale_xml
 
 
@@ -1856,7 +1860,7 @@ def doTender(pos_id, amount, tender_type_id="0", offline="false", need_confirmat
                                 6: 99992}
 
             if not offline_bandeira:
-                offline_bandeira = show_listbox(pos_id, valuable_bandeiras, message="Selecione o Cartão:")
+                offline_bandeira = show_listbox(pos_id, valuable_bandeiras, message="Selecione o Cartão:", buttons="OK")
                 offline_bandeira = valuable_to_real[offline_bandeira] if offline_bandeira else None
 
 
@@ -5710,7 +5714,7 @@ def doClearOptionItem(posid, linenumber="", itemid="", *args):
         return False  # Nothing to clear
     # Clear the option
     posot = get_posot(model)
-    posot.blkopnotify = True
+
     try:
         posot.clearOption(posid, linenumber, "", itemid)
         return True
@@ -5721,8 +5725,7 @@ def doClearOptionItem(posid, linenumber="", itemid="", *args):
         # show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
         show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
                         icon="error")
-    finally:
-        posot.blkopnotify = False
+
     return False
 
 
