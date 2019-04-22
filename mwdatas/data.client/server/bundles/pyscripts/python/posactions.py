@@ -319,7 +319,7 @@ def _device_data_event_received(params):
     try:
         device = etree.XML(data).find("Device")
         logger.info("Data {0} ".format(data))
-
+        
         device_name = str(device.get("name"))
 
         if not device_name.startswith("scanner"):
@@ -874,7 +874,8 @@ def doSale(pos_id, part_code, qty="1", size="", sale_type="EAT_IN", *args):
 
         logger.debug("--- doSale before retrieve quantity ---")
         qty = retrieve_quantity(model, qty)
-        doChangeQuantity(int(pos_id), '', 1)
+        if qty >1:
+            doChangeQuantity(int(pos_id), '', 1)
 
         if is_new_order is True and order_created is False and part_code is None:
             logger.debug("--- doSale before posot.createOrder ---")
@@ -943,7 +944,7 @@ def handle_synchronization_error(pos_id, pos_ot, dlgid=None):
         show_messagebox(pos_id, "$SYNCHRONIZATION_ERROR", "$ERROR", timeout=600000)
         try:
             if not has_current_order(get_model(pos_id)):
-                return
+                return 
             pos_ot.voidOrder(pos_id)
             return
         except Exception as ex:
@@ -2540,7 +2541,7 @@ def doRecallNext(pos_id, screen_number="", order_id="", totalize=False, originat
             else:
                 show_info_message(pos_id, "Pedido número %s já recuperado em outro caixa" % order_id, msgtype="critical")
                 logger.debug("Recall pedido já recuperado em outro caixa - Order %s - PosId %s" % (order_id, pos_id))
-
+                
             sys_log_info("$ERROR_CODE_INFO|%d|%s - POS %s" % (e.getErrorCode(), e.getErrorDescr(), pos_id))
         except Exception as ex:
             sys_log_exception("Erro recuperando pedido - %s" % str(ex))
@@ -4473,9 +4474,9 @@ def doChangeQuantity(posid, line_numbers, qty, is_absolute=False):
     model = get_model(posid)
     posot = get_posot(model)
     pod_function = get_posfunction(model) if get_podtype(model) in ("DT", "FC") else get_podtype(model)
-
+    
     if set_product_quantity_pre:
-
+        
         set_custom(posid, "pre_quantity", qty)
         return
 
