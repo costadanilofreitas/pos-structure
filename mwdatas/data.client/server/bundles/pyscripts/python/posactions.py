@@ -2982,17 +2982,20 @@ def loginuser(pos_id, *args):
     longusername = userinfo["LongName"]
 
     # Request initial float to user, if not an order-taker
-    list_min_values_drawer = get_storewide_config("Store.MinValuesDrawer", defval="0;50;100")
-
+    list_min_values_drawer = get_storewide_config("Store.MinValuesDrawer", defval=None)
     if podtype != "OT" and posfunction != "OT":
-        list_limits = [("R$%.2f" % int(x)).replace(".", ",") for x in list_min_values_drawer.split(";")]
-        index = show_listbox(pos_id, list_limits, message="$ENTER_THE_INITIAL_FLOAT_AMOUNT", title="$OPERATOR_OPENING", buttons="$OK|$CANCEL", icon="info", timeout=720000)
+        if list_min_values_drawer:
+            list_limits = [("R$%.2f" % int(x)).replace(".", ",") for x in list_min_values_drawer.split(";")]
+            index = show_listbox(pos_id, list_limits, message="$ENTER_THE_INITIAL_FLOAT_AMOUNT", title="$OPERATOR_OPENING", buttons="$OK|$CANCEL", icon="info", timeout=720000)
 
-        if index is None:
-            return False  # User cancelled, or timeout
+            if index is None:
+                return False  # User cancelled, or timeout
 
-        initfloat = list_min_values_drawer.split(";")[index]
-        initfloat = float(initfloat or 0.0)
+            initfloat = list_min_values_drawer.split(";")[index]
+        else:
+            initfloat = show_keyboard(pos_id, message="$ENTER_THE_INITIAL_FLOAT_AMOUNT", title="$OPERATOR_OPENING", mask="CURRENCY", numpad=True, timeout=720000)
+
+        initfloat = round(float(initfloat or 0.0), 2)
     else:
         initfloat = 0.0
 
