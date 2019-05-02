@@ -84,14 +84,14 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
     @param model: POS model
     @param coupon_list: (optional) List of tuples of (line number, part code) to be used for validations. Provided thru the action 'doCouponDiscount'.
     """
-    logger.debug('oioioioioioioioioioioio %s' % only_check)
+    logger.debug('aaaaaaaaaaaaaaaaaaaaaaa %s' % only_check)
     coupons = available_coupons or getAvailableCoupons(posid)
     model = model or get_model(posid)
     posot = get_posot(model)
     order = get_current_order(model)
     order_total = D(order.get("totalAmount"))
-    logger.debug(coupon_list)
-    logger.debug(available_coupons)
+    logger.debug('bbbbbbbbbbbbbbbbbbbbbbbbb %s' %coupon_list)
+    logger.debug('ccccccccccccccccccccccc %s' %available_coupons)
     if not coupon_list:
         coupon_list = [(line.get("lineNumber"), line.get("partCode")) for line in order.findall("SaleLine") if int(line.get("qty")) > 0 and int(line.get("level")) == 0]
     if not coupon_list:
@@ -531,6 +531,6 @@ def getCouponByProductCode(posid, product_code, coupons=[]):
             coupon["reqType"].upper() not in ("ALL", "ANY", "TAG-ALL", "TAG-ANY"):
             sys_log_error("Invalid setup of coupon code [{0}]: invalid coupon description".format(coupon["code"]))
             return None
-        logger.debug('chegou aqui')
+        logger.debug('cupom validado - %s' % product_code)
         return coupon
     return None

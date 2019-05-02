@@ -335,6 +335,7 @@ def get_updated_sale_line_defaults(queries, order_id, line_number, context, part
             "inc_qty": "%(inc_qty)s",
             "default_qty": "%(default_qty)s",
             "price_key": "%(price_key)s"
+            "discount_amount": "%(discount_amount)s"
         }
     """
     add_or_update_default_options(temp_lines, queries, order_id, line_number, context, part_code, prod_qty, level, pod_type, False)

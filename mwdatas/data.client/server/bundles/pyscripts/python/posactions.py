@@ -6056,7 +6056,7 @@ def doOverwritePrice(posid, line_number, item_price, itemid, level, partcode):
     newprice = round(float(newprice or 0.0), 2)
     if newprice == 0.0 :
         try:
-            posot.clearDiscount(1, int(line_number), itemid + '.' + partcode, int(level), int(partcode))
+            posot.clearDiscount('1', line_number, itemid, level, partcode)
         except OrderTakerException, e:
 
             show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
@@ -6064,10 +6064,10 @@ def doOverwritePrice(posid, line_number, item_price, itemid, level, partcode):
             raise
     else:
         oldprice = round(float(item_price or 0.0), 2)
-        discountamt = str(round(oldprice - newprice, 2))
+        discountamt = D(round(oldprice - newprice, 2))
         # posot.priceOverwrite(posid, line_number, newprice)
         try:
-            posot.applyDiscount(1, discountamt, int(line_number), itemid + '.' + partcode, int(level), int(partcode))
+            posot.applyDiscount('1', discountamt, line_number, itemid, level, partcode)
         except OrderTakerException, e:
 
             show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
