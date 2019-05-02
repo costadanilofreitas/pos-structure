@@ -319,7 +319,7 @@ def _device_data_event_received(params):
     try:
         device = etree.XML(data).find("Device")
         logger.info("Data {0} ".format(data))
-        
+
         device_name = str(device.get("name"))
 
         if not device_name.startswith("scanner"):
@@ -944,7 +944,7 @@ def handle_synchronization_error(pos_id, pos_ot, dlgid=None):
         show_messagebox(pos_id, "$SYNCHRONIZATION_ERROR", "$ERROR", timeout=600000)
         try:
             if not has_current_order(get_model(pos_id)):
-                return 
+                return
             pos_ot.voidOrder(pos_id)
             return
         except Exception as ex:
@@ -1198,6 +1198,7 @@ def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sa
     # Waits a maximum of 5 seconds for the order to "arrive" at the POS model
     time_limit = (time.time() + 5.0)
     while (time.time() < time_limit) and (not has_current_order(model)):
+        model = get_model(posid)
         time.sleep(0.1)
     logger.debug("--- waitOrder END ---")
 
@@ -1212,7 +1213,7 @@ def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sa
             if get_current_order(model).findall('SaleLine'):
                 sale_lines = get_current_order(model).findall('SaleLine')
                 order_line = int(max(sale_lines, key=lambda x: int(x.attrib['lineNumber'])).attrib['lineNumber'])
-        logger.debug("--- waitNewLine START ---")
+        logger.debug("--- waitNewLine END ---")
 
         checkShowModifierScreen(posid, sale_xml, "350")
     logger.debug("--- doCompleteOption END ---")
@@ -2541,7 +2542,7 @@ def doRecallNext(pos_id, screen_number="", order_id="", totalize=False, originat
             else:
                 show_info_message(pos_id, "Pedido número %s já recuperado em outro caixa" % order_id, msgtype="critical")
                 logger.debug("Recall pedido já recuperado em outro caixa - Order %s - PosId %s" % (order_id, pos_id))
-                
+
             sys_log_info("$ERROR_CODE_INFO|%d|%s - POS %s" % (e.getErrorCode(), e.getErrorDescr(), pos_id))
         except Exception as ex:
             sys_log_exception("Erro recuperando pedido - %s" % str(ex))
@@ -4474,9 +4475,9 @@ def doChangeQuantity(posid, line_numbers, qty, is_absolute=False):
     model = get_model(posid)
     posot = get_posot(model)
     pod_function = get_posfunction(model) if get_podtype(model) in ("DT", "FC") else get_podtype(model)
-    
+
     if set_product_quantity_pre:
-        
+
         set_custom(posid, "pre_quantity", qty)
         return
 
