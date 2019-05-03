@@ -6043,7 +6043,7 @@ def isPyscriptsOnline(posid):
 
 @action
 def doOverwritePrice(posid, line_number, item_price, itemid, level, partcode):
-    if line_number is None:
+    if line_number is None or '0':
         show_info_message(posid, "$SELECT_LINE_FIRST", msgtype="warning")
         return
     model = get_model(posid)
@@ -6055,6 +6055,7 @@ def doOverwritePrice(posid, line_number, item_price, itemid, level, partcode):
                               mask="CURRENCY", numpad=True, timeout=720000)
     newprice = round(float(newprice or 0.0), 2)
     if newprice == 0.0 :
+        logger.debug("========> Limpando descontos")
         try:
             posot.clearDiscount('1', line_number, itemid, level, partcode)
         except OrderTakerException, e:
@@ -6064,7 +6065,7 @@ def doOverwritePrice(posid, line_number, item_price, itemid, level, partcode):
             raise
     else:
         oldprice = round(float(item_price or 0.0), 2)
-        discountamt = D(round(oldprice - newprice, 2))
+        discountamt = str(round(oldprice - newprice, 2))
         # posot.priceOverwrite(posid, line_number, newprice)
         try:
             posot.applyDiscount('1', discountamt, line_number, itemid, level, partcode)

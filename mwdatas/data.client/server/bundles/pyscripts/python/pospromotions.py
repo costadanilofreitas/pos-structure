@@ -89,7 +89,8 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
     model = model or get_model(posid)
     posot = get_posot(model)
     order = get_current_order(model)
-    order_total = D(order.get("totalAmount"))
+    order_total = D(order.get("totalGross"))
+    logger.debug('TTTTTTTTTTTTTTTTTTTTT %s' % order_total)
     logger.debug('bbbbbbbbbbbbbbbbbbbbbbbbb %s' %coupon_list)
     logger.debug('ccccccccccccccccccccccc %s' %available_coupons)
     if not coupon_list:
@@ -123,49 +124,49 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
                 if order_total < D(coupon["reqMinimalOrderTotal"]):
                     show_messagebox(posid, "Minimal order total for coupon code [{0}] is [{1}].".format(coupon_code, coupon["reqMinimalOrderTotal"]), icon="warning")
                     raise Exception("Minimal order total for coupon code [{0}] is [{1}].".format(coupon_code, coupon["reqMinimalOrderTotal"]))
-
-            if coupon["reqType"] in ("TAG-ALL", "TAG-ANY"):
-                tag_idx = -1
-                while True:
-                    tag_idx += 1
-                    if tag_idx >= len(coupon["reqTag"]):
-                        break
-                    reqprod = getProductsByTag(posid, coupon["reqTag"][tag_idx])
-                    reqqty = coupon["reqQty"][tag_idx]
-                    for reqcode in reqprod.keys():
-                        for line in sale_lines:
-                            qty = int(line.get("qty"))
-                            pcode = int(line.get("partCode"))
-                            if pcode == int(reqcode):
-                                reqqty -= qty
-                            if reqqty <= 0:
-                                reqqty = 0
-                                break
-                        if reqqty <= 0:
-                            reqqty = 0
+            if any(k in coupon for k in("reqTag", "reqProd")):
+                if coupon["reqType"] in ("TAG-ALL", "TAG-ANY"):
+                    tag_idx = -1
+                    while True:
+                        tag_idx += 1
+                        if tag_idx >= len(coupon["reqTag"]):
                             break
-                    coupon["reqQty"][tag_idx] = reqqty
-            else:
-                for idx, reqcode in enumerate(coupon["reqProd"]):
-                    reqqty = coupon["reqQty"][idx]
-                    if reqqty > 0:
-                        for line in sale_lines:
-                            qty = int(line.get("qty"))
-                            pcode = int(line.get("partCode"))
-                            if pcode == reqcode:
-                                reqqty -= qty
+                        reqqty = coupon["reqQty"][tag_idx] or 1
+                        reqprod = getProductsByTag(posid, coupon["reqTag"][tag_idx])
+                        for reqcode in reqprod.keys():
+                            for line in sale_lines:
+                                qty = int(line.get("qty"))
+                                pcode = int(line.get("partCode"))
+                                if pcode == int(reqcode):
+                                    reqqty -= qty
+                                if reqqty <= 0:
+                                    reqqty = 0
+                                    break
                             if reqqty <= 0:
                                 reqqty = 0
                                 break
-                    coupon["reqQty"][idx] = reqqty
-            if coupon["reqType"].endswith("ALL"):
-                if not all(q == 0 for q in coupon["reqQty"]):
-                    show_messagebox(posid, "$COUPON_PREREQ_FAILED|{}".format(coupon_code), icon="warning")
-                    raise Exception("Not all pre-requirements for coupon code [{0}] were satisfied.".format(coupon_code))
-            elif coupon["reqType"].endswith("ANY"):
-                if not any(q == 0 for q in coupon["reqQty"]):
-                    show_messagebox(posid, "$COUPON_PREREQ_FAILED|{}".format(coupon_code), icon="warning")
-                    raise Exception("Not all pre-requirements for coupon code [{0}] were satisfied.".format(coupon_code))
+                        coupon["reqQty"][tag_idx] = reqqty
+                else:
+                    for idx, reqcode in enumerate(coupon["reqProd"]):
+                        reqqty = coupon["reqQty"][idx] or 1
+                        if reqqty > 0:
+                            for line in sale_lines:
+                                qty = int(line.get("qty"))
+                                pcode = int(line.get("partCode"))
+                                if pcode == reqcode:
+                                    reqqty -= qty
+                                if reqqty <= 0:
+                                    reqqty = 0
+                                    break
+                        coupon["reqQty"][idx] = reqqty
+                if coupon["reqType"].endswith("ALL"):
+                    if not all(q == 0 for q in coupon["reqQty"]):
+                        show_messagebox(posid, "$COUPON_PREREQ_FAILED|{}".format(coupon_code), icon="warning")
+                        raise Exception("Not all pre-requirements for coupon code [{0}] were satisfied.".format(coupon_code))
+                elif coupon["reqType"].endswith("ANY"):
+                    if not any(q == 0 for q in coupon["reqQty"]):
+                        show_messagebox(posid, "$COUPON_PREREQ_FAILED|{}".format(coupon_code), icon="warning")
+                        raise Exception("Not all pre-requirements for coupon code [{0}] were satisfied.".format(coupon_code))
 
             if only_check:
                 continue
@@ -199,7 +200,8 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
                                     posot.splitOrderLine(posid, line.get("lineNumber"), coupon["discQty"])
                                 posot.clearDiscount(discountid=coupon["discountId"], linenumber=line.get("lineNumber"), itemid=line.get("itemId"), level=line.get("level"), partcode=line.get("partCode"))
                                 if promo_price is not None:
-                                    discountamt = D(discQty) * (D(line.get("unitPrice", "0")) - promo_price_split)
+                                    discountamt = (D(discQty) * (D(line.get("unitPrice", "0")) - promo_price_split)) + D(promo_price_split_residue)
+                                    promo_price_split_residue = D(0)
                                 else:
                                     discountamt = D(discQty) * D(coupon["discAmt"] if "discAmt" in coupon else ((D(coupon["discRate"]) / D(100)) * D(line.get("unitPrice", "0"))))
                                 discounts_to_apply.append({
@@ -218,11 +220,11 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
                                 if coupon["discQty"] <= 0:
                                     break
                     if coupon["discQty"] > 0:
-                        show_messagebox(posid, "Unable to distribute the discount for coupon code [{0}].".format(coupon_code), icon="warning")
+                        show_messagebox(posid, "Não há itens suficientes para ativar a promoção [{0}].".format(coupon_code), icon="warning")
                         raise Exception("Unable to distribute the discount for coupon code [{0}].".format(coupon_code))
                     sz_discounts_to_apply = len(discounts_to_apply)
-                    if promo_price is not None and promo_price_split_residue:
-                        discounts_to_apply[-1]["discountamt"] += (promo_price_split_residue * D(-1))
+                    # if promo_price is not None and promo_price_split_residue:
+                    #    discounts_to_apply[-1]["discountamt"] += (promo_price_split_residue * D(-1))
                     idx = 0
                     for d in discounts_to_apply:
                         idx += 1
@@ -235,13 +237,13 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
             elif coupon["type"].upper() == "ORDER":
                 try:
                     posot = get_posot(model)
-                    #discountamt = D(coupon["discAmt"] if "discAmt" in coupon else ((D(coupon["discRate"]) / D(100)) * order_total))
+                    discountamt = D(coupon["discAmt"] if "discAmt" in coupon else ((D(coupon["discRate"]) / D(100)) * order_total))
 
                     posot.blkopnotify = True
                     posot.clearDiscount(coupon["discountId"])
                     posot.blkopnotify = False
-                    discountamt = '1.40'
-                    posot.applyDiscount(coupon["discountId"], discountamt)
+
+                    posot.applyDiscount(coupon["discountId"], discountamt, forcebyitem =1)
                     show_message = True
                 except OrderTakerException, e:
 
@@ -249,7 +251,8 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
                     raise
             if show_message:
                 show_messagebox(posid, "$COUPONS_APPLIED|{0}".format(message.replace('\n', ', ').encode('UTF-8')), icon="success")
-        except:
+        except Exception, e:
+            logger.error('ERRO NA APLICAÇÃO DE DESCONTO: %s' % e)
             if not only_check:
                 try:
                     posot.blkopnotify = False
@@ -278,84 +281,6 @@ def promotion(func_or_type):
         _promotions[fn.func_name] = fn
         return fn
     return wrapper
-
-
-@posactions.action
-def runPromotionScript(posid, discountid, *args, **kwargs):
-    """
-    runPromotionScript(discountid)
-    Action used to manually execute the promotion script associated to a discount id.
-    @param discountid: Discount identification number
-    """
-    model = get_model(posid)
-    try:
-        posot = get_posot(model)
-        discounts = etree.XML(posot.getOrderDiscounts(applied=False))
-        for discount in discounts.findall("OrderDiscount"):
-            if discount.get("discountId") == discountid:
-                script = str(discount.get("discountScript"))
-                descr = discount.get("discountDescription").encode("UTF-8")
-                if script not in _promotions:
-                    sys_log_info(
-                        "Promotion script [%s] has not been found on POS [%s]" % (script, posid))
-                    show_info_message(posid, "$PROMOTION_SCRIPT_NOT_FOUND|%s|%s|%s" % (
-                        script, discountid, descr), msgtype="error")
-                    return False
-                sys_log_info(
-                    "Applying promotion script [%s] on POS [%s]" % (script, posid))
-                return _promotions[script](posid, discountid, {"model": model}, *args, **kwargs)
-        else:
-            sys_log_info(
-                "Promotion id [%s] has not been found on POS [%s]" % (discountid, posid))
-            show_info_message(
-                posid, "$INVALID_PROMOTION_ID|%s" % (discountid), msgtype="error")
-    except OrderTakerException, e:
-        show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (
-            e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
-    return False
-
-
-@posactions.action
-def doOpenDiscountType(posid, *args, **kwargs):
-    options = ("$EMPLOYEE_DISCOUNT", "$POLICE_AND_FIRE", "$CANCEL")
-    select = show_messagebox(
-        posid, message="$SELECT_AN_OPTION", title="", icon="question", buttons="|".join(options))
-    if select is None or options[select] == "$CANCEL":
-        return  # User cancelled, or timeout
-    elif options[select] == "$EMPLOYEE_DISCOUNT":
-        posactions.doExemptionDiscount(posid, "8", "true")
-    elif options[select] == "$POLICE_AND_FIRE":
-        posactions.doExemptionDiscount(posid, "9", "true")
-
-
-@posactions.action
-def doOpenCompsType(posid, *args, **kwargs):
-    options = ("$EMPLOYEE_MEAL", "$OUR_MISTAKE", "$DIDNT_LIKE", "$MEDIA_PR", "$GUEST_APPRECIATION",
-               "$NO_SHOW", "$ON_THE_HOUSE", "$CANCEL")
-    select = show_messagebox(
-        posid, message="$SELECT_AN_OPTION", title="", icon="question", buttons="|".join(options))
-    if select is None or options[select] == "$CANCEL":
-        return  # User cancelled, or timeout
-    elif options[select] == "$EMPLOYEE_MEAL":
-        posactions.doExemptionDiscount(posid, "1", "true")
-    elif options[select] == "$OUR_MISTAKE":
-        posactions.doExemptionDiscount(posid, "2", "true")
-    elif options[select] == "$DIDNT_LIKE":
-        posactions.doExemptionDiscount(posid, "3", "true")
-    elif options[select] == "$MEDIA_PR":
-        posactions.doExemptionDiscount(posid, "4", "true")
-    elif options[select] == "$GUEST_APPRECIATION":
-        posactions.doExemptionDiscount(posid, "5", "true")
-    elif options[select] == "$NO_SHOW":
-        posactions.doExemptionDiscount(posid, "6", "true")
-    elif options[select] == "$ON_THE_HOUSE":
-        posactions.doExemptionDiscount(posid, "7", "true")
-
-
-@posactions.action
-def doOpenDiscount(posid, *args, **kwargs):
-    runPromotionScript(posid, "4", input_type="select")
-
 
 def getProductPrice(posid, itemid):
     conn = None
@@ -502,8 +427,7 @@ def getCouponByCode(posid, coupon_code, coupons=[]):
         if not coupon:
             return None
         coupon = deepcopy(coupon[0])
-        if  not all(k in coupon for k in("type", "discountId", "code", "reqQty", "reqType")) or \
-            not any(k in coupon for k in("reqProd", "reqTag")) or \
+        if  not all(k in coupon for k in("type", "discountId", "code", "reqType")) or \
             not any(k in coupon for k in("discAmt", "discRate", "promoPrice")) or \
             coupon["type"].upper() not in ("ITEM", "ORDER", "ITEM-PROMO") or \
             coupon["reqType"].upper() not in ("ALL", "ANY", "TAG"):
@@ -524,8 +448,7 @@ def getCouponByProductCode(posid, product_code, coupons=[]):
         if not coupon:
             return None
         coupon = deepcopy(coupon[0])
-        if  not all(k in coupon for k in("type", "discountId", "code", "reqQty", "reqType")) or \
-            not any(k in coupon for k in("reqProd", "reqTag")) or \
+        if  not all(k in coupon for k in("type", "discountId", "code", "reqType")) or \
             not any(k in coupon for k in("discAmt", "discRate", "promoPrice")) or \
             coupon["type"].upper() not in ("ITEM", "ORDER", "ITEM-PROMO") or \
             coupon["reqType"].upper() not in ("ALL", "ANY", "TAG-ALL", "TAG-ANY"):
