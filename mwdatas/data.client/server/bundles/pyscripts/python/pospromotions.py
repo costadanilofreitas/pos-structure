@@ -177,58 +177,90 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
 
             if coupon["type"] in ("ITEM", "ITEM-PROMO"):
                 try:
+                    if "discTag" in coupon:
+                        discprod = getProductsByTag(posid, coupon["discTag"])
+                        coupon["discProd"] = discprod.keys()
+                    discounts_valid = []
+                    firstpromo = True
                     promo_price_split = None
                     promo_price_split_residue = D(0)
+                    coupondiscqty = {}
+                    products = 0
+                    applied = 0
                     promo_price = D(coupon["promoPrice"]) if "promoPrice" in coupon else None
                     if promo_price is not None:
                         promo_price_split = promo_price / D(coupon["discQty"])
                         promo_price_split = promo_price_split.quantize(D('.01'), decimal.ROUND_HALF_DOWN)
                         if promo_price_split * D(coupon["discQty"]) != promo_price:
                             promo_price_split_residue = promo_price - (promo_price_split * D(coupon["discQty"]))
-                    if "discTag" in coupon:
-                        discprod = getProductsByTag(posid, coupon["discTag"])
-                        coupon["discProd"] = discprod.keys()
-                    discounts_to_apply = []
-                    firstpromo = True
                     for discpcode in coupon["discProd"]:
-                        if coupon["discQty"] <= 0:
-                            break
+                        products += 1
+                        coupondiscqty[discpcode] = coupon["discQty"] if "discQty" in coupon else 0
+                        qty_satisfied = 0
+                        apply_all = False
+                        discounts_to_apply = {}
+                        if coupondiscqty[discpcode] <= 0:
+                            if coupon["type"] == "ITEM-PROMO":
+                                break
+                            else:
+                                apply_all = True
                         for line in sale_lines:
                             if int(line.get("partCode")) == int(discpcode) and int(line.get("qty")) > 0:
-                                discQty = coupon["discQty"] if int(line.get("qty")) > coupon["discQty"] else int(line.get("qty"))
-                                if int(line.get("qty")) > coupon["discQty"]:
-                                    posot.splitOrderLine(posid, line.get("lineNumber"), coupon["discQty"])
+                                if not apply_all:
+                                    discQty = coupondiscqty[discpcode] if int(line.get("qty")) > coupondiscqty[discpcode] else int(line.get("qty"))
+                                    if int(line.get("qty")) > coupondiscqty[discpcode]:
+                                        posot.splitOrderLine(posid, line.get("lineNumber"), coupondiscqty[discpcode])
+                                else:
+                                    discQty = int(line.get("qty"))
                                 posot.clearDiscount(discountid=coupon["discountId"], linenumber=line.get("lineNumber"), itemid=line.get("itemId"), level=line.get("level"), partcode=line.get("partCode"))
                                 if promo_price is not None:
-                                    discountamt = (D(discQty) * (D(line.get("unitPrice", "0")) - promo_price_split)) + D(promo_price_split_residue)
+                                    discountamt = (D(discQty) * (
+                                                D(line.get("unitPrice", "0")) - promo_price_split)) + D(
+                                        promo_price_split_residue)
                                     promo_price_split_residue = D(0)
                                 else:
-                                    discountamt = D(discQty) * D(coupon["discAmt"] if "discAmt" in coupon else ((D(coupon["discRate"]) / D(100)) * D(line.get("unitPrice", "0"))))
-                                discounts_to_apply.append({
-                                    "discountid": coupon["discountId"],
+                                    discountamt = D(discQty) * D(coupon["discAmt"] if "discAmt" in coupon else (
+                                                (D(coupon["discRate"]) / D(100)) * D(line.get("unitPrice", "0"))))
+                                if qty_satisfied not in discounts_to_apply:
+                                    discounts_to_apply[qty_satisfied] = []
+                                discounts_to_apply[qty_satisfied].append({
+                                    "discountid": str(coupon["discountId"]),
                                     "discountamt": discountamt,
                                     "linenumber": line.get("lineNumber"),
                                     "itemid": line.get("itemId"),
                                     "level": line.get("level"),
                                     "partcode": line.get("partCode"),
-                                    "forcebyitem": 0
+                                    "forcebyitem": 1
                                 })
                                 message +=  (u"\n" if not firstpromo else "") + (u"%-5s" % str(discQty)) + line.get("productName")
                                 firstpromo = False
-                                coupon["discQty"] -= discQty
+                                coupondiscqty[discpcode] -= discQty
                                 show_message = True
-                                if coupon["discQty"] <= 0:
-                                    break
-                    if coupon["discQty"] > 0:
+                                if coupondiscqty[discpcode] <= 0:
+                                    qty_satisfied += 1
+                                    if not apply_all:
+                                        coupondiscqty[discpcode] = coupon["discQty"]
+
+
+                        if qty_satisfied > 0:
+                            applied += 1
+                            for idx in range(qty_satisfied):
+                                l = len(discounts_to_apply[idx])
+                                for idy in range(l):
+                                    discounts_valid.append(discounts_to_apply[idx][idy])
+
+
+                    if products > applied :
                         show_messagebox(posid, "Não há itens suficientes para ativar a promoção [{0}].".format(coupon_code), icon="warning")
                         raise Exception("Unable to distribute the discount for coupon code [{0}].".format(coupon_code))
-                    sz_discounts_to_apply = len(discounts_to_apply)
+                    sz_discounts_to_apply = len(discounts_valid)
                     # if promo_price is not None and promo_price_split_residue:
                     #    discounts_to_apply[-1]["discountamt"] += (promo_price_split_residue * D(-1))
                     idx = 0
-                    for d in discounts_to_apply:
+                    for d in discounts_valid:
                         idx += 1
                         posot.blkopnotify = (idx < sz_discounts_to_apply)
+                        logger.debug(type(d))
                         posot.applyDiscount(d["discountid"], d["discountamt"], d["linenumber"], d["itemid"], d["level"], d["partcode"], d["forcebyitem"])
                         logger.debug(d["discountamt"])
                 except OrderTakerException, e:
