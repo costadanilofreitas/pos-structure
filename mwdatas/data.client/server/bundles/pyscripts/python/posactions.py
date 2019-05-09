@@ -667,7 +667,7 @@ def request_gift(posid, model, gift_command, amount=0, order_id=0, validate=True
         close_asynch_dialog(posid, dlgid)
     if not msg or msg.token == TK_SYS_NAK:
         show_messagebox(posid, message="$GIFT_ERROR|%s|%s" % ("0", "Communication error"), icon="error")
-        #show_info_message(posid, "$GIFT_ERROR|%s|%s" % ("0", "Communication error"), msgtype="error")
+        # show_info_message(posid, "$GIFT_ERROR|%s|%s" % ("0", "Communication error"), msgtype="error")
         return None
     # Parse the response XML
     gift_xml = etree.XML(msg.data)
@@ -676,7 +676,7 @@ def request_gift(posid, model, gift_command, amount=0, order_id=0, validate=True
         if int(rescode) != 0:
             reason = gift_xml.get("reason") or "(none)"
             show_messagebox(posid, message="$GIFT_ERROR|%s|%s" % (rescode, reason), icon="error")
-            #show_info_message(posid, "$GIFT_ERROR|%s|%s" % (rescode, reason), msgtype="error")
+            # show_info_message(posid, "$GIFT_ERROR|%s|%s" % (rescode, reason), msgtype="error")
             return None
     # Sets a "masked" card number
     cardnbr = "%s*****%s*" % (card_number[0:6], card_number[10:len(card_number) - 1])
@@ -874,7 +874,7 @@ def doSale(pos_id, part_code, qty="1", size="", sale_type="EAT_IN", *args):
 
         logger.debug("--- doSale before retrieve quantity ---")
         qty = retrieve_quantity(model, qty)
-        if qty >1:
+        if qty != "1":
             doChangeQuantity(int(pos_id), '', 1)
 
         if is_new_order is True and order_created is False and part_code is None:
@@ -897,11 +897,11 @@ def doSale(pos_id, part_code, qty="1", size="", sale_type="EAT_IN", *args):
             if handle_order_taker_exception(pos_id, pos_ot, ex, mbcontext):
                 return
             else:
-                #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+                # show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
                 #                 msgtype="critical")
                 show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
         else:
-            #show_info_message(pos_id, "ERRO AO INICIAR A VENDA - {}".format(ex._descr), msgtype="critical")
+            # show_info_message(pos_id, "ERRO AO INICIAR A VENDA - {}".format(ex._descr), msgtype="critical")
             show_messagebox(pos_id, message="ERRO AO INICIAR A VENDA - {}".format(ex._descr), icon="error")
 
         if is_new_order:
@@ -924,13 +924,13 @@ def pafecflistenter_component_found(pos_id):
     try:
         msg = mbcontext.MB_EasySendMessage("PafEcfListener", token=TK_VERIFY_PAF_ECF_LISTENER, format=FM_PARAM, data="")
         if msg.token != TK_SYS_ACK:
-            #show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
+            # show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
             show_messagebox(pos_id, message="FiscalMode PAF but no PafEcfListener found", icon="error")
             return False
 
         return True
     except Exception as _:
-        #show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
+        # show_info_message(pos_id, "FiscalMode PAF but no PafEcfListener found", msgtype="critical")
         show_messagebox(pos_id, message="FiscalMode PAF but no PafEcfListener found", icon="error")
         return False
 
@@ -953,7 +953,7 @@ def handle_synchronization_error(pos_id, pos_ot, dlgid=None):
                     return
 
             logger.exception("Erro cancelando pedido")
-            #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+            # show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
             #                  msgtype="critical")
             show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
 
@@ -1039,7 +1039,7 @@ def offer_multi_order(model, pod_type, pos_id, pos_ot, pos_function, price_list,
             logger.debug("--- doSale after posot.createOrder ---")
 
         except OrderTakerException as ex:
-            #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+            # show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
             #                  msgtype="critical")
             show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
                             icon="error")
@@ -1242,7 +1242,7 @@ def doOption(pos_id, context, part_code, qty="", line_number="", size="", sale_t
         return sale_xml
 
     except OrderTakerException as ex:
-        #show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
+        # show_info_message(pos_id, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
         #                  msgtype="critical")
         show_messagebox(pos_id, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()),
                         icon="error")
@@ -1275,7 +1275,7 @@ def doClearOption(posid, lineNumber="", qty="", *args):
         show_info_message(posid, "Error %s" % e, msgtype="error")
     except OrderTakerException, ex:
         show_messagebox(posid, message="$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), icon="error")
-        #show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
+        # show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (ex.getErrorCode(), ex.getErrorDescr()), msgtype="critical")
 
 
 @action
@@ -2983,17 +2983,20 @@ def loginuser(pos_id, *args):
     longusername = userinfo["LongName"]
 
     # Request initial float to user, if not an order-taker
-    list_min_values_drawer = get_storewide_config("Store.MinValuesDrawer", defval="0;50;100")
-
+    list_min_values_drawer = get_storewide_config("Store.MinValuesDrawer", defval=None)
     if podtype != "OT" and posfunction != "OT":
-        list_limits = [("R$%.2f" % int(x)).replace(".", ",") for x in list_min_values_drawer.split(";")]
-        index = show_listbox(pos_id, list_limits, message="$ENTER_THE_INITIAL_FLOAT_AMOUNT", title="$OPERATOR_OPENING", buttons="$OK|$CANCEL", icon="info", timeout=720000)
+        if list_min_values_drawer:
+            list_limits = [("R$%.2f" % int(x)).replace(".", ",") for x in list_min_values_drawer.split(";")]
+            index = show_listbox(pos_id, list_limits, message="$ENTER_THE_INITIAL_FLOAT_AMOUNT", title="$OPERATOR_OPENING", buttons="$OK|$CANCEL", icon="info", timeout=720000)
 
-        if index is None:
-            return False  # User cancelled, or timeout
+            if index is None:
+                return False  # User cancelled, or timeout
 
-        initfloat = list_min_values_drawer.split(";")[index]
-        initfloat = float(initfloat or 0.0)
+            initfloat = list_min_values_drawer.split(";")[index]
+        else:
+            initfloat = show_keyboard(pos_id, message="$ENTER_THE_INITIAL_FLOAT_AMOUNT", title="$OPERATOR_OPENING", mask="CURRENCY", numpad=True, timeout=720000)
+
+        initfloat = round(float(initfloat or 0.0), 2)
     else:
         initfloat = 0.0
 
@@ -6036,3 +6039,40 @@ def doRuptureCleanup(posid):
 @action
 def isPyscriptsOnline(posid):
     return True
+
+
+@action
+def doOverwritePrice(posid, line_number, item_price, itemid, level, partcode):
+    if line_number is None or '0':
+        show_info_message(posid, "$SELECT_LINE_FIRST", msgtype="warning")
+        return
+    model = get_model(posid)
+    posot = get_posot(model)
+    if not get_authorization(posid, min_level=LEVEL_SUPERVISOR, model=model, insert_auth=True,
+                             display_title="$OVERWRITE_PRICE"):
+        return
+    newprice = show_keyboard(posid, message="$NEW_PRICE_OR_ZERO", title="$OVERWRITE_PRICE",
+                              mask="CURRENCY", numpad=True, timeout=720000)
+    newprice = round(float(newprice or 0.0), 2)
+    if newprice == 0.0 :
+        logger.debug("========> Limpando descontos")
+        try:
+            posot.clearDiscount('1', line_number, itemid, level, partcode)
+        except OrderTakerException, e:
+
+            show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
+                              msgtype="critical")
+            raise
+    else:
+        oldprice = round(float(item_price or 0.0), 2)
+        discountamt = str(round(oldprice - newprice, 2))
+        # posot.priceOverwrite(posid, line_number, newprice)
+        try:
+            posot.applyDiscount('1', discountamt, line_number, itemid, level, partcode)
+        except OrderTakerException, e:
+
+            show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()),
+                              msgtype="critical")
+            raise
+    return True
+
