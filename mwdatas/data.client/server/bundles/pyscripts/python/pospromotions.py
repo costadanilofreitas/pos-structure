@@ -84,15 +84,11 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
     @param model: POS model
     @param coupon_list: (optional) List of tuples of (line number, part code) to be used for validations. Provided thru the action 'doCouponDiscount'.
     """
-    logger.debug('aaaaaaaaaaaaaaaaaaaaaaa %s' % only_check)
     coupons = available_coupons or getAvailableCoupons(posid)
     model = model or get_model(posid)
     posot = get_posot(model)
     order = get_current_order(model)
     order_total = D(order.get("totalGross"))
-    logger.debug('TTTTTTTTTTTTTTTTTTTTT %s' % order_total)
-    logger.debug('bbbbbbbbbbbbbbbbbbbbbbbbb %s' %coupon_list)
-    logger.debug('ccccccccccccccccccccccc %s' %available_coupons)
     if not coupon_list:
         coupon_list = [(line.get("lineNumber"), line.get("partCode")) for line in order.findall("SaleLine") if int(line.get("qty")) > 0 and int(line.get("level")) == 0]
     if not coupon_list:
@@ -173,7 +169,6 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
 
             message = u""
             show_message = False
-            logger.debug(coupon["type"])
 
             if coupon["type"] in ("ITEM", "ITEM-PROMO"):
                 try:
@@ -238,7 +233,9 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
                                 show_message = True
                                 if coupondiscqty[discpcode] <= 0:
                                     qty_satisfied += 1
-                                    if not apply_all:
+                                    if coupon["type"] == "ITEM":
+                                        apply_all = True
+                                    else:
                                         coupondiscqty[discpcode] = coupon["discQty"]
 
 
@@ -260,9 +257,8 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
                     for d in discounts_valid:
                         idx += 1
                         posot.blkopnotify = (idx < sz_discounts_to_apply)
-                        logger.debug(type(d))
                         posot.applyDiscount(d["discountid"], d["discountamt"], d["linenumber"], d["itemid"], d["level"], d["partcode"], d["forcebyitem"])
-                        logger.debug(d["discountamt"])
+                        logger.debug('Aplicando desconto de %s na linha %s' % (d["discountamt"], d["linenumber"]))
                 except OrderTakerException, e:
                     show_info_message(posid, "$ERROR_CODE_INFO|%d|%s" % (e.getErrorCode(), e.getErrorDescr()), msgtype="critical")
                     raise
@@ -275,7 +271,8 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
                     posot.clearDiscount(coupon["discountId"])
                     posot.blkopnotify = False
 
-                    posot.applyDiscount(coupon["discountId"], discountamt, forcebyitem =1)
+                    posot.applyDiscount(coupon["discountId"], discountamt, forcebyitem=1)
+                    logger.debug('Aplicando desconto de %s na venda inteira' % discountamt)
                     show_message = True
                 except OrderTakerException, e:
 
@@ -297,22 +294,6 @@ def check_order_coupons(posid, model=None, coupon_list=[], only_check=False, ava
 
     return True
 
-
-def promotion(func_or_type):
-    """Decorator used to indicate that a function is a discount or promotion script handler
-    @param func_or_type: if a function, sets the promotion handler as MANUAL, otherwise set to the given type
-    """
-    if callable(func_or_type):
-        fn = func_or_type
-        fn._promotype = MANUAL
-        _promotions[fn.func_name] = fn
-        return fn
-
-    def wrapper(fn):
-        fn._promotype = func_or_type
-        _promotions[fn.func_name] = fn
-        return fn
-    return wrapper
 
 def getProductPrice(posid, itemid):
     conn = None
@@ -373,7 +354,6 @@ def doApplicableCoupons(posid, *args, **kwargs):
         return False
     coupon = coupon[0]
     logger.debug(coupon)
-
 
     if check_order_coupons(posid, model=model, coupon_list=[("-1", coupon["code"])], available_coupons=coupons_available, only_check=True):
         try:
