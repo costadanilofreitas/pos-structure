@@ -1198,8 +1198,8 @@ def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sa
     # Waits a maximum of 5 seconds for the order to "arrive" at the POS model
     time_limit = (time.time() + 5.0)
     while (time.time() < time_limit) and (not has_current_order(model)):
-        model = get_model(posid)
         time.sleep(0.1)
+        model = get_model(posid)
     logger.debug("--- waitOrder END ---")
 
     if sale_xml not in ["", None, True, False]:
@@ -1210,6 +1210,7 @@ def doCompleteOption(posid, context, pcode, qty="1", line_number="", size="", sa
         # Waits a maximum of 5 seconds for NewLine "arrive" at POS model
         while (time.time() < time_limit) and (sale_line > order_line):
             time.sleep(0.1)
+            model = get_model(posid)
             if get_current_order(model).findall('SaleLine'):
                 sale_lines = get_current_order(model).findall('SaleLine')
                 order_line = int(max(sale_lines, key=lambda x: int(x.attrib['lineNumber'])).attrib['lineNumber'])
