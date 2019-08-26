@@ -3,7 +3,7 @@
 #
 
 PACKAGE_PREFIX := client
-STANDARD_DATA_DIR := mwdatas/data.client
+STANDARD_DATA_DIR := data
 STANDARD_COMMON_DIR := $(STANDARD_DATA_DIR)/server/common
 STANDARD_COMMON_UI_OBJS :=  ui/gui_client_prep.zip ui/gui_client_sui.zip ui/gui_client_kiosk.zip ui/gui_client_pickup.zip
 DDL_FILES := $(STANDARD_DATA_DIR)/server/bundles/persistcomp/normal/i18ncustom.ddl $(STANDARD_DATA_DIR)/server/bundles/persistcomp/tblservice/tblservice.ddl
@@ -50,7 +50,7 @@ STANDARD_COMMON_UI_OBJS := $(addprefix $(STANDARD_COMMON_DIR)/,$(STANDARD_COMMON
 #
 .PHONY: all
 
-all: ddl-hash standard-common-ui-objs standard-common-objs
+all: ddl-hash standard-common-ui-objs standard-common-objs apache-conf
 	$(info $@: Done!)
 
 standard-common-ui-objs: $(STANDARD_COMMON_UI_OBJS)
@@ -87,6 +87,21 @@ ddl-hash: $(DDL_FILES)
 		rm $$f.new; \
 	done
 	rm -f ./ddlhash.py
+
+apache-conf:
+	if [ -d win.zip ]; then rm win.zip; fi
+	curl -O http://nuget.e-deploy.com.br/apache/win.zip
+	if [ -d components/apache ]; then rm -rf components/apache; fi
+	mkdir components/apache
+	unzip win.zip -d components/apache
+	rm win.zip
+	mv components/apache/Apache24/* components/apache
+	rm -rf components/apache/Apache24
+	curl -O http://nuget.e-deploy.com.br/apache/httpd.txt
+	mv httpd.txt components/apache/conf/httpd.in
+	rm components/apache/conf/httpd.conf
+	sed 's,\\[\\[SRVROOT\\]\\],$(BASEDIR)/components/apache,g' components/apache/conf/httpd.in > components/apache/conf/httpd.conf
+	sed -i 's,\\[\\[DOCUMENT_ROOT\\]\\],$(BASEDIR)/data/server/htdocs,g' components/apache/conf/httpd.conf
 
 
 
