@@ -32,7 +32,7 @@ goto :setupenv
 set MWPOS_BIN=%BASEBINDIR%\bin
 set APACHE_MODS=%BASEBINDIR%\apache\modules
 set PYTHONHOME=%BASEBINDIR%\python
-set DATADIR=%BASEDIR%\data
+set DATADIR=%MWDATASDIR%\data.client
 set HVLOGFILE=%DATADIR%\server\logs\hv.log
 set HVMAXLOGFILES=5
 set PATH=%PYTHONHOME%;%PYTHONHOME%\bin;%PYTHONHOME%\lib;%APACHE_MODS%;%PATH%
