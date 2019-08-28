@@ -54,7 +54,7 @@ export DYLD_LIBRARY_PATH=$MWAPP_BIN:$PYTHONHOME/lib
 export LD_LIBRARY_PATH=$DYLD_LIBRARY_PATH
 
 if [ "$EXECUTABLE" == "genclient" ]; then
-	export MWAPP_DATADIR=$(pwd)/data
+	export MWAPP_DATADIR=$(pwd)/mwdatas/data.client
 	export HVLOGFILE=$MWAPP_DATADIR/logs/hv.log
 	export HVMAXLOGFILES=5
 else
