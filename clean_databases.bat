@@ -1,4 +1,4 @@
 @echo off
 
-cd data\server\databases & git clean -dxf
+cd mwdatas\data.client\server\databases & git clean -dxf
 cd ../../..
