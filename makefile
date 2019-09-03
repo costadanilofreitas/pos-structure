@@ -39,41 +39,14 @@ GENPYPKG := mwsdk/tools/genpypkg/genpypkg.py
 
 #
 # build rules
-#
-
-STANDARD_COMMON_UI_OBJS := $(addprefix $(STANDARD_COMMON_DIR)/,$(STANDARD_COMMON_UI_OBJS))
-
-
-#
-# Standard build
-#
 .PHONY: all
 
-all: ddl-hash standard-common-ui-objs common-comp pos-comp apache-conf
-	$(info $@: Done!)
-
-standard-common-ui-objs: $(STANDARD_COMMON_UI_OBJS)
-	$(info $@: Done!)
-
-$(STANDARD_COMMON_DIR)/ui/gui_client_prep.zip:
-	cd $(BASEDIR)/src/gui/prep && $(MAKE) && mkdir -p $(BASEDIR)/$(dir $@) &&  mv $(notdir $@) $(BASEDIR)/$(dir $@)
-	$(info $@: Done!)
-
-$(STANDARD_COMMON_DIR)/ui/gui_client_sui.zip:
-	cd $(BASEDIR)/src/gui/newgui && $(MAKE) && mkdir -p $(BASEDIR)/$(dir $@) &&  mv $(notdir $@) $(BASEDIR)/$(dir $@)
-	$(info $@: Done!)
-
-$(STANDARD_COMMON_DIR)/ui/gui_client_kiosk.zip: $(shell find $(BASEDIR)/src/gui/kiosk/src -type f -iname "*.js" -o -iname "*.json" -o -iname "*css" -o -iname "*.html")
-	cd $(BASEDIR)/src/gui/kiosk && $(MAKE) && mkdir -p $(BASEDIR)/$(dir $@) &&  mv $(notdir $@) $(BASEDIR)/$(dir $@)
-	$(info $@: Done!)
-
-$(STANDARD_COMMON_DIR)/ui/gui_client_pickup.zip:
-	cd $(BASEDIR)/src/gui/pickup && $(MAKE) && mkdir -p $(BASEDIR)/$(dir $@) &&  mv $(notdir $@) $(BASEDIR)/$(dir $@)
+all: ddl-hash common-comp pos-comp apache-conf
 	$(info $@: Done!)
 
 common-comp:
 	if [ -e $(BASEDIR)/src/common.mk ]; then \
-		$(MAKE) -f $(BASEDIR)/src/common.mk; \
+		cd src && $(MAKE) -f $(BASEDIR)/src/common.mk && cd -; \
 	fi
 	$(info $@: Done!)
 
@@ -92,6 +65,7 @@ ddl-hash: $(DDL_FILES)
 		rm $$f.new; \
 	done
 	rm -f ./ddlhash.py
+	$(info $@: Done!)
 
 apache-conf:
 	if [ -d win.zip ]; then rm win.zip; fi
@@ -107,14 +81,16 @@ apache-conf:
 	rm components/apache/conf/httpd.conf
 	sed 's,\\[\\[SRVROOT\\]\\],$(BASEDIR)/components/apache,g' components/apache/conf/httpd.in > components/apache/conf/httpd.conf
 	sed -i 's,\\[\\[DOCUMENT_ROOT\\]\\],$(BASEDIR)/$(STANDARD_DATA_DIR)/server/htdocs,g' components/apache/conf/httpd.conf
+	$(info $@: Done!)
 
 #
 # Clean rule
 #
 clean-common:
 	if [ -e src/common.mk ]; then \
-		$(MAKE) -f src/common.mk clean; \
+		cd src && $(MAKE) -f $(BASEDIR)/src/common.mk clean && cd -; \
 	fi
+	$(info $@: Done!)
 
 clean-pos-comp:
 	if [ -e $(BASEDIR)/components/common.mk ]; then \
@@ -128,8 +104,5 @@ clean-apache:
 	$(info $@: Done!)
 
 clean: clean-common clean-pos-comp clean-apache
-	cd $(BASEDIR)/src/gui/prep && $(MAKE) clean
-	cd $(BASEDIR)/src/gui/newgui && $(MAKE) clean
-	cd $(BASEDIR)/src/gui/kiosk && $(MAKE) clean
-	cd $(BASEDIR)/src/gui/pickup && $(MAKE) clean
-	rm -rf $(dir $(STANDARD_COMMON_UI_OBJS))
+	@rm -rf $(dir $(STANDARD_COMMON_UI_OBJS))
+	$(info $@: Done!)
