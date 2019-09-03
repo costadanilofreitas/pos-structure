@@ -49,7 +49,7 @@ STANDARD_COMMON_UI_OBJS := $(addprefix $(STANDARD_COMMON_DIR)/,$(STANDARD_COMMON
 #
 .PHONY: all
 
-all: ddl-hash standard-common-ui-objs standard-common-objs apache-conf pos-comp
+all: ddl-hash standard-common-ui-objs common-comp pos-comp apache-conf
 	$(info $@: Done!)
 
 standard-common-ui-objs: $(STANDARD_COMMON_UI_OBJS)
@@ -71,12 +71,17 @@ $(STANDARD_COMMON_DIR)/ui/gui_client_pickup.zip:
 	cd $(BASEDIR)/src/gui/pickup && $(MAKE) && mkdir -p $(BASEDIR)/$(dir $@) &&  mv $(notdir $@) $(BASEDIR)/$(dir $@)
 	$(info $@: Done!)
 
-standard-common-objs:
+common-comp:
 	if [ -e $(BASEDIR)/src/common.mk ]; then \
 		$(MAKE) -f $(BASEDIR)/src/common.mk; \
 	fi
 	$(info $@: Done!)
 
+pos-comp:
+	if [ -e $(BASEDIR)/components/common.mk ]; then \
+		cd components && $(MAKE) -f common.mk && cd -; \
+	fi
+	$(info $@: Done!)
 
 ddl-hash: $(DDL_FILES)
 	echo $(DDLHASHSCRIPT) > ./ddlhash.py
@@ -103,21 +108,26 @@ apache-conf:
 	sed 's,\\[\\[SRVROOT\\]\\],$(BASEDIR)/components/apache,g' components/apache/conf/httpd.in > components/apache/conf/httpd.conf
 	sed -i 's,\\[\\[DOCUMENT_ROOT\\]\\],$(BASEDIR)/$(STANDARD_DATA_DIR)/server/htdocs,g' components/apache/conf/httpd.conf
 
-pos-comp:
-	if [ -e $(BASEDIR)/components/common.mk ]; then \
-		$(MAKE) -f $(BASEDIR)/components/common.mk; \
-	fi
-	$(info $@: Done!)
 #
 # Clean rule
 #
-
 clean-common:
 	if [ -e src/common.mk ]; then \
 		$(MAKE) -f src/common.mk clean; \
 	fi
 
-clean: clean-common
+clean-pos-comp:
+	if [ -e $(BASEDIR)/components/common.mk ]; then \
+		cd components && $(MAKE) -f common.mk clean && cd -; \
+	fi
+	$(info $@: Done!)
+
+clean-apache:
+	if [ -d win.zip ]; then rm win.zip; fi
+	if [ -d components/apache ]; then rm -rf components/apache; fi
+	$(info $@: Done!)
+
+clean: clean-common clean-pos-comp clean-apache
 	cd $(BASEDIR)/src/gui/prep && $(MAKE) clean
 	cd $(BASEDIR)/src/gui/newgui && $(MAKE) clean
 	cd $(BASEDIR)/src/gui/kiosk && $(MAKE) clean
