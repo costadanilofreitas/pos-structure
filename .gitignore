@@ -2,3 +2,5 @@
 *.log
 .flake/
 .idea/
+*debug.txt
+*.lnk
