@@ -1,7 +1,10 @@
 @echo off
 
 SET CurDir=%CD%
-cd mwdatas\data.client\server\databases & del i18ncustom.db
+cd mwdatas\data.client\server\databases
+if exist i18ncustom.db (
+    del i18ncustom.db
+)
 cd %CurDir%
 
 ::if [%1]==[] goto syntax
