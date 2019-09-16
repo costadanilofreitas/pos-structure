@@ -57,28 +57,27 @@ pos-comp:
 	$(info $@: Done!)
 
 ddl-hash: $(DDL_FILES)
-	echo $(DDLHASHSCRIPT) > ./ddlhash.py
-	PYTHONHOME=$(PYTHONHOME)
+	@echo $(DDLHASHSCRIPT) > ./ddlhash.py
+	@PYTHONHOME=$(PYTHONHOME)
 	for f in $?; do \
 	python ./ddlhash.py $$f > $$f.new; \
 		cp $$f.new $$f; \
 		rm $$f.new; \
 	done
-	rm -f ./ddlhash.py
+	rm -f ./ddlhash.p
 	$(info $@: Done!)
 
 apache-conf:
-	if [ -d win.zip ]; then rm win.zip; fi
-	curl -O http://nuget.e-deploy.com.br/apache/win.zip
-	if [ -d components/apache ]; then rm -rf components/apache; fi
-	mkdir components/apache
-	unzip win.zip -d components/apache
-	rm win.zip
-	mv components/apache/Apache24/* components/apache
-	rm -rf components/apache/Apache24
-	curl -O http://nuget.e-deploy.com.br/apache/httpd.txt
-	mv httpd.txt components/apache/conf/httpd.in
-	rm components/apache/conf/httpd.conf
+	@if [ -d win.zip ]; then rm win.zip; fi
+	curl -s -O http://nuget.e-deploy.com.br/apache/win.zip
+	@if [ -d components/apache ]; then rm -rf components/apache; fi
+	@mkdir components/apache
+	unzip -q win.zip -d components/apache
+	@mv components/apache/Apache24/* components/apache
+	@rm -rf components/apache/Apache24
+	curl -s -O http://nuget.e-deploy.com.br/apache/httpd.txt
+	@mv httpd.txt components/apache/conf/httpd.in
+	@rm components/apache/conf/httpd.conf
 	sed 's,\\[\\[SRVROOT\\]\\],$(BASEDIR)/components/apache,g' components/apache/conf/httpd.in > components/apache/conf/httpd.conf
 	sed -i 's,\\[\\[DOCUMENT_ROOT\\]\\],$(BASEDIR)/$(STANDARD_DATA_DIR)/server/htdocs,g' components/apache/conf/httpd.conf
 	$(info $@: Done!)
