@@ -282,7 +282,7 @@
 
 				-- Updates Closed service
 				UPDATE tblservice.TableService
-				SET FinishedTS=CURRENT_TIMESTAMP
+				SET FinishedTS=strftime('%Y-%m-%dT%H:%M:%f', 'now')
 				WHERE ServiceId IN (
 								SELECT CAST(:serviceId AS INTEGER)
 								UNION
@@ -425,7 +425,7 @@
 				); 
 
 				UPDATE tblservice.TableService
-				SET FinishedTS=CURRENT_TIMESTAMP
+				SET FinishedTS=strftime('%Y-%m-%dT%H:%M:%f', 'now')
 				WHERE ServiceId IN (
 								SELECT CAST(:fromServiceId AS INTEGER)
 								UNION
@@ -525,7 +525,7 @@
 				-- Updates in the destination Orders
 				-- -----------------------------------
 				INSERT INTO orderdb.OrderItem(OrderId,LineNumber,ItemId,Level,PartCode,OrderedQty,LastOrderedQty,IncQty,DecQty,PriceKey,DiscountAmount,SurchargeAmount,OnlyFlag,OverwrittenUnitPrice,DefaultQty,LastUpdate)
-				SELECT CAST(:orderId AS INTEGER),SliceLineNumber,ItemId,Level,PartCode,OrderedQty,LastOrderedQty,IncQty,DecQty,PriceKey,DiscountAmount,SurchargeAmount,OnlyFlag,OverwrittenUnitPrice,DefaultQty,CURRENT_TIMESTAMP
+				SELECT CAST(:orderId AS INTEGER),SliceLineNumber,ItemId,Level,PartCode,OrderedQty,LastOrderedQty,IncQty,DecQty,PriceKey,DiscountAmount,SurchargeAmount,OnlyFlag,OverwrittenUnitPrice,DefaultQty,strftime('%Y-%m-%dT%H:%M:%f', 'now')
 				  FROM temp.SlicedService SS
 				  JOIN orderdb.OrderItem OI
 				    ON OI.OrderId=SS.OrderId
@@ -578,8 +578,8 @@
 									FROM temp.SlicedService SS 
 									WHERE SS.ServiceId=CAST(:serviceId AS INTEGER)
 							 ) AS LineCounter, 
-				       CURRENT_TIMESTAMP, 
-				       CURRENT_TIMESTAMP, 
+				       strftime('%Y-%m-%dT%H:%M:%f', 'now'), 
+				       strftime('%Y-%m-%dT%H:%M:%f', 'now'), 
 				       O.LastModifiedLine, 
 				       O.BusinessPeriod, 
 				       O.DistributionPoint, 
@@ -614,7 +614,7 @@
 				-- Updates in the source Orders
 				-- -----------------------------
 				INSERT INTO orderdb.OrderVoidHistory(OrderId, LineNumber, ItemId, Level, PartCode, Timestamp, DecQty, PriceKey, OverwrittenUnitPrice, AfterTotal)
-				SELECT OI.OrderId, OI.LineNumber, ItemId, Level, PartCode, CURRENT_TIMESTAMP, OrderedQty, PriceKey, OverwrittenUnitPrice, 0
+				SELECT OI.OrderId, OI.LineNumber, ItemId, Level, PartCode, strftime('%Y-%m-%dT%H:%M:%f', 'now'), OrderedQty, PriceKey, OverwrittenUnitPrice, 0
 				  FROM temp.SlicedService SS
 				  JOIN orderdb.OrderItem OI
 				    ON OI.OrderId=SS.OrderId
@@ -623,7 +623,7 @@
 				  AND OrderedQty IS NOT NULL;
 
 				INSERT OR REPLACE INTO orderdb.OrderItem(OrderId,LineNumber,ItemId,Level,PartCode,OrderedQty,LastOrderedQty,IncQty,DecQty,PriceKey,DiscountAmount,SurchargeAmount,OnlyFlag,OverwrittenUnitPrice,DefaultQty,LastUpdate)
-				SELECT OI.OrderId,OI.LineNumber,ItemId,Level,PartCode,0,OrderedQty,IncQty,DecQty+COALESCE(OrderedQty,0),PriceKey,DiscountAmount,SurchargeAmount,OnlyFlag,OverwrittenUnitPrice,DefaultQty,CURRENT_TIMESTAMP
+				SELECT OI.OrderId,OI.LineNumber,ItemId,Level,PartCode,0,OrderedQty,IncQty,DecQty+COALESCE(OrderedQty,0),PriceKey,DiscountAmount,SurchargeAmount,OnlyFlag,OverwrittenUnitPrice,DefaultQty,strftime('%Y-%m-%dT%H:%M:%f', 'now')
 				  FROM temp.SlicedService SS
 				  JOIN orderdb.OrderItem OI
 				    ON OI.OrderId=SS.OrderId
