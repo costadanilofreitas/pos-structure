@@ -384,6 +384,18 @@
 					PreparedStringTable L;
 				DELETE FROM tblservice.ServiceCustomProperty WHERE ServiceId = CAST(:serviceId AS INTEGER) AND PropertyValue IS NULL;  
 		</Procedure>
+		<Procedure name="fixUnfinalizedPaidTable">
+                UPDATE RestaurantTable SET Status = 1, POSId = NULL
+                    WHERE TableId = CAST(:tableId AS VARCHAR);
+                UPDATE TableService SET FinishedTS = CAST(:finishedTS AS VARCHAR)
+                    WHERE ServiceId = CAST(:serviceId AS INTEGER);
+                INSERT OR REPLACE INTO ServiceOrders (ServiceId, OrderId, POSId, State, UserId)
+                    VALUES (CAST(:serviceId AS INTEGER),
+                            CAST(:orderId AS INTEGER),
+                            CAST(:posId AS INTEGER),
+                            'PAID',
+                            CAST(:userId AS INTEGER));
+		</Procedure>
 		<Procedure name="getServiceCustomProperty">
 				SELECT PropertyKey AS propertyKey, PropertyValue AS propertyValue
 				FROM tblservice.ServiceCustomProperty

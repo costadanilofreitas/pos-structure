@@ -10,7 +10,7 @@
 CREATE TABLE schema_version AS
 SELECT "$Author: amerolli $" AS Author, 
        "$Date: 2018-09-10 10:00:00 -0300 (Mon, 10 Set 2018) $" AS LastModifiedAt,
-       "$Revision: 6359b1143febe9a857398ffe21d12feb54c48988$" AS Revision;
+       "$Revision: 6359b1143febe9a857398ffe21d12feb54c48989$" AS Revision;
 
 
 --
@@ -313,10 +313,11 @@ SELECT
        				)
        		)
      )                                 AS Orders,
-    (SELECT '['||GROUP_CONCAT('{"orderId": '||SplitOrderId||'}')||']' 
+    (SELECT '['||GROUP_CONCAT('{"orderId": '||SplitOrderId||', "state": "'||State||'"}')||']'
      FROM (
-		     SELECT DISTINCT SS.SplitOrderId
+		     SELECT DISTINCT SS.SplitOrderId, COALESCE(SO.State, 'UNDEFINED') AS State
 		     FROM ServiceSplit SS
+			 LEFT JOIN ServiceOrders SO ON SS.SplitOrderId = SO.OrderId
 		     WHERE SS.ServiceId=TS.ServiceId
      )
     ) AS SplitOrders,
