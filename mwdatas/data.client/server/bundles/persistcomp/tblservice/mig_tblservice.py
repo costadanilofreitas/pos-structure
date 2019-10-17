@@ -2,7 +2,8 @@
 
 
 def migrate(conn, tables):
-    updateTablesPriority = ["RestaurantTable", "TableService", "ServiceOrders", "ServiceCustomProperty"]
+    updateTablesPriority = ["RestaurantTable", "TableService", "ServiceTip", "ServiceSplit", "ServiceTenders",
+                            "ServiceOrders", "ServiceCustomProperty"]
 
     for table in updateTablesPriority:
         if tables[table]["fields_OldDB"]:
