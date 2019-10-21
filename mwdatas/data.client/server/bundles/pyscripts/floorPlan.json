@@ -213,11 +213,11 @@
          "w":70,
          "tableId":"24",
          "seats":4,
-         "y":605,
+         "y":500,
          "x":355,
          "type":"rectangle4s"
       },
-      {  
+	  {  
          "itemProps":{  
             "style":{  
                "transform":"rotate(90deg)"
@@ -227,7 +227,7 @@
          "w":70,
          "tableId":"25",
          "seats":4,
-         "y":500,
+         "y":605,
          "x":355,
          "type":"rectangle4s"
       },
