@@ -1,0 +1,1 @@
+xcopy /s/e/z/y ".\components\kds" ".\mwdatas\data.client\server\htdocs\kds"
