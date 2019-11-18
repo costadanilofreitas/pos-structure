@@ -5,7 +5,6 @@ PACKAGE_PREFIX := client
 STANDARD_DATA_DIR := mwdatas/data.client
 STANDARD_COMMON_DIR := $(STANDARD_DATA_DIR)/server/common
 STANDARD_COMMON_UI_OBJS := ui/gui_client_prep.zip ui/gui_client_sui.zip ui/gui_client_kiosk.zip ui/gui_client_pickup.zip
-DDL_FILES := $(STANDARD_DATA_DIR)/server/bundles/persistcomp/tblservice/tblservice.ddl
 DDLHASHSCRIPT := "import sys, re, hashlib; a=re.compile(r'CREATE\s+TABLE\s+schema_version.*Revision;',re.S|re.I).split(open(sys.argv[1], 'r').read()); h=(hashlib.sha1(a[-1]).hexdigest() if len(a)>1 else ''); print re.sub('\0134\044Revision:\s*[a-z:A-Z0-9]*\s*\0134\044', '\044Revision: '+h+'\044', open(sys.argv[1], 'r').read()),;"
 # OUTPUT_PLATFORMS := darwin-x86_64 linux-redhat-x86_64 linux-ubuntu-i686 linux-ubuntu-x86_64 windows-x86
 OUTPUT_PLATFORMS := linux-redhat-x86_64 windows-x86
@@ -64,7 +63,7 @@ ddl-hash: $(DDL_FILES)
 		cp $$f.new $$f; \
 		rm $$f.new; \
 	done
-	rm -f ./ddlhash.p
+	rm -f ./ddlhash.py
 	$(info $@: Done!)
 
 apache-conf:
