@@ -6,4 +6,4 @@
 	url = https://git.mwneo.com/mw/mwsdk.git
 [submodule "src"]
 	path = src
-	url = https://git.mwneo.com/edeploy/src.git
+	url = https://bitbucket.org/edeployteam/edeploy-pos-src.git
