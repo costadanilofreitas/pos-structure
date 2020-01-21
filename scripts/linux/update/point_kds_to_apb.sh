@@ -1,0 +1,22 @@
+#!/bin/bash
+cd ../pos-structure
+git checkout --
+git checkout release/applebees/lab
+git pull
+cd src
+git reset --hard
+git clean -dxf
+git checkout dev
+git pull
+cd ..
+cd mwsdk
+git reset --hard
+git clean -dxf
+git fetch --tag
+git checkout v2.0.59
+cd ..
+cd components
+git reset --hard
+git clean -dxf
+git checkout dev
+git pull
