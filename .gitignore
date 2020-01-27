@@ -5,5 +5,6 @@
 *debug.txt
 *.lnk
 *printer*.txt
-/mwdatas/data.client/server/fiscalsentdir
+/datas/server/fiscalsentdir
 apache
+mwsdk
