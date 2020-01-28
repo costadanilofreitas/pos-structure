@@ -14,7 +14,7 @@ else
 	PLATFORM := windows-x86
 	MAKE := $(CURDIR)/tools/make.exe
 endif
-APACHEDIR=$(BASEDIR)/mwsdk/$(PLATFORM)/apache
+APACHEDIR=$(BASEDIR)/apache
 
 # Build Rules
 .PHONY: all
@@ -36,9 +36,11 @@ common-comp:
 ifeq ($(OPSYS),windows)
 apache-conf:
 	@rm -rf httpd-2.4.41-win64-VS16.zip
+	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
 	curl -LO https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
 	@rm -rf temp
 	unzip -q httpd-2.4.41-win64-VS16.zip -d temp
+	mkdir $(APACHEDIR)
 	@cp -a temp/Apache24/* $(APACHEDIR)
 	@rm -rf temp
 	sed -i.bak 's,^\(Define SRVROOT \)".*",\1"$(APACHEDIR)",g' $(APACHEDIR)/conf/httpd.conf
