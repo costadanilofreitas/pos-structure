@@ -25,7 +25,7 @@ all: sdkcore apache-conf common-comp
 sdkcore:
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
 	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
-	python -m pip install mwsdk==2.0.68 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
+	python -m pip install mwsdk==2.0.92 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
 
 common-comp:
 	if [ -e $(BASEDIR)/src/common.mk ]; then \
@@ -40,7 +40,7 @@ apache-conf:
 	curl -LO https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
 	@rm -rf temp
 	unzip -q httpd-2.4.41-win64-VS16.zip -d temp
-	mkdir $(APACHEDIR)
+	@mkdir $(APACHEDIR)
 	@cp -a temp/Apache24/* $(APACHEDIR)
 	@rm -rf temp
 	sed -i.bak 's,^\(Define SRVROOT \)".*",\1"$(APACHEDIR)",g' $(APACHEDIR)/conf/httpd.conf
