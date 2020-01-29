@@ -1,0 +1,2 @@
+pos_folder_name=edeployPOS
+sdk_version=2.0.92

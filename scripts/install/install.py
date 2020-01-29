@@ -11,16 +11,22 @@ from distutils.dir_util import copy_tree
 
 class InstallPOS(object):
     def __init__(self):
+        self.pos_folder_name = ""
+        self.sdk_version = ""
+        self.get_configurations()
+
         self.current_folder = os.path.abspath(os.getcwd()).replace("\\", "/") + "/"
 
-        self.edeploy_pos_folder = self.current_folder + "edeployPOS"
-
-        self.apache_folder = self.edeploy_pos_folder + "/apache"
-        self.apache_conf_folder = self.apache_folder + "/conf"
+        self.edeploy_pos_folder = self.current_folder + self.pos_folder_name
 
         self.bin_folder = self.edeploy_pos_folder + "/bin"
         self.data_folder = self.edeploy_pos_folder + "/data"
         self.htdocs_folder = self.data_folder + "/server/htdocs"
+        self.python_folder = self.edeploy_pos_folder + "/python"
+        self.src_folder = self.edeploy_pos_folder + "/src"
+
+        self.apache_folder = self.edeploy_pos_folder + "/apache"
+        self.apache_conf_folder = self.apache_folder + "/conf"
 
         self.genesis_folder = self.edeploy_pos_folder + "/genesis"
         self.genesis_apache_folder = self.genesis_folder + "/apache"
@@ -32,13 +38,17 @@ class InstallPOS(object):
         self.sdk_linux_folder = self.sdk_folder + "/linux-x86_64"
         self.sdk_windows_folder = self.sdk_folder + "/windows-x86"
 
-        self.python_folder = self.edeploy_pos_folder + "/python"
-        self.src_folder = self.edeploy_pos_folder + "/src"
-
-        self.sdk_install_command = "python -m pip install mwsdk==2.0.92 -t {} --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br"
+        self.sdk_install_command = "python -m pip install mwsdk=={} -t {} --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br"
         self.apache_url = "https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip"
 
         self.current_os_is_windows = "win" in sys.platform.lower()
+
+    def get_configurations(self):
+        with open("configurations.txt") as f:
+            content = f.readlines()
+        lines = [x.strip() for x in content]
+        self.pos_folder_name = [line.split("=")[1] for line in lines if "pos_folder_name" in line][0]
+        self.sdk_version = [line.split("=")[1] for line in lines if "sdk_version" in line][0]
 
     def install(self):
         print "Starting installation"
@@ -94,7 +104,7 @@ class InstallPOS(object):
     def install_sdk_package(self):
         print "Installing package {} in {}".format("mwsdk", self.genesis_folder)
 
-        os.system(self.sdk_install_command.format(self.genesis_folder))
+        os.system(self.sdk_install_command.format(self.sdk_version, self.genesis_folder))
 
         sdk_folders = [sdk_folder for sdk_folder in os.listdir(self.sdk_folder) if os.path.isdir(self.sdk_folder + "/" + sdk_folder)]
         self.create_genesis_sdk_folders(sdk_folders)
