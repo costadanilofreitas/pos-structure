@@ -9,3 +9,5 @@
 apache
 mwsdk
 /scripts/install/edeployPOS
+/scripts/install/edeployPOS_downloaded
+/scripts/install/edeployPOS_backup
