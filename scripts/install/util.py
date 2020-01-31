@@ -1,23 +1,26 @@
 import os
-import shutil
+import re
 import sys
-import subprocess
-import pip
+import shutil
 import urllib
 import zipfile
-import re
+
 from distutils.dir_util import copy_tree
+from datetime import datetime
 
 
-class InstallPOS(object):
-    def __init__(self):
+class Util(object):
+    def __init__(self, new_package=False):
         self.pos_folder_name = ""
         self.sdk_version = ""
         self.get_configurations()
 
         self.current_folder = os.path.abspath(os.getcwd()).replace("\\", "/") + "/"
 
+        self.backup_folder = self.current_folder + self.pos_folder_name + "_backup"
         self.edeploy_pos_folder = self.current_folder + self.pos_folder_name
+        if new_package:
+            self.edeploy_pos_folder += "_downloaded"
 
         self.bin_folder = self.edeploy_pos_folder + "/bin"
         self.data_folder = self.edeploy_pos_folder + "/data"
@@ -51,27 +54,63 @@ class InstallPOS(object):
         self.sdk_version = [line.split("=")[1] for line in lines if "sdk_version" in line][0]
 
     def install(self):
-        print "Starting installation"
+        print ("Starting installation")
 
         self.create_edeploy_pos_folder()
         self.install_packages()
         self.configure_apache()
 
+        print ("Installation finalized")
+
+    def update(self):
+        print ("Starting update")
+
+        self.backup()
+
+        print ("Update finalized")
+
+    def backup(self):
+        print ("Starting backup")
+
+        time_now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        current_backup_folder = self.backup_folder + "/" + self.pos_folder_name + "_" + time_now
+        self.create_backup_folder(current_backup_folder)
+        self.copy_to_backup_folder(current_backup_folder)
+
+        print ("Backup finalized")
+
+    def create_backup_folder(self, current_backup_folder):
+        if not os.path.exists(self.backup_folder):
+            os.mkdir(self.backup_folder)
+
+        os.mkdir(current_backup_folder)
+
+    def copy_to_backup_folder(self, current_backup_folder):
+        print ("Coping files to backup folder")
+
+        folders = [folder for folder in os.listdir(self.edeploy_pos_folder) if os.path.isdir(self.edeploy_pos_folder)]
+        for folder in folders:
+            from_directory = self.edeploy_pos_folder + "/" + folder
+            to_directory = current_backup_folder + "/" + folder
+            copy_tree(from_directory, to_directory)
+
+        print ("Files copied to backup folder")
+
     def create_edeploy_pos_folder(self):
-        print "Creating edeploy_pos folder"
+        print ("Creating edeploy_pos folder")
 
         if os.path.exists(self.edeploy_pos_folder):
-            print "Removing edeploy_pos folder"
+            print ("Removing edeploy_pos folder")
             shutil.rmtree(self.edeploy_pos_folder)
 
         os.mkdir(self.edeploy_pos_folder)
 
         self.create_edeploy_pos_child_folders()
 
-        print "edeploy_pos folder created"
+        print ("edeploy_pos folder created")
 
     def create_edeploy_pos_child_folders(self):
-        print "Creating edeploy_pos child folders"
+        print ("Creating edeploy_pos child folders")
 
         os.mkdir(self.apache_folder)
         os.mkdir(self.bin_folder)
@@ -82,27 +121,27 @@ class InstallPOS(object):
 
         self.create_genesis_child_folders()
 
-        print "edeploy_pos child folders created"
+        print ("edeploy_pos child folders created")
 
     def create_genesis_child_folders(self):
-        print "Creating genesis child folders"
+        print ("Creating genesis child folders")
 
         os.mkdir(self.genesis_apache_folder)
         os.mkdir(self.genesis_bin_folder)
         os.mkdir(self.genesis_data_folder)
         os.mkdir(self.genesis_python_folder)
 
-        print "genesis child folders created"
+        print ("genesis child folders created")
 
     def install_packages(self):
-        print "Installing packages"
+        print ("Installing packages")
 
         self.install_sdk_package()
 
-        print "Packages installed"
+        print ("Packages installed")
 
     def install_sdk_package(self):
-        print "Installing package {} in {}".format("mwsdk", self.genesis_folder)
+        print ("Installing package {} in {}".format("mwsdk", self.genesis_folder))
 
         os.system(self.sdk_install_command.format(self.sdk_version, self.genesis_folder))
 
@@ -111,7 +150,7 @@ class InstallPOS(object):
 
         self.remove_sdk_folders()
 
-        print "Package installed"
+        print ("Package installed")
 
     def remove_sdk_folders(self):
         genesis_folders = [folder for folder in os.listdir(self.genesis_folder) if
@@ -121,10 +160,10 @@ class InstallPOS(object):
                 shutil.rmtree(self.genesis_folder + "/" + folder)
 
     def create_genesis_sdk_folders(self, sdk_folders):
-        print "Creating genesis sdk folders"
+        print ("Creating genesis sdk folders")
 
         for folder in sdk_folders:
-            print "Creating {} folder".format(folder)
+            print ("Creating {} folder".format(folder))
 
             os.mkdir(self.genesis_apache_folder + "/" + folder)
             os.mkdir(self.genesis_bin_folder + "/" + folder)
@@ -136,16 +175,16 @@ class InstallPOS(object):
                 to_directory = self.genesis_folder + "/" + sub_folder + "/" + folder
                 copy_tree(from_directory, to_directory)
 
-        print "Genesis sdk folders created"
+        print ("Genesis sdk folders created")
 
     def configure_apache(self):
-        print "Configuring Apache"
+        print ("Configuring Apache")
 
         if self.current_os_is_windows:
             self.download_and_install_apache()
             self.configure_apache_conf()
 
-        print "Apache configured"
+        print ("Apache configured")
 
     def configure_apache_conf(self):
         with open(self.apache_conf_folder + "/httpd.conf", 'r+') as f:
@@ -189,30 +228,27 @@ class InstallPOS(object):
         f.truncate()
 
     def download_and_install_apache(self):
-        print "Downloading and installing Apache"
+        print ("Downloading and installing Apache")
 
         if os.path.exists(self.apache_folder):
-            print "Removing apache folder"
+            print ("Removing apache folder")
             shutil.rmtree(self.apache_folder)
 
         zip_file_name = self.edeploy_pos_folder + "/apache.zip"
 
-        print "Downloading Apache"
+        print ("Downloading Apache")
         urllib.urlretrieve(self.apache_url, zip_file_name)
-        print "Apache downloaded"
+        print ("Apache downloaded")
 
-        print "Unzip Apache"
+        print ("Unzip Apache")
         zip_file = zipfile.ZipFile(zip_file_name)
         for f in zip_file.namelist():
             if f.startswith('Apache24'):
                 zip_file.extract(f, self.edeploy_pos_folder)
         zip_file.close()
-        print "Apache unziped"
+        print ("Apache unziped")
 
         os.rename(self.edeploy_pos_folder + "/Apache24", self.edeploy_pos_folder + "/apache")
         os.remove(zip_file_name)
 
-        print "Apache downloaded and installed"
-
-
-InstallPOS().install()
+        print ("Apache downloaded and installed")
