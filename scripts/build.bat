@@ -1,1 +1,1 @@
-start "" "%ProgramFiles%\Git\git-bash.exe" -c "tail -f /c/Windows/win.ini"
+start "" "%ProgramFiles%\Git\git-bash.exe" -c "./make.sh"
