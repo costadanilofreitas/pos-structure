@@ -27,7 +27,9 @@
  
     ``` 
     cd src
+    
     git submodule update --progress --init --recursive -- "src"
+    
     git checkout -b new-git remotes/origin/new-git -- 
     ```
     
@@ -35,6 +37,7 @@
  
     ```
     cd ../scripts
+    
     build.bat
     ```
     
