@@ -1,1 +1,1 @@
-start "" "%ProgramFiles%\Git\git-bash.exe" -c "./make.sh"
+start "" git-bash -c "./make.sh"
