@@ -1,1 +1,0 @@
-start "" git-bash -c "./make.sh"

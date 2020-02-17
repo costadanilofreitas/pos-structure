@@ -57,7 +57,7 @@ endif
 
 post-install:
 	@if [ ! -d $(BASEDIR)/datas/server/htdocs ]; then mkdir $(BASEDIR)/datas/server/htdocs; fi
-	cd ../src/_guizip && find -name '*.zip' -exec sh -c 'unzip -d "$(BASEDIR)/datas/server/htdocs/$${1%.*}" "$$1"' _  {} \; && cd -
+	cd ../src/_guizip && find -name '*.zip' -exec sh -c 'unzip -o -d "$(BASEDIR)/datas/server/htdocs/$${1%.*}" "$$1"' _  {} \; && cd -
 
 # Clean Rules
 clean-common:
@@ -72,5 +72,6 @@ clean-apache:
 	$(info $@: Done!)
 
 clean: clean-common clean-apache
+	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
 	@rm -rf $(dir $(STANDARD_COMMON_UI_OBJS))
 	$(info $@: Done!)
