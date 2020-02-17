@@ -19,7 +19,7 @@ APACHEDIR=$(BASEDIR)/apache
 # Build Rules
 .PHONY: all
 
-all: sdkcore apache-conf common-comp
+all: sdkcore apache-conf common-comp post-install
 	$(info $@: Done!)
 
 sdkcore:
@@ -55,6 +55,10 @@ apache-conf:
 endif
 	$(info $@: Done!)
 
+post-install:
+	@if [ ! -d $(BASEDIR)/datas/server/htdocs ]; then mkdir $(BASEDIR)/datas/server/htdocs; fi
+	cd ../src/_guizip && find -name '*.zip' -exec sh -c 'unzip -o -d "$(BASEDIR)/datas/server/htdocs/$${1%.*}" "$$1"' _  {} \; && cd -
+
 # Clean Rules
 clean-common:
 	if [ -e src/common.mk ]; then \
@@ -63,10 +67,11 @@ clean-common:
 	$(info $@: Done!)
 
 clean-apache:
-	if [ -d httpd-2.4.41-win64-VS16.zip.zip ]; then rm httpd-2.4.41-win64-VS16.zip.zip; fi
+	if [ -d httpd-2.4.41-win64-VS16.zip ]; then rm httpd-2.4.41-win64-VS16.zip; fi
 	if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
 	$(info $@: Done!)
 
 clean: clean-common clean-apache
+	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
 	@rm -rf $(dir $(STANDARD_COMMON_UI_OBJS))
 	$(info $@: Done!)
