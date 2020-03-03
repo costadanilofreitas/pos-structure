@@ -42,16 +42,4 @@
     ```
     
 
- - Go to scripts folder:
-
-    ```
-    cd ../scripts
-    ```
-
-
- - Open the git-bash here and run make.sh (this process can take a few minutes):
-
-    ```
-    bash make.ash
-    ```
-
+ - Go to pos-structure base directory and execute ```build_environment.bat```
