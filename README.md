@@ -5,7 +5,7 @@
 
 
 ### **Requirements:**
- * Python 2 or 3 with PIP on windows path
+ * Python 2 (last version) with PIP on windows path
  * Git on windows path
  * Git-Bash on windows path
  * NPM on windows path
@@ -43,3 +43,13 @@
     
 
  - Go to pos-structure base directory and execute ```build_environment.bat```
+ 
+ 
+### **Steps to run:**
+
+  - On pos-strucute base directory, execute ```start.bat```
+  
+  - To see the POS interface, use your navigator to access the follow URL:
+  
+     <http://localhost:8080/sui/?posid=1>
+ 
