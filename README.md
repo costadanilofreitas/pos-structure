@@ -42,7 +42,7 @@
     ```
     
 
- - Go to pos-structure base directory and execute ```build_environment.bat```
+ - Go to pos-structure on ```scripts``` and execute ```build_environment.bat```
  
  
 ### **Steps to run:**
