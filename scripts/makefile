@@ -9,12 +9,13 @@ BASEDIR=$(CURDIR)/..
 ifeq ($(OPSYS),Linux)
 	OPSYS := linux-redhat
 	PLATFORM := windows-x86
+	APACHEDIR=/etc/httpd
 else
 	OPSYS := windows
 	PLATFORM := windows-x86
 	MAKE := $(CURDIR)/tools/make.exe
+	APACHEDIR=$(BASEDIR)/apache
 endif
-APACHEDIR=$(BASEDIR)/apache
 
 # Build Rules
 .PHONY: all
@@ -43,6 +44,9 @@ apache-conf:
 	@mkdir $(APACHEDIR)
 	@cp -a temp/Apache24/* $(APACHEDIR)
 	@rm -rf temp
+else
+apache-conf:
+endif
 	sed -i.bak 's,^\(Define SRVROOT \)".*",\1"$(APACHEDIR)",g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^\(DocumentRoot \)".*htdocs",\1"$(BASEDIR)/datas/server/htdocs",g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^\(<Directory \)".*htdocs"\(>\),\1"$(BASEDIR)/datas/server/htdocs"\2,g' $(APACHEDIR)/conf/httpd.conf
@@ -50,9 +54,6 @@ apache-conf:
 	sed -i.bak 's,^#\(LoadModule proxy_module modules/mod_proxy.so\),\1,g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^#\(LoadModule proxy_http_module modules/mod_proxy_http.so\),\1,g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^\(<Directory \/>\),ProxyTimeout 60000000\nProxyPreserveHost On\nProxyPass /mwapp http://127.0.0.1:9494/mwapp\nProxyPassReverse /mwapp http://127.0.0.1:9494/mwapp\n\n\1,g' $(APACHEDIR)/conf/httpd.conf
-else
-apache-conf:
-endif
 	$(info $@: Done!)
 
 post-install: common-comp
