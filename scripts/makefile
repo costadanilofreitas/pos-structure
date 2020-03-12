@@ -1,7 +1,6 @@
 # Configurable variables
 STANDARD_DATA_DIR := ../datas/data.client
 STANDARD_COMMON_DIR := $(STANDARD_DATA_DIR)/server/common
-STANDARD_COMMON_UI_OBJS := ui/gui_client_prep.zip ui/gui_client_sui.zip ui/gui_client_kiosk.zip ui/gui_client_pickup.zip
 OUTPUT_PLATFORMS := linux-redhat-x86_64 windows-x86
 
 OPSYS=$(shell uname -s)
@@ -17,7 +16,7 @@ endif
 APACHEDIR=$(BASEDIR)/apache
 
 # Build Rules
-.PHONY: all
+.PHONY: all clean
 
 all: sdkcore apache-conf post-install
 	$(info $@: Done!)
@@ -25,7 +24,7 @@ all: sdkcore apache-conf post-install
 sdkcore:
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
 	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
-	python -m pip install mwsdk==2.0.92 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
+	python -m pip install mwsdk==2.0.94 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
 
 common-comp:
 	if [ -e $(BASEDIR)/src/common.mk ]; then \
@@ -61,8 +60,8 @@ post-install: common-comp
 
 # Clean Rules
 clean-common:
-	if [ -e src/common.mk ]; then \
-		cd ../src && $(MAKE) -f $(BASEDIR)/src/common.mk clean && cd -; \
+	if [ -a src/common.mk ]; then \
+		cd ../src && $(MAKE) clean -f $(BASEDIR)/src/common.mk && cd -; \
 	fi
 	$(info $@: Done!)
 
@@ -73,5 +72,4 @@ clean-apache:
 
 clean: clean-common clean-apache
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
-	@rm -rf $(dir $(STANDARD_COMMON_UI_OBJS))
 	$(info $@: Done!)
