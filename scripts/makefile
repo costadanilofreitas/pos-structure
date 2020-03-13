@@ -25,7 +25,7 @@ all: sdkcore apache-conf post-install
 sdkcore:
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
 	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
-	python -m pip install mwsdk==2.0.92 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
+	python -m pip install mwsdk==2.0.94 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
 
 common-comp:
 	if [ -e $(BASEDIR)/src/common.mk ]; then \
