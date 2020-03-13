@@ -61,7 +61,7 @@ post-install: common-comp
 
 # Clean Rules
 clean-common:
-	if [ -a src/common.mk ]; then \
+	if [ -e $(BASEDIR)/src/common.mk ]; then \
 		cd ../src && $(MAKE) clean -f $(BASEDIR)/src/common.mk && cd -; \
 	fi
 	$(info $@: Done!)
