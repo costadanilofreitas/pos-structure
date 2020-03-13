@@ -20,13 +20,19 @@ endif
 # Build Rules
 .PHONY: all
 
-all: sdkcore apache-conf post-install
+all: sdkcore sdkcore-syslink apache-conf post-install
 	$(info $@: Done!)
 
 sdkcore:
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
-	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
 	python -m pip install mwsdk==2.0.92 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
+
+ifeq ($(OPSYS),windows)
+sdkcore-syslink:
+else
+sdkcore-syslink:
+	ln -s ../mwsdk/linux-x86_64 ../mwsdk/linux-centos-x86_64
+endif
 
 common-comp:
 	if [ -e $(BASEDIR)/src/common.mk ]; then \
