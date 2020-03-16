@@ -11,9 +11,11 @@ from datetime import datetime
 
 class Util(object):
     def __init__(self, new_package=False):
-        self.pos_folder_name = ""
-        self.sdk_version = ""
-        self.get_configurations()
+        configurations = self.get_configurations()
+
+        self.pos_folder_name = configurations["pos_folder_name"]
+        self.sdk_version = configurations["sdk_version"]
+        self.src_version = configurations["src_version"]
 
         self.current_folder = os.path.abspath(os.getcwd()).replace("\\", "/") + "/"
 
@@ -26,7 +28,6 @@ class Util(object):
         self.data_folder = self.edeploy_pos_folder + "/data"
         self.htdocs_folder = self.data_folder + "/server/htdocs"
         self.python_folder = self.edeploy_pos_folder + "/python"
-        self.src_folder = self.edeploy_pos_folder + "/src"
 
         self.apache_folder = self.edeploy_pos_folder + "/apache"
         self.apache_conf_folder = self.apache_folder + "/conf"
@@ -41,17 +42,24 @@ class Util(object):
         self.sdk_linux_folder = self.sdk_folder + "/linux-x86_64"
         self.sdk_windows_folder = self.sdk_folder + "/windows-x86"
 
-        self.sdk_install_command = "python -m pip install mwsdk=={} -t {} --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br"
-        self.apache_url = "https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip"
+        self.mwsdk_repository = configurations["mwsdk_repository"]
+        self.pip_install_command = configurations["pip_install_command"]
+        self.apache_url = configurations["apache_url"]
 
-        self.current_os_is_windows = "win" in sys.platform.lower()
+        self.is_windows = "win" in sys.platform.lower()
 
-    def get_configurations(self):
+    @staticmethod
+    def get_configurations():
         with open("configurations.txt") as f:
             content = f.readlines()
-        lines = [x.strip() for x in content]
-        self.pos_folder_name = [line.split("=")[1] for line in lines if "pos_folder_name" in line][0]
-        self.sdk_version = [line.split("=")[1] for line in lines if "sdk_version" in line][0]
+
+        configurations = {}
+        for line in content:
+            key = line.strip().split("=")[0]
+            value = "=".join(line.strip().split("=")[1:])
+            configurations[key] = value
+
+        return configurations
 
     def install(self):
         print ("Starting installation")
@@ -117,7 +125,6 @@ class Util(object):
         os.mkdir(self.data_folder)
         os.mkdir(self.genesis_folder)
         os.mkdir(self.python_folder)
-        os.mkdir(self.src_folder)
 
         self.create_genesis_child_folders()
 
@@ -137,13 +144,18 @@ class Util(object):
         print ("Installing packages")
 
         self.install_sdk_package()
+        self.install_src_package()
 
         print ("Packages installed")
 
     def install_sdk_package(self):
         print ("Installing package {} in {}".format("mwsdk", self.genesis_folder))
 
-        os.system(self.sdk_install_command.format(self.sdk_version, self.genesis_folder))
+        command = self.pip_install_command.format(package_name="mwsdk",
+                                                  version=self.sdk_version,
+                                                  install_folder=self.genesis_folder,
+                                                  mwsdk_repository=self.mwsdk_repository)
+        os.system(command)
 
         sdk_folders = [sdk_folder for sdk_folder in os.listdir(self.sdk_folder) if os.path.isdir(self.sdk_folder + "/" + sdk_folder)]
         self.create_genesis_sdk_folders(sdk_folders)
@@ -151,6 +163,54 @@ class Util(object):
         self.remove_sdk_folders()
 
         print ("Package installed")
+
+    def install_src_package(self):
+        server_folder = os.path.join(self.genesis_data_folder, "server")
+
+        print ("Installing package {} in {}".format("pos-src", server_folder))
+
+        command = self.pip_install_command.format(package_name="pos-src",
+                                                  version=self.src_version,
+                                                  install_folder=server_folder,
+                                                  mwsdk_repository=self.mwsdk_repository)
+        os.system(command)
+
+        pos_scr_folder = os.path.join(server_folder, "pos-src")
+
+        self._create_htdocs_folder(pos_scr_folder, server_folder)
+        self._create_src_folder(pos_scr_folder, server_folder)
+        self._move_pypkgs_to_bin(pos_scr_folder)
+        self._clean_server_packages(server_folder)
+
+        print ("Package installed")
+
+    @staticmethod
+    def _clean_server_packages(server_folder):
+        server_child_folders = os.listdir(server_folder)
+        for folder in server_child_folders:
+            if "pos" in folder:
+                shutil.rmtree(os.path.join(server_folder, folder))
+
+    def _move_pypkgs_to_bin(self, pos_scr_folder):
+        pypkgs_folder = os.path.join(pos_scr_folder, "_pypkg")
+        pypkgs = os.listdir(pypkgs_folder)
+        binaries_folders = [os.path.join(self.genesis_bin_folder, x) for x in os.listdir(self.genesis_bin_folder)]
+        for pypkg in pypkgs:
+            for bin_folder in binaries_folders:
+                shutil.copy(os.path.join(pypkgs_folder, pypkg), bin_folder)
+
+    @staticmethod
+    def _create_src_folder(pos_scr_folder, server_folder):
+        components_folder = os.path.join(pos_scr_folder, "_comps")
+        shutil.move(components_folder, server_folder)
+        os.rename(os.path.join(server_folder, "_comps"), os.path.join(server_folder, "src"))
+
+    @staticmethod
+    def _create_htdocs_folder(pos_scr_folder, server_folder):
+        htdocs_folder = os.path.join(pos_scr_folder, "htdocs")
+        os.rename(os.path.join(pos_scr_folder, "_guizip"), htdocs_folder)
+        shutil.move(htdocs_folder, server_folder)
+        # TODO: extract gui zips to htdocs
 
     def remove_sdk_folders(self):
         genesis_folders = [folder for folder in os.listdir(self.genesis_folder) if
@@ -180,7 +240,7 @@ class Util(object):
     def configure_apache(self):
         print ("Configuring Apache")
 
-        if self.current_os_is_windows:
+        if self.is_windows:
             self.download_and_install_apache()
             self.configure_apache_conf()
 
