@@ -210,7 +210,14 @@ class Util(object):
         htdocs_folder = os.path.join(pos_scr_folder, "htdocs")
         os.rename(os.path.join(pos_scr_folder, "_guizip"), htdocs_folder)
         shutil.move(htdocs_folder, server_folder)
-        # TODO: extract gui zips to htdocs
+        htdocs_folder = os.path.join(server_folder, "htdocs")
+        gui_zips = os.listdir(htdocs_folder)
+
+        for gui in gui_zips:
+            gui_dir = os.path.join(htdocs_folder, gui)
+            with zipfile.ZipFile(gui_dir, 'r') as zip_ref:
+                zip_ref.extractall(gui_dir.split(".zip")[0])
+            os.remove(gui_dir)
 
     def remove_sdk_folders(self):
         genesis_folders = [folder for folder in os.listdir(self.genesis_folder) if
