@@ -4,6 +4,8 @@ import sys
 import shutil
 import urllib
 import zipfile
+import fnmatch
+from xml.etree import cElementTree as eTree
 
 from distutils.dir_util import copy_tree
 from datetime import datetime
@@ -28,6 +30,7 @@ class Util(object):
         self.data_folder = self.edeploy_pos_folder + "/data"
         self.htdocs_folder = self.data_folder + "/server/htdocs"
         self.python_folder = self.edeploy_pos_folder + "/python"
+        self.src_folder = self.edeploy_pos_folder + "/src"
 
         self.apache_folder = self.edeploy_pos_folder + "/apache"
         self.apache_conf_folder = self.apache_folder + "/conf"
@@ -37,6 +40,7 @@ class Util(object):
         self.genesis_bin_folder = self.genesis_folder + "/bin"
         self.genesis_data_folder = self.genesis_folder + "/data"
         self.genesis_python_folder = self.genesis_folder + "/python"
+        self.genesis_src_folder = self.genesis_folder + "/src"
 
         self.sdk_folder = self.genesis_folder + "/mwsdk"
         self.sdk_linux_folder = self.sdk_folder + "/linux-x86_64"
@@ -45,6 +49,8 @@ class Util(object):
         self.mwsdk_repository = configurations["mwsdk_repository"]
         self.pip_install_command = configurations["pip_install_command"]
         self.apache_url = configurations["apache_url"]
+
+        self.datas_path = "../../datas"
 
         self.is_windows = "win" in sys.platform.lower()
 
@@ -66,9 +72,14 @@ class Util(object):
 
         self.create_edeploy_pos_folder()
         self.install_packages()
+        self.make_data()
         self.configure_apache()
 
         print ("Installation finalized")
+
+    def make_data(self):
+        self.copy_datas_from_repository()
+        self.fix_loaders_argument_paths()
 
     def update(self):
         print ("Starting update")
@@ -125,6 +136,7 @@ class Util(object):
         os.mkdir(self.data_folder)
         os.mkdir(self.genesis_folder)
         os.mkdir(self.python_folder)
+        os.mkdir(self.src_folder)
 
         self.create_genesis_child_folders()
 
@@ -171,46 +183,45 @@ class Util(object):
 
         command = self.pip_install_command.format(package_name="pos-src",
                                                   version=self.src_version,
-                                                  install_folder=server_folder,
+                                                  install_folder=self.genesis_folder,
                                                   mwsdk_repository=self.mwsdk_repository)
         os.system(command)
 
-        pos_scr_folder = os.path.join(server_folder, "pos-src")
+        package_folder = os.path.join(self.genesis_folder, "pos-src")
 
-        self._create_htdocs_folder(pos_scr_folder, server_folder)
-        self._create_src_folder(pos_scr_folder, server_folder)
-        self._move_pypkgs_to_bin(pos_scr_folder)
-        self._clean_server_packages(server_folder)
+        self._create_htdocs_folder(package_folder, server_folder)
+        self._create_src_folder(package_folder)
+        self._move_pypkgs_to_bin(package_folder)
+        self._clean_server_packages()
 
         print ("Package installed")
 
-    @staticmethod
-    def _clean_server_packages(server_folder):
-        server_child_folders = os.listdir(server_folder)
+    def _clean_server_packages(self):
+        server_child_folders = os.listdir(self.genesis_folder)
         for folder in server_child_folders:
-            if "pos" in folder:
-                shutil.rmtree(os.path.join(server_folder, folder))
+            if "pos-src" in folder or "pos_src" in folder:
+                shutil.rmtree(os.path.join(self.genesis_folder, folder))
 
-    def _move_pypkgs_to_bin(self, pos_scr_folder):
-        pypkgs_folder = os.path.join(pos_scr_folder, "_pypkg")
+    def _move_pypkgs_to_bin(self, package_folder):
+        pypkgs_folder = os.path.join(package_folder, "_pypkg")
         pypkgs = os.listdir(pypkgs_folder)
         binaries_folders = [os.path.join(self.genesis_bin_folder, x) for x in os.listdir(self.genesis_bin_folder)]
         for pypkg in pypkgs:
             for bin_folder in binaries_folders:
                 shutil.copy(os.path.join(pypkgs_folder, pypkg), bin_folder)
 
-    @staticmethod
-    def _create_src_folder(pos_scr_folder, server_folder):
-        components_folder = os.path.join(pos_scr_folder, "_comps")
-        shutil.move(components_folder, server_folder)
-        os.rename(os.path.join(server_folder, "_comps"), os.path.join(server_folder, "src"))
+    def _create_src_folder(self, package_folder):
+        components_folder = os.path.join(package_folder, "_comps")
+        new_components_folder = os.path.join(package_folder, "src")
+        os.rename(components_folder, new_components_folder)
+        shutil.move(new_components_folder, self.genesis_folder)
 
     @staticmethod
-    def _create_htdocs_folder(pos_scr_folder, server_folder):
-        htdocs_folder = os.path.join(pos_scr_folder, "htdocs")
-        os.rename(os.path.join(pos_scr_folder, "_guizip"), htdocs_folder)
-        shutil.move(htdocs_folder, server_folder)
+    def _create_htdocs_folder(package_folder, server_folder):
+        src_htdocs_folder = os.path.join(package_folder, "htdocs")
+        os.rename(os.path.join(package_folder, "_guizip"), src_htdocs_folder)
         htdocs_folder = os.path.join(server_folder, "htdocs")
+        shutil.move(src_htdocs_folder, htdocs_folder)
         gui_zips = os.listdir(htdocs_folder)
 
         for gui in gui_zips:
@@ -319,3 +330,38 @@ class Util(object):
         os.remove(zip_file_name)
 
         print ("Apache downloaded and installed")
+
+    def copy_datas_from_repository(self):
+        copy_tree(self.datas_path, self.genesis_data_folder)
+
+    def fix_loaders_argument_paths(self):
+        all_loaders = self.get_all_loaders()
+        for loader in all_loaders:
+            self.fix_loader_argument_paths(loader)
+
+    def get_all_loaders(self):
+        matches = []
+        for root, dir_names, file_names in os.walk(self.genesis_data_folder):
+            for filename in fnmatch.filter(file_names, '*.cfg'):
+                matches.append(os.path.join(root, filename))
+        return matches
+
+    @staticmethod
+    def fix_loader_argument_paths(loader):
+        loader_xml = eTree.parse(loader)
+        for group in loader_xml.getroot():
+            if group.get("name") != "Process":
+                continue
+            for key in group:
+                if key.get("name") != "Arguments":
+                    continue
+                break
+            else:
+                return
+
+            arguments = key.find("array").findall("string")
+            for string in arguments:
+                if "../../../" in string.text:
+                    string.text = string.text.replace("../../../", "../")
+            break
+        loader_xml.write(loader)
