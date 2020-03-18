@@ -1,14 +1,16 @@
+# -*- coding: utf-8 -*-
+
+import fnmatch
 import os
 import re
-import sys
 import shutil
+import stat
+import sys
 import urllib
 import zipfile
-import fnmatch
-from xml.etree import cElementTree as eTree
-
-from distutils.dir_util import copy_tree
 from datetime import datetime
+from distutils.dir_util import copy_tree
+from xml.etree import cElementTree as eTree
 
 
 class Util(object):
@@ -74,6 +76,9 @@ class Util(object):
         self.install_packages()
         self.make_data()
         self.configure_apache()
+        if not self.is_windows:
+            self.create_sys_links()
+        self.get_bats()
 
         print ("Installation finalized")
 
@@ -365,3 +370,25 @@ class Util(object):
                     string.text = string.text.replace("../../../", "../")
             break
         loader_xml.write(loader)
+
+    def create_sys_links(self):
+        bin_folders = [self.genesis_apache_folder, self.genesis_bin_folder, self.genesis_python_folder]
+        for folder in bin_folders:
+            os.symlink(os.path.join(folder, "linux-x86_64"),
+                       os.path.join(folder, "linux-centos-x86_64"))
+
+    def get_bats(self):
+        if self.is_windows:
+            start = "start.bat"
+            stop = "stop.bat"
+        else:
+            start = "start.sh"
+            stop = "stop.sh"
+
+        shutil.copy(os.path.join("../../", start), self.edeploy_pos_folder)
+        shutil.copy(os.path.join("../../", stop), self.edeploy_pos_folder)
+
+        if not self.is_windows:
+            os.chmod(os.path.join(self.edeploy_pos_folder, start), stat.S_IXUSR | stat.S_IXGRP)
+            os.chmod(os.path.join(self.edeploy_pos_folder, stop), stat.S_IXUSR | stat.S_IXGRP)
+
