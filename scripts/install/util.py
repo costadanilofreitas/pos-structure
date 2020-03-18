@@ -4,13 +4,15 @@ import fnmatch
 import os
 import re
 import shutil
-import stat
 import sys
 import urllib
 import zipfile
 from datetime import datetime
-from distutils.dir_util import copy_tree
+from distutils.dir_util import copy_tree, mkpath
 from xml.etree import cElementTree as eTree
+
+# todo: arquivos no bin para execução windows
+# todo: corrigir links simbolicos
 
 
 class Util(object):
@@ -76,6 +78,8 @@ class Util(object):
         self.install_packages()
         self.make_data()
         self.configure_apache()
+        self.create_genversion_file()
+        self.make_bin_dependencies_to_first_run()
         if not self.is_windows:
             self.create_sys_links()
         self.get_bats()
@@ -85,6 +89,7 @@ class Util(object):
     def make_data(self):
         self.copy_datas_from_repository()
         self.fix_loaders_argument_paths()
+        self.copy_bundles_dependencies()
 
     def update(self):
         print ("Starting update")
@@ -141,7 +146,6 @@ class Util(object):
         os.mkdir(self.data_folder)
         os.mkdir(self.genesis_folder)
         os.mkdir(self.python_folder)
-        os.mkdir(self.src_folder)
 
         self.create_genesis_child_folders()
 
@@ -219,7 +223,7 @@ class Util(object):
         components_folder = os.path.join(package_folder, "_comps")
         new_components_folder = os.path.join(package_folder, "src")
         os.rename(components_folder, new_components_folder)
-        shutil.move(new_components_folder, self.genesis_folder)
+        shutil.move(new_components_folder, self.edeploy_pos_folder)
 
     @staticmethod
     def _create_htdocs_folder(package_folder, server_folder):
@@ -376,6 +380,8 @@ class Util(object):
         for folder in bin_folders:
             os.symlink(os.path.join(folder, "linux-x86_64"),
                        os.path.join(folder, "linux-centos-x86_64"))
+            os.symlink(os.path.join(folder, "linux-x86_64"),
+                       os.path.join(folder, "linux-redhat-x86_64"))
 
     def get_bats(self):
         if self.is_windows:
@@ -389,6 +395,51 @@ class Util(object):
         shutil.copy(os.path.join("../../", stop), self.edeploy_pos_folder)
 
         if not self.is_windows:
-            os.chmod(os.path.join(self.edeploy_pos_folder, start), stat.S_IXUSR | stat.S_IXGRP)
-            os.chmod(os.path.join(self.edeploy_pos_folder, stop), stat.S_IXUSR | stat.S_IXGRP)
+            os.chmod(os.path.join(self.edeploy_pos_folder, start), 0775)
+            os.chmod(os.path.join(self.edeploy_pos_folder, stop), 0775)
 
+    def copy_bundles_dependencies(self):
+        bundles_path = os.path.join(self.genesis_data_folder, "server", "bundles")
+        loader_path = os.path.join(bundles_path, "loader.cfg")
+        license_path = os.path.join(bundles_path, "license.gz")
+        data_bundles = os.path.join(self.data_folder, "server", "bundles")
+
+        mkpath(data_bundles)
+        shutil.copy(loader_path, data_bundles)
+        shutil.copy(license_path, data_bundles)
+
+    def create_genversion_file(self):
+        genversion_file_path = os.path.join(self.genesis_folder, ".genversion")
+        with open(genversion_file_path, 'w') as f:
+            f.write('1')
+
+    def make_bin_dependencies_to_first_run(self):
+        if self.is_windows:
+            # TODO: Implement
+            return
+        else:
+            linux_bins = os.path.join(self.genesis_bin_folder, "linux-x86_64")
+            binary_dependencies = ["genclient",
+                                   "libapriconv-1.so",
+                                   "libsystools.so",
+                                   "libaprutil-1.so.0.3.10",
+                                   "libzlib.so",
+                                   "libtcputil.so",
+                                   "libexpat.so",
+                                   "libapr-1.so.0.4.2",
+                                   "libmsgbus.so",
+                                   "libscew.so"]
+
+            for src in binary_dependencies:
+                bin_path = os.path.join(linux_bins, src)
+                shutil.copy(bin_path, self.bin_folder)
+
+            binary_sys_links = {"libaprutil-1.so.0.3.10": ["libaprutil-1.so.0", "libaprutil-1.so"],
+                                "libapr-1.so.0.4.2": ["libapr-1.so", "libapr-1.so.0"]}
+
+            for src in binary_sys_links:
+                link_dest = binary_sys_links[src]
+                for dest in link_dest:
+                    src = os.path.join(self.bin_folder, src)
+                    dest = os.path.join(self.bin_folder, dest)
+                    os.symlink(src, dest)
