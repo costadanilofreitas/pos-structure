@@ -87,7 +87,7 @@ class Util(object):
 
     @logger
     def install(self):
-        self.create_edeploy_pos_folder()
+        self.create_e_deploy_pos_folder()
         self.install_packages()
         self.make_data()
         self.configure_apache()
@@ -130,7 +130,7 @@ class Util(object):
             copy_tree(from_directory, to_directory)
 
     @logger
-    def create_edeploy_pos_folder(self):
+    def create_e_deploy_pos_folder(self):
 
         if os.path.exists(self.e_deploy_pos_folder):
             shutil.rmtree(self.e_deploy_pos_folder)
