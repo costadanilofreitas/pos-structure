@@ -13,17 +13,29 @@ from xml.etree import cElementTree as eTree
 
 
 def logger(fn):
+    global iter_count
+
+    iter_count = 0
+
     def wrapper(*args, **kwargs):
+        global iter_count
+
         start_time = datetime.now()
         try:
             time = datetime.strftime(start_time, "%H:%M:%S.%f")
-            print ("[{}][START] >>> {} <<<".format(time, fn.func_name))
+            separator_string = "| " * iter_count
+            print ("[{0}][START] {1}{2}".format(time, separator_string, fn.func_name))
+            iter_count += 1
             return fn(*args, **kwargs)
         finally:
             end_time = datetime.now()
             diff_time = end_time - start_time
             time = datetime.strftime(end_time, "%H:%M:%S.%f")
-            print ("[{}][ END ] >>> {} <<< Exec.: {}".format(time, fn.func_name, diff_time))
+            iter_count -= 1
+            separator_string = "| " * iter_count
+            exec_string = "Exec.: {}".format(diff_time)
+            printed_string = "[{0}][ END ] {1}{2}".format(time, separator_string, fn.func_name)
+            print ("{:<70}{}".format(printed_string, exec_string))
 
     return wrapper
 
@@ -344,7 +356,7 @@ class Util(object):
     def fix_loader_argument_paths(loader):
         loader_xml = eTree.parse(loader)
         for string in loader_xml.getroot().findall(".//string"):
-            if "../../../src" in string.text:
+            if string is not None and string.text is not None and "../../../src" in string.text:
                 string.text = string.text.replace("../../../src", "../src")
         loader_xml.write(loader)
 
