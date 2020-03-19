@@ -17,13 +17,13 @@ def logger(fn):
         start_time = datetime.now()
         try:
             time = datetime.strftime(start_time, "%H:%M:%S.%f")
-            print ("[{}][START] {}".format(time, fn.func_name))
+            print ("[{}][START] >>> {} <<<".format(time, fn.func_name))
             return fn(*args, **kwargs)
         finally:
             end_time = datetime.now()
             diff_time = end_time - start_time
             time = datetime.strftime(end_time, "%H:%M:%S.%f")
-            print ("[{}][ END ] {}. Execution: {}".format(time, fn.func_name, diff_time))
+            print ("[{}][ END ] >>> {} <<< Exec.: {}".format(time, fn.func_name, diff_time))
 
     return wrapper
 
@@ -89,13 +89,14 @@ class Util(object):
     def install(self):
         self.create_e_deploy_pos_folder()
         self.install_packages()
-        self.make_data()
         self.configure_apache()
+        self.make_data()
         self.create_gen_version_file()
+        self.copy_bin_dependencies_to_first_run()
+        self.get_executables()
         if not self.is_windows:
-            self.create_sym_links()
-        self.make_bin_dependencies_to_first_run()
-        self.get_bats()
+            self.create_genesis_sym_links()
+            self.create_binary_sym_links()
 
     @logger
     def make_data(self):
@@ -106,6 +107,7 @@ class Util(object):
     @logger
     def update(self):
         self.backup()
+        self.install()
 
     @logger
     def backup(self):
@@ -360,7 +362,7 @@ class Util(object):
         loader_xml.write(loader)
 
     @logger
-    def create_sym_links(self):
+    def create_genesis_sym_links(self):
         bin_folders = [self.genesis_apache_folder, self.genesis_bin_folder, self.genesis_python_folder]
         for folder in bin_folders:
             linux_path = "./linux-x86_64"
@@ -368,7 +370,7 @@ class Util(object):
             os.symlink(linux_path, os.path.join(folder, "linux-redhat-x86_64"))
 
     @logger
-    def get_bats(self):
+    def get_executables(self):
         if self.is_windows:
             start = "start.bat"
             stop = "stop.bat"
@@ -401,7 +403,7 @@ class Util(object):
             f.write('1')
 
     @logger
-    def make_bin_dependencies_to_first_run(self):
+    def copy_bin_dependencies_to_first_run(self):
         if self.is_windows:
             genesis_bin_folder = os.path.join(self.genesis_bin_folder, "windows-x86")
             binary_dependencies = ["genclient.exe",
@@ -430,9 +432,6 @@ class Util(object):
         for src in binary_dependencies:
             bin_path = os.path.join(genesis_bin_folder, src)
             shutil.copy(bin_path, self.bin_folder)
-
-        if not self.is_windows:
-            self.create_binary_sym_links()
 
     @logger
     def create_binary_sym_links(self):
