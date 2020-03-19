@@ -343,22 +343,9 @@ class Util(object):
     @staticmethod
     def fix_loader_argument_paths(loader):
         loader_xml = eTree.parse(loader)
-        for group in loader_xml.getroot():
-            if group.get("name") != "Process":
-                continue
-            for key in group:
-                if key.get("name") != "Arguments":
-                    continue
-                break
-            else:
-                return
-
-            arguments = key.find("array").findall("string")
-            for string in arguments:
-                if "../../../" in string.text:
-                    string.text = string.text.replace("../../../", "../")
-            break
-
+        for string in loader_xml.getroot().findall(".//string"):
+            if "../../../src" in string.text:
+                string.text = string.text.replace("../../../src", "../src")
         loader_xml.write(loader)
 
     @logger
