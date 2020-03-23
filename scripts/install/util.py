@@ -61,8 +61,10 @@ class Util(object):
         self.python_folder = os.path.join(self.e_deploy_pos_folder, "python")
         self.src_folder = os.path.join(self.e_deploy_pos_folder, "src")
 
+        self.is_windows = "win" in sys.platform.lower()
+
         self.apache_folder = os.path.join(self.e_deploy_pos_folder, "apache")
-        self.apache_conf_folder = os.path.join(self.apache_folder, "conf")
+        self.apache_conf_folder = os.path.join(self.apache_folder, "conf") if self.is_windows else "/etc/httpd/conf"
 
         self.genesis_folder = os.path.join(self.e_deploy_pos_folder, "genesis")
         self.genesis_apache_folder = os.path.join(self.genesis_folder, "apache")
@@ -80,8 +82,6 @@ class Util(object):
         self.apache_url = configurations["apache_url"]
 
         self.pos_structure_data_path = "../../datas"
-
-        self.is_windows = "win" in sys.platform.lower()
 
     @staticmethod
     @logger
@@ -145,7 +145,6 @@ class Util(object):
 
     @logger
     def create_e_deploy_pos_folder(self):
-
         if os.path.exists(self.e_deploy_pos_folder):
             shutil.rmtree(self.e_deploy_pos_folder)
 
