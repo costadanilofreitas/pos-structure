@@ -11,3 +11,6 @@ mwsdk
 /scripts/install/edeployPOS
 /scripts/install/edeployPOS_downloaded
 /scripts/install/edeployPOS_backup
+fiscal_xml
+mwsdk-2.0.94-py2.7.egg-info
+httpd-2.4.41-win64-VS16.zip
