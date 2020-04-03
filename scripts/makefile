@@ -1,31 +1,32 @@
-# Configurable variables
-STANDARD_DATA_DIR := ../datas/data.client
-STANDARD_COMMON_DIR := $(STANDARD_DATA_DIR)/server/common
-STANDARD_COMMON_UI_OBJS := ui/gui_client_prep.zip ui/gui_client_sui.zip ui/gui_client_kiosk.zip ui/gui_client_pickup.zip
-OUTPUT_PLATFORMS := linux-redhat-x86_64 windows-x86
-
 OPSYS=$(shell uname -s)
 BASEDIR=$(CURDIR)/..
 ifeq ($(OPSYS),Linux)
 	OPSYS := linux-redhat
 	PLATFORM := windows-x86
+	APACHEDIR=/etc/httpd
 else
 	OPSYS := windows
 	PLATFORM := windows-x86
 	MAKE := $(CURDIR)/tools/make.exe
+	APACHEDIR=$(BASEDIR)/apache
 endif
-APACHEDIR=$(BASEDIR)/apache
 
 # Build Rules
-.PHONY: all
+.PHONY: all clean
 
-all: sdkcore apache-conf post-install
+all: sdkcore sdkcore-syslink apache-conf post-install
 	$(info $@: Done!)
 
 sdkcore:
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
-	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
-	python -m pip install mwsdk==2.0.92 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
+	python -m pip install mwsdk==2.0.94 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
+
+ifeq ($(OPSYS),windows)
+sdkcore-syslink:
+else
+sdkcore-syslink:
+	ln -s ../mwsdk/linux-x86_64 ../mwsdk/linux-centos-x86_64
+endif
 
 common-comp:
 	if [ -e $(BASEDIR)/src/common.mk ]; then \
@@ -43,6 +44,9 @@ apache-conf:
 	@mkdir $(APACHEDIR)
 	@cp -a temp/Apache24/* $(APACHEDIR)
 	@rm -rf temp
+else
+apache-conf:
+endif
 	sed -i.bak 's,^\(Define SRVROOT \)".*",\1"$(APACHEDIR)",g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^\(DocumentRoot \)".*htdocs",\1"$(BASEDIR)/datas/server/htdocs",g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^\(<Directory \)".*htdocs"\(>\),\1"$(BASEDIR)/datas/server/htdocs"\2,g' $(APACHEDIR)/conf/httpd.conf
@@ -50,19 +54,17 @@ apache-conf:
 	sed -i.bak 's,^#\(LoadModule proxy_module modules/mod_proxy.so\),\1,g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^#\(LoadModule proxy_http_module modules/mod_proxy_http.so\),\1,g' $(APACHEDIR)/conf/httpd.conf
 	sed -i.bak 's,^\(<Directory \/>\),ProxyTimeout 60000000\nProxyPreserveHost On\nProxyPass /mwapp http://127.0.0.1:9494/mwapp\nProxyPassReverse /mwapp http://127.0.0.1:9494/mwapp\n\n\1,g' $(APACHEDIR)/conf/httpd.conf
-else
-apache-conf:
-endif
 	$(info $@: Done!)
 
 post-install: common-comp
 	@if [ ! -d $(BASEDIR)/datas/server/htdocs ]; then mkdir $(BASEDIR)/datas/server/htdocs; fi
 	cd ../src/_guizip && find -name '*.zip' -exec sh -c 'unzip -o -d "$(BASEDIR)/datas/server/htdocs/$${1%.*}" "$$1"' _  {} \; && cd -
+	$(info $@: Done!)
 
 # Clean Rules
 clean-common:
-	if [ -e src/common.mk ]; then \
-		cd ../src && $(MAKE) -f $(BASEDIR)/src/common.mk clean && cd -; \
+	if [ -e $(BASEDIR)/src/common.mk ]; then \
+		cd ../src && $(MAKE) clean -f $(BASEDIR)/src/common.mk && cd -; \
 	fi
 	$(info $@: Done!)
 
@@ -73,5 +75,4 @@ clean-apache:
 
 clean: clean-common clean-apache
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
-	@rm -rf $(dir $(STANDARD_COMMON_UI_OBJS))
 	$(info $@: Done!)
