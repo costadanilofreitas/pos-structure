@@ -10,10 +10,6 @@ OS=$(uname)
 MARCH=$(uname -m)
 BASEBINDIR=$(pwd)/mwsdk/windows-x86
 
-if [ "$OS" == "Darwin" ]; then
-	BASEBINDIR=$(pwd)/mwsdk/darwin-$MARCH
-fi
-
 if [ "$OS" == "Linux" ]; then
 	LINUXFLAVOR=$(cat /etc/os-release | grep "^ID=" | cut -d "=" -f 2 | sed 's/"//g')
 	BASEBINDIR=$(pwd)/mwsdk/linux-$LINUXFLAVOR-$MARCH
