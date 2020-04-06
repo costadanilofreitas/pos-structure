@@ -1,8 +1,3 @@
-# Configurable variables
-STANDARD_DATA_DIR := ../datas/data.client
-STANDARD_COMMON_DIR := $(STANDARD_DATA_DIR)/server/common
-OUTPUT_PLATFORMS := linux-redhat-x86_64 windows-x86
-
 OPSYS=$(shell uname -s)
 BASEDIR=$(CURDIR)/..
 ifeq ($(OPSYS),Linux)
@@ -64,6 +59,7 @@ endif
 post-install: common-comp
 	@if [ ! -d $(BASEDIR)/datas/server/htdocs ]; then mkdir $(BASEDIR)/datas/server/htdocs; fi
 	cd ../src/_guizip && find -name '*.zip' -exec sh -c 'unzip -o -d "$(BASEDIR)/datas/server/htdocs/$${1%.*}" "$$1"' _  {} \; && cd -
+	$(info $@: Done!)
 
 # Clean Rules
 clean-common:
