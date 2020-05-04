@@ -6,7 +6,7 @@
 CREATE TABLE schema_version AS
 SELECT "$Author: ldlima $" AS Author,
        "$Date: 2020-04-30 12:00:00 -0300$" AS LastModifiedAt,
-       "$Revision: 1bff8e6687cafbb94e90400f33b484a2c09641cf$" AS Revision;
+       "$Revision: 1bff8e66871afbb94e90400f33b484a2c09641cf$" AS Revision;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -48,7 +48,8 @@ CREATE TABLE UpdatesController (
   ObtainedDate DATE NOT NULL,
   DownloadedDate DATE NULL,
   BackupDate DATE NULL,
-  AppliedDate DATE NULL
+  AppliedDate DATE NULL,
+  NotifiedDate DATE NULL
 );
 
 CREATE UNIQUE INDEX 'idx_UpdatesController_Id' ON 'UpdatesController' ('Id');
