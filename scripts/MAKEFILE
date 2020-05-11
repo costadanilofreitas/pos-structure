@@ -19,7 +19,7 @@ all: sdkcore sdkcore-syslink apache-conf post-install
 
 sdkcore:
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
-	python -m pip install mwsdk==2.0.94 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --trusted-host mwsdk.hmledp.com.br
+	python -m pip install mwsdk==2.0.94 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --no-cache-dir --trusted-host mwsdk.hmledp.com.br
 
 ifeq ($(OPSYS),windows)
 sdkcore-syslink:
@@ -74,5 +74,5 @@ clean-apache:
 	$(info $@: Done!)
 
 clean: clean-common clean-apache
-	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
+	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk*; fi
 	$(info $@: Done!)
