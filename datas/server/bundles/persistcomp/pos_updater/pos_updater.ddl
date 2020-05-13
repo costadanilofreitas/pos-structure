@@ -21,6 +21,7 @@ CREATE UNIQUE INDEX 'idx_UpdateType_Id' ON 'UpdateType' ('Id', 'Type');
 -- Currently supported update types
 -- ----------------------------------------------------------------
 INSERT INTO UpdateType (Id, Type) VALUES (1, 'CATALOG');
+INSERT INTO UpdateType (Id, Type) VALUES (2, 'MEDIA');
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
