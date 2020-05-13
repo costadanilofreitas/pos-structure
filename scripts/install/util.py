@@ -7,6 +7,8 @@ import shutil
 import sys
 import urllib
 import zipfile
+import tarfile
+
 from datetime import datetime
 from distutils.dir_util import copy_tree, mkpath
 from xml.etree import cElementTree as eTree
@@ -48,7 +50,9 @@ class Util(object):
         self.sdk_version = configurations["sdk_version"]
         self.src_version = configurations["src_version"]
 
-        self.current_folder = os.path.abspath(os.getcwd()) + "/"
+        self.current_folder = os.path.abspath(os.getcwd())
+        self.current_folder = os.path.abspath(os.path.join(self.current_folder, os.pardir))
+        self.current_folder = os.path.join(self.current_folder, '')
 
         self.backup_folder = os.path.join(self.current_folder, (self.pos_folder_name + "_backup"))
         self.e_deploy_pos_folder = os.path.join(self.current_folder, self.pos_folder_name)
@@ -57,7 +61,8 @@ class Util(object):
 
         self.bin_folder = os.path.join(self.e_deploy_pos_folder, "bin")
         self.data_folder = os.path.join(self.e_deploy_pos_folder, "data")
-        self.htdocs_folder = os.path.join(self.data_folder, "server", "htdocs")
+        self.server_folder = os.path.join(self.data_folder, "server")
+        self.ht_docs_folder = os.path.join(self.server_folder, "htdocs")
         self.python_folder = os.path.join(self.e_deploy_pos_folder, "python")
         self.src_folder = os.path.join(self.e_deploy_pos_folder, "src")
 
@@ -77,11 +82,10 @@ class Util(object):
         self.sdk_linux_folder = os.path.join(self.sdk_folder, "linux-x86_64")
         self.sdk_windows_folder = os.path.join(self.sdk_folder, "windows-x86")
 
-        self.mw_sdk_repository = configurations["mwsdk_repository"]
+        self.sdk_repository = configurations["mwsdk_repository"]
         self.pip_install_command = configurations["pip_install_command"]
         self.apache_url = configurations["apache_url"]
-
-        self.pos_structure_data_path = "../../datas"
+        self.data_url = configurations["data_url"].format(client_store=configurations["client_store"])
 
     @staticmethod
     @logger
@@ -102,19 +106,12 @@ class Util(object):
         self.create_e_deploy_pos_folder()
         self.install_packages()
         self.configure_apache()
-        self.make_data()
         self.create_gen_version_file()
         self.copy_bin_dependencies_to_first_run()
         self.get_executables()
         if not self.is_windows:
             self.create_genesis_sym_links()
             self.create_binary_sym_links()
-
-    @logger
-    def make_data(self):
-        self.copy_datas_from_repository()
-        self.fix_loaders_argument_paths()
-        self.copy_bundles_dependencies()
 
     @logger
     def update(self):
@@ -171,20 +168,21 @@ class Util(object):
 
     @logger
     def install_packages(self):
-        self.install_sdk_package()
+        # self.install_sdk_package()
         self.install_src_package()
+        self.install_data_package()
 
     @logger
     def install_sdk_package(self):
-        command = self.pip_install_command.format(package_name="mwsdk",
+        command = self.pip_install_command.format(package_name="pos-core",
                                                   version=self.sdk_version,
                                                   install_folder=self.genesis_folder,
-                                                  mwsdk_repository=self.mw_sdk_repository)
+                                                  mwsdk_repository=self.sdk_repository)
         os.system(command)
 
         sdk_folders = [sdk_folder for sdk_folder in os.listdir(self.sdk_folder) if os.path.isdir(self.sdk_folder + "/" + sdk_folder)]
         self.create_genesis_sdk_folders(sdk_folders)
-
+        self.copy_python_files()
         self.remove_sdk_folders()
 
     @logger
@@ -192,7 +190,7 @@ class Util(object):
         command = self.pip_install_command.format(package_name="pos-src",
                                                   version=self.src_version,
                                                   install_folder=self.genesis_folder,
-                                                  mwsdk_repository=self.mw_sdk_repository)
+                                                  mwsdk_repository=self.sdk_repository)
         os.system(command)
 
         package_folder = os.path.join(self.genesis_folder, "pos-src")
@@ -202,6 +200,18 @@ class Util(object):
         self.create_src_folder(package_folder)
         self.move_pypkgs_to_bin(package_folder)
         self.clean_server_packages()
+
+    @logger
+    def install_data_package(self):
+        tar_file_name = os.path.join(self.genesis_data_folder, "data.tgz")
+        urllib.urlretrieve(self.data_url, tar_file_name)
+        tar_file = tarfile.open(tar_file_name, "r:gz")
+        tar_file.extractall(self.genesis_data_folder)
+        tar_file.close()
+        os.remove(tar_file_name)
+
+        self.fix_loaders_argument_paths()
+        self.copy_bundles_dependencies()
 
     @logger
     def clean_server_packages(self):
@@ -264,6 +274,11 @@ class Util(object):
                 copy_tree(from_directory, to_directory)
 
     @logger
+    def copy_python_files(self):
+        if self.is_windows:
+            copy_tree(os.path.join(self.genesis_python_folder, "windows-x86"), self.python_folder)
+
+    @logger
     def configure_apache(self):
         if self.is_windows:
             self.download_and_install_apache()
@@ -287,7 +302,7 @@ class Util(object):
 
         s = re.sub(r'^(DocumentRoot )\".*htdocs\"', r'\1"#HTDOCS#"', s, flags=re.M)
         s = re.sub(r'^(<Directory )\".*htdocs\"(>)', r'\1"#HTDOCS#"\2', s, flags=re.M)
-        s = s.replace("#HTDOCS#", self.htdocs_folder)
+        s = s.replace("#HTDOCS#", self.ht_docs_folder)
 
         return s
 
@@ -334,10 +349,6 @@ class Util(object):
         os.remove(zip_file_name)
 
     @logger
-    def copy_datas_from_repository(self):
-        copy_tree(self.pos_structure_data_path, self.genesis_data_folder)
-
-    @logger
     def fix_loaders_argument_paths(self):
         all_loaders = self.get_all_loaders()
         for loader in all_loaders:
@@ -376,8 +387,8 @@ class Util(object):
             start = "start.sh"
             stop = "stop.sh"
 
-        shutil.copy(os.path.join("../../", start), self.e_deploy_pos_folder)
-        shutil.copy(os.path.join("../../", stop), self.e_deploy_pos_folder)
+        shutil.copy(os.path.join("", "pos_files", start), self.e_deploy_pos_folder)
+        shutil.copy(os.path.join("", "pos_files", stop), self.e_deploy_pos_folder)
 
         if not self.is_windows:
             os.chmod(os.path.join(self.e_deploy_pos_folder, start), 0775)
@@ -385,9 +396,9 @@ class Util(object):
 
     @logger
     def copy_bundles_dependencies(self):
-        bundles_path = os.path.join(self.genesis_data_folder, "server", "bundles")
-        loader_path = os.path.join(bundles_path, "loader.cfg")
-        license_path = os.path.join(bundles_path, "license.gz")
+        genesis_bundles = os.path.join(self.genesis_data_folder, "server", "bundles")
+        loader_path = os.path.join(genesis_bundles, "loader.cfg")
+        license_path = os.path.join(genesis_bundles, "license.gz")
         data_bundles = os.path.join(self.data_folder, "server", "bundles")
 
         mkpath(data_bundles)
