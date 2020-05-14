@@ -78,7 +78,7 @@ class Util(object):
         self.genesis_python_folder = os.path.join(self.genesis_folder, "python")
         self.genesis_src_folder = os.path.join(self.genesis_folder, "src")
 
-        self.sdk_folder = os.path.join(self.genesis_folder, "mwsdk")
+        self.sdk_folder = os.path.join(self.genesis_folder, "pos-core")
         self.sdk_linux_folder = os.path.join(self.sdk_folder, "linux-x86_64")
         self.sdk_windows_folder = os.path.join(self.sdk_folder, "windows-x86")
 
@@ -168,7 +168,7 @@ class Util(object):
 
     @logger
     def install_packages(self):
-        # self.install_sdk_package()
+        self.install_sdk_package()
         self.install_src_package()
         self.install_data_package()
 
@@ -256,7 +256,7 @@ class Util(object):
         genesis_folders = [folder for folder in os.listdir(self.genesis_folder) if
                            os.path.isdir(os.path.join(self.genesis_folder, folder))]
         for folder in genesis_folders:
-            if "mwsdk" in folder:
+            if "pos-core" in folder:
                 shutil.rmtree(os.path.join(self.genesis_folder, folder))
 
     @logger

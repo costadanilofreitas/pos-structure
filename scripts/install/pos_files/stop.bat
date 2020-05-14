@@ -4,29 +4,27 @@ set PLATFORM=windows-x86
 set BASEDIR="%CD%"
 
 if exist %BASEDIR%\genesis goto :rungenclient
-if exist %BASEDIR%\bin goto :runhv
+if exist %BASEDIR%\mwsdk goto :runhv
 goto :EXIT
 
 :rungenclient
-set BASEBINDIR=%BASEDIR%\bin
-set DATADIR=%BASEDIR%\data
+set BASEBINDIR=%BASEDIR%
 goto :setupenv
 
 :runhv
-set BASEBINDIR=%BASEDIR%\genesis\bin\%PLATFORM%
-set DATADIR=%BASEDIR%\data
+set BASEBINDIR=%BASEDIR%\mwsdk\%PLATFORM%
 goto :setupenv
 
 :setupenv
-set MWPOS_BIN=%BASEBINDIR%
-set APACHE_MODS=%BASEDIR%\apache\modules
-set PYTHONHOME=%BASEDIR%\python
-set DATADIR=%DATADIR%\
-set HVLOGFILE=%DATADIR%\server\logs\hv.log
+set MWPOS_BIN=%BASEBINDIR%\bin
+set APACHE_MODS=%BASEBINDIR%\apache\modules
+set PYTHONHOME=%BASEBINDIR%\python
+set DATADIR=%BASEDIR%\%MWAPP_CONFIG%
+set HVLOGFILE=%DATADIR%\logs\hv.log
 set HVMAXLOGFILES=5
 set PATH=%PYTHONHOME%;%PYTHONHOME%\bin;%PYTHONHOME%\lib;%APACHE_MODS%;%PATH%
 
-IF NOT EXIST %MWPOS_BIN%\hv.exe call :ERROR Could not find executable hv.exe.
+IF NOT EXIST %MWPOS_BIN%\hv.exe call :ERROR Could not find exexutable hv.exe.
 
 cd %MWPOS_BIN%
 :: Run hv

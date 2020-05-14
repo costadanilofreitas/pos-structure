@@ -11,3 +11,4 @@ mwsdk
 /scripts/install/edeployPOS*
 mwsdk-*
 httpd-*
+/scripts/edeployPOS
