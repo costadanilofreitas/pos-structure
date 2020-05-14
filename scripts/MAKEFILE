@@ -20,8 +20,9 @@ all: sdkcore sdkcore-syslink apache-conf post-install
 sdkcore:
 	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk*; fi
 	python -m pip install pos-core==2.0.98 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --no-cache-dir --trusted-host mwsdk.hmledp.com.br
-	mv ../pos-core ../mwsdk
-	rm -rf ../pos_core*
+	@mv ../pos-core ../mwsdk
+	@rm -rf ../pos_core*
+	@rm -rf ../mwsdk/base-linux.tgz
 
 ifeq ($(OPSYS),windows)
 sdkcore-syslink:
@@ -38,11 +39,12 @@ common-comp:
 
 ifeq ($(OPSYS),windows)
 apache-conf:
-	@rm -rf httpd-2.4.41-win64-VS16.zip
+	@rm -rf httpd-*.zip
 	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
 	curl -LO https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
 	@rm -rf temp
-	unzip -q httpd-2.4.41-win64-VS16.zip -d temp
+	unzip -q httpd-*.zip -d temp
+	@rm -rf httpd-*.zip
 	@mkdir $(APACHEDIR)
 	@cp -a temp/Apache24/* $(APACHEDIR)
 	@rm -rf temp
