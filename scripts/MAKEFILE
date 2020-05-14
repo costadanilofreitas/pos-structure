@@ -18,8 +18,10 @@ all: sdkcore sdkcore-syslink apache-conf post-install
 	$(info $@: Done!)
 
 sdkcore:
-	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk; fi
-	python -m pip install mwsdk==2.0.94 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --no-cache-dir --trusted-host mwsdk.hmledp.com.br
+	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk*; fi
+	python -m pip install pos-core==2.0.98 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --no-cache-dir --trusted-host mwsdk.hmledp.com.br
+	mv ../pos-core ../mwsdk
+	rm -rf ../pos_core*
 
 ifeq ($(OPSYS),windows)
 sdkcore-syslink:
