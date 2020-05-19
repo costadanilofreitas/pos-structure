@@ -65,6 +65,7 @@ class Util(object):
         self.ht_docs_folder = os.path.join(self.server_folder, "htdocs")
         self.python_folder = os.path.join(self.e_deploy_pos_folder, "python")
         self.src_folder = os.path.join(self.e_deploy_pos_folder, "src")
+        self.scripts_folder = os.path.join(self.e_deploy_pos_folder, "scripts")
 
         self.is_windows = "win" in sys.platform.lower()
 
@@ -113,6 +114,8 @@ class Util(object):
             self.create_genesis_sym_links()
             self.create_binary_sym_links()
 
+        self.copy_scripts()
+
     @logger
     def update(self):
         self.backup()
@@ -156,6 +159,7 @@ class Util(object):
         os.mkdir(self.data_folder)
         os.mkdir(self.genesis_folder)
         os.mkdir(self.python_folder)
+        os.mkdir(self.scripts_folder)
 
         self.create_genesis_child_folders()
 
@@ -256,7 +260,7 @@ class Util(object):
         genesis_folders = [folder for folder in os.listdir(self.genesis_folder) if
                            os.path.isdir(os.path.join(self.genesis_folder, folder))]
         for folder in genesis_folders:
-            if "pos-core" in folder:
+            if "pos-core" in folder or "pos_core" in folder:
                 shutil.rmtree(os.path.join(self.genesis_folder, folder))
 
     @logger
@@ -453,3 +457,31 @@ class Util(object):
                 src = "./{}".format(binary)
                 dest = os.path.join(self.bin_folder, dest)
                 os.symlink(src, dest)
+
+    @logger
+    def copy_scripts(self):
+        copy_tree(os.path.abspath(os.getcwd()), self.scripts_folder)
+        self.remove_script_files()
+        self.remove_script_directories()
+
+    @logger
+    def remove_script_files(self):
+        files_to_remove = ["installEdeployPOS.py", "util.pyc"]
+        for file_to_remove in files_to_remove:
+            file_name = os.path.join(self.scripts_folder, file_to_remove)
+            self.remove_file(file_name)
+
+    @logger
+    def remove_script_directories(self):
+        directories_to_remove = [".idea", "pos_files"]
+        for directory_to_remove in directories_to_remove:
+            directory_name = os.path.join(self.scripts_folder, directory_to_remove)
+            shutil.rmtree(directory_name)
+
+    @staticmethod
+    @logger
+    def remove_file(filename):
+        try:
+            os.remove(filename)
+        except OSError:
+            pass
