@@ -5,4 +5,10 @@
 *debug.txt
 *.lnk
 *printer*.txt
-/mwdatas/data.client/server/fiscalsentdir
+/datas/server/fiscal_xml
+apache
+mwsdk
+/scripts/install/edeployPOS*
+mwsdk-*
+httpd-*
+/scripts/edeployPOS

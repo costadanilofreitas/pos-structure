@@ -1,0 +1,10 @@
+client_store=urbano-lab
+sdk_version=2.0.98
+src_version=1.5.0
+
+apache_url=https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
+
+pos_folder_name=edeployPOS
+data_url=http://mwsdk.hmledp.com.br/pos-datas/{client_store}.tgz
+mwsdk_repository=mwsdk.hmledp.com.br
+pip_install_command=python -m pip install {package_name}=={version} -t {install_folder} --extra-index-url=http://{mwsdk_repository}/ --trusted-host {mwsdk_repository} --no-cache-dir --upgrade
