@@ -54,6 +54,8 @@ class Util(object):
         self.current_folder = os.path.abspath(os.path.join(self.current_folder, os.pardir))
         self.current_folder = os.path.join(self.current_folder, '')
 
+        self.install_folder = os.path.join(self.current_folder, 'install')
+
         self.backup_folder = os.path.join(self.current_folder, (self.pos_folder_name + "_backup"))
         self.e_deploy_pos_folder = os.path.join(self.current_folder, self.pos_folder_name)
         if new_package:
@@ -115,6 +117,7 @@ class Util(object):
             self.create_binary_sym_links()
 
         self.copy_scripts()
+        self.remove_install_directory()
 
     @logger
     def update(self):
@@ -313,7 +316,7 @@ class Util(object):
     @staticmethod
     @logger
     def insert_apache_listen(s):
-        s = re.sub(r'^(Listen ).*', r'\1 8080', s, flags=re.M)
+        s = re.sub(r'^(Listen ).*', r'\1 8080\nProxyTimeout 60000000', s, flags=re.M)
         return s
 
     @staticmethod
@@ -476,7 +479,12 @@ class Util(object):
         directories_to_remove = [".idea", "pos_files"]
         for directory_to_remove in directories_to_remove:
             directory_name = os.path.join(self.scripts_folder, directory_to_remove)
-            shutil.rmtree(directory_name)
+            if os.path.exists(directory_name) and os.path.isdir(directory_name):
+                shutil.rmtree(directory_name)
+
+    @logger
+    def remove_install_directory(self):
+        shutil.rmtree(self.install_folder)
 
     @staticmethod
     @logger
