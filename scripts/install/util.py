@@ -316,7 +316,7 @@ class Util(object):
     @staticmethod
     @logger
     def insert_apache_listen(s):
-        s = re.sub(r'^(Listen ).*', r'\1 8080\nProxyTimeout 60000000', s, flags=re.M)
+        s = re.sub(r'^(Listen ).*', r'\1 8080', s, flags=re.M)
         return s
 
     @staticmethod
@@ -329,7 +329,7 @@ class Util(object):
     @staticmethod
     @logger
     def insert_proxy_configurations(s):
-        s = re.sub(r'^(<Directory />)', r'ProxyTimeout 60000000\nProxyPreserveHost On\nProxyPass /mwapp http://127.0.0.1:9494/mwapp\nProxyPassReverse /mwapp http://127.0.0.1:9494/mwapp\n\n\1', s, flags=re.M)
+        s = re.sub(r'^(<Directory />)', r'ProxyTimeout 10000000\nProxyPreserveHost On\nProxyPass /mwapp http://127.0.0.1:9494/mwapp\nProxyPassReverse /mwapp http://127.0.0.1:9494/mwapp\n\n\1', s, flags=re.M)
         return s
 
     @staticmethod
@@ -484,7 +484,10 @@ class Util(object):
 
     @logger
     def remove_install_directory(self):
-        shutil.rmtree(self.install_folder)
+        try:
+            shutil.rmtree(self.install_folder)
+        except OSError:
+            pass
 
     @staticmethod
     @logger
