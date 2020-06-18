@@ -5,8 +5,8 @@
 
 CREATE TABLE schema_version AS
 SELECT "$Author: ldlima $" AS Author,
-       "$Date: 2020-04-30 12:00:00 -0300$" AS LastModifiedAt,
-       "$Revision: 1bff8e66871afbb94e90400f33b484a2c09641cf$" AS Revision;
+       "$Date: 2020-06-16 16:00:00 -0300$" AS LastModifiedAt,
+       "$Revision: 1bff8e66871afbba4e90400f33b484a2c09641cf$" AS Revision;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -43,9 +43,10 @@ INSERT INTO UpdateStatus (Id, Status) VALUES (3, 'ERROR');
 
 CREATE TABLE UpdatesController (
   Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-  VersionId VARCHAR NOT NULL,
-  UpdateTypeId INTEGER NOT NULL CONSTRAINT FK_UpdatesController_UpdateTypeId REFERENCES UpdateType(Id),
-  UpdateStatusId INTEGER NOT NULL CONSTRAINT FK_UpdatesController_UpdateStatusId REFERENCES UpdateStatus(Id),
+  UpdateId INTEGER NOT NULL,
+  UpdateName VARCHAR NOT NULL,
+  TypeId INTEGER NOT NULL CONSTRAINT FK_UpdatesController_TypeId REFERENCES UpdateType(Id),
+  StatusId INTEGER NOT NULL CONSTRAINT FK_UpdatesController_StatusId REFERENCES UpdateStatus(Id),
   ObtainedDate DATE NOT NULL,
   DownloadedDate DATE NULL,
   BackupDate DATE NULL,
@@ -53,7 +54,6 @@ CREATE TABLE UpdatesController (
   NotifiedDate DATE NULL
 );
 
-CREATE UNIQUE INDEX 'idx_UpdatesController_Id' ON 'UpdatesController' ('Id');
-CREATE UNIQUE INDEX 'idx_UpdatesController_VersionId' ON 'UpdatesController' ('VersionId', 'UpdateTypeId');
+CREATE UNIQUE INDEX 'idx_UpdatesController_UpdateId' ON 'UpdatesController' ('UpdateId', 'UpdateName');
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

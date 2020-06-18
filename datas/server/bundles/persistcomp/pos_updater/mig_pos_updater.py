@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 def migrate(conn, tables):
-    update_tables_priority = ["UpdateType", "UpdatesController"]
+    update_tables_priority = ["UpdateType", "UpdateStatus", "UpdatesController"]
     for table in update_tables_priority:
         if tables[table]["fields_OldDB"]:
             str_common_fields = ", ".join(tables[table]["fields_Common"])
