@@ -12,3 +12,4 @@ mwsdk
 mwsdk-*
 httpd-*
 /scripts/edeployPOS
+updater*
