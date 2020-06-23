@@ -1,0 +1,16 @@
+signxml/__init__.py,sha256=C-XgCHvoqYXBD0KTdceCnm2Njg7joLTflA9rx6Zul4A,41858
+signxml/exceptions.py,sha256=7OgVpOXmuTu0LspJsJpapPsWmOy28qrBwKm1UUU2wQI,604
+signxml/schemas/xmldsig-core-schema.xsd,sha256=Nc-Bl9qBLIXkDVeJGzXJQYdWntR0otrIE85QkNr801w,10293
+signxml/schemas/xmldsig1-schema.xsd,sha256=m-orGKAgmw7xvzFJpWuve_evr3fYqKOo0g6a6rP8P28,900
+signxml/schemas/xmldsig11-schema.xsd,sha256=XgHXhZCn02KhS3Q74RjcDRpLGEom3UylbW2xU2o0LeI,4664
+signxml/util/__init__.py,sha256=VB9AluH-GS2UyrYS2kvaLMM2uF9_oCggVaXIXPCwlyg,8091
+signxml-2.2.1.dist-info/DESCRIPTION.rst,sha256=262e0fBK5bSyzQVo2Hpy1NPUOL-IBNmcHlCWCIkZotk,11396
+signxml-2.2.1.dist-info/METADATA,sha256=Zi_jA8X7f06z2i-1UGhbGPn2HWnrQONCZkwGSYWP6JY,12511
+signxml-2.2.1.dist-info/RECORD,,
+signxml-2.2.1.dist-info/WHEEL,sha256=o2k-Qa-RMNIJmUdIc7KU6VWR_ErNRbWNlxDIpl7lm34,110
+signxml-2.2.1.dist-info/metadata.json,sha256=1sMTMPlNfZ7AW2W76RmZlIgU4qbMHbck2eqUgRzePRg,1257
+signxml-2.2.1.dist-info/top_level.txt,sha256=UFxQApp8IHn9VHB4OwA_BWNKDtZEYWkdLEYao2Oi-JI,8
+signxml-2.2.1.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+signxml/util/__init__.pyc,,
+signxml/exceptions.pyc,,
+signxml/__init__.pyc,,
