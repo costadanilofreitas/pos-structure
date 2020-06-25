@@ -145,7 +145,7 @@
                 https://nfce-homologacao.svrs.rs.gov.br/ws/NfeConsulta/NfeConsulta4.asmx
             </url_consulta_nfe>
             <qrcode_check_url>
-                http://nfce.sefaz.pe.gov.br/nfce/consulta
+                nfce.sefaz.pe.gov.br/nfce/consulta
             </qrcode_check_url>
             <qrcode_base_url>
                 http://nfcehomolog.sefaz.pe.gov.br/nfce/consulta?
@@ -205,6 +205,35 @@
             </url_recepcao_evento>
             <url_consulta_nfe>
                 https://nfce.svrs.rs.gov.br/ws/NfeConsulta/NfeConsulta4.asmx 
+            </url_consulta_nfe>
+            <qrcode_check_url>
+                http://www.fazenda.df.gov.br/nfce/consulta
+            </qrcode_check_url>
+            <qrcode_base_url>
+                http://www.fazenda.df.gov.br/nfce/qrcode?
+            </qrcode_base_url>
+        </versao>
+        <versao ws="4" ambiente="2">
+            <url_autorizacao>
+                https://nfce-homologacao.sefazrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx
+            </url_autorizacao>
+            <url_ret_autorizacao>
+                https://nfce-homologacao.sefazrs.rs.gov.br/ws/NfeRetAutorizacao/NFeRetAutorizacao4.asmx
+            </url_ret_autorizacao>
+            <url_cancelamento>
+                https://nfce-homologacao.sefazrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx
+            </url_cancelamento>
+            <url_inutilizacao>
+                https://nfce-homologacao.sefazrs.rs.gov.br/ws/NfeInutilizacao/NFeInutilizacao4.asmx
+            </url_inutilizacao>
+            <url_status_servico>
+                https://nfce-homologacao.sefazrs.rs.gov.br/ws/NfeStatusServico/NfeStatusServico4.asmx
+            </url_status_servico>
+            <url_recepcao_evento>
+                https://nfce-homologacao.sefazrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx
+            </url_recepcao_evento>
+            <url_consulta_nfe>
+                https://nfce-homologacao.sefazrs.rs.gov.br/ws/NfeConsulta/NfeConsulta4.asmx
             </url_consulta_nfe>
             <qrcode_check_url>
                 http://www.fazenda.df.gov.br/nfce/consulta

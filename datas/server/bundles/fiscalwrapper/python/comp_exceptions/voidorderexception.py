@@ -1,0 +1,2 @@
+class VoidOrderException(Exception):
+    pass

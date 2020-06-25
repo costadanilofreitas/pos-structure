@@ -43,7 +43,7 @@ def logger(fn):
 
 
 class Util(object):
-    def __init__(self, new_package=False):
+    def __init__(self, new_package=False, installingApache=False):
         configurations = self.get_configurations()
 
         self.pos_folder_name = configurations["pos_folder_name"]
@@ -57,7 +57,11 @@ class Util(object):
         self.install_folder = os.path.join(self.current_folder, 'install')
 
         self.backup_folder = os.path.join(self.current_folder, (self.pos_folder_name + "_backup"))
+
         self.e_deploy_pos_folder = os.path.join(self.current_folder, self.pos_folder_name)
+        if installingApache:
+            self.e_deploy_pos_folder = self.current_folder
+
         if new_package:
             self.e_deploy_pos_folder = self.e_deploy_pos_folder + "_downloaded"
 
@@ -359,6 +363,10 @@ class Util(object):
     def fix_loaders_argument_paths(self):
         all_loaders = self.get_all_loaders()
         for loader in all_loaders:
+            loader_path = os.path.split(os.path.abspath(loader))[0]
+            if "fiscalwrapper" in loader_path and "lib" in loader_path:
+                continue
+
             self.fix_loader_argument_paths(loader)
 
     @logger
