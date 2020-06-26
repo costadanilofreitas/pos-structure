@@ -55,12 +55,16 @@ class Util(object):
         self.current_folder = os.path.join(self.current_folder, '')
 
         self.install_folder = os.path.join(self.current_folder, 'install')
-
-        self.backup_folder = os.path.join(self.current_folder, (self.pos_folder_name + "_backup"))
-
-        self.e_deploy_pos_folder = os.path.join(self.current_folder, self.pos_folder_name)
-        if installingApache:
+        if os.path.basename(os.getcwd()) == 'scripts':
             self.e_deploy_pos_folder = self.current_folder
+        else:
+            self.e_deploy_pos_folder = os.path.join(self.current_folder, self.pos_folder_name)
+
+        self.backup_folder = os.path.join(self.e_deploy_pos_folder, os.pardir, ("backup_" + self.pos_folder_name))
+        self.backup_files_retention = 5
+
+        if installingApache:
+            self.e_deploy_pos_folder = self.current_folder            
 
         if new_package:
             self.e_deploy_pos_folder = self.e_deploy_pos_folder + "_downloaded"
@@ -72,6 +76,7 @@ class Util(object):
         self.python_folder = os.path.join(self.e_deploy_pos_folder, "python")
         self.src_folder = os.path.join(self.e_deploy_pos_folder, "src")
         self.scripts_folder = os.path.join(self.e_deploy_pos_folder, "scripts")
+        self.databases_folder = os.path.join(self.server_folder, "databases")
 
         self.is_windows = "win" in sys.platform.lower()
 
@@ -125,13 +130,33 @@ class Util(object):
 
     @logger
     def update(self):
+        try:
+            option = str(input("""Entre com o numero da opcao
+1 - Completo
+2 - Data 
+3 - Src 
+4 - Core\n """))
+            if option not in ("1", "2", "3", "4"):
+                print("#### Valor incorreto ####\n")
+                sys.exit(0)
+        except NameError:
+            print("#### Valor incorreto ####\n")
+            sys.exit(0)
+
         self.backup()
-        self.install()
+        if option == "1":
+            self.install_packages()
+        if option == "2":
+            self.install_data_package()
+        elif option == "3":
+            self.install_src_package()
+        elif option == "4":
+            self.install_sdk_package()
 
     @logger
     def backup(self):
         time_now = datetime.now().strftime("%Y%m%d_%H%M%S")
-        current_backup_folder = os.path.join(self.backup_folder, self.pos_folder_name, ("_" + time_now))
+        current_backup_folder = os.path.join(self.backup_folder, (time_now))
         self.create_backup_folder(current_backup_folder)
         self.copy_to_backup_folder(current_backup_folder)
 
@@ -144,11 +169,29 @@ class Util(object):
 
     @logger
     def copy_to_backup_folder(self, current_backup_folder):
-        folders = [folder for folder in os.listdir(self.e_deploy_pos_folder) if os.path.isdir(self.e_deploy_pos_folder)]
-        for folder in folders:
-            from_directory = os.path.join(self.e_deploy_pos_folder, folder)
-            to_directory = os.path.join(current_backup_folder, folder)
-            copy_tree(from_directory, to_directory)
+        genesis_backup_folder = current_backup_folder + "/genesis"
+        databases_backup_folder = current_backup_folder + "/databases"
+        src_backup_folder = current_backup_folder + "/src"
+        copy_tree(self.genesis_folder, genesis_backup_folder)
+        copy_tree(self.databases_folder, databases_backup_folder)
+        copy_tree(self.src_folder, src_backup_folder)
+        self.compress_backups(current_backup_folder)
+
+    @logger
+    def compress_backups(self, current_backup_folder):
+        os.chdir(current_backup_folder)
+        for directory in os.listdir('.'):
+            shutil.make_archive(directory, 'zip', current_backup_folder + '/' + directory)
+            shutil.rmtree(directory)
+
+        if len(os.listdir(self.backup_folder)) > self.backup_files_retention:
+            self.clean_old_backups()
+
+    @logger
+    def clean_old_backups(self):
+        os.chdir(self.backup_folder)
+        backup_files = os.listdir('.')
+        shutil.rmtree(sorted(backup_files, key=os.path.getctime)[0])
 
     @logger
     def create_e_deploy_pos_folder(self):
@@ -245,6 +288,10 @@ class Util(object):
         components_folder = os.path.join(package_folder, "_comps")
         new_components_folder = os.path.join(package_folder, "src")
         os.rename(components_folder, new_components_folder)
+        check_src_exist = os.path.join(self.e_deploy_pos_folder, "src")
+        if os.path.exists(check_src_exist):
+            shutil.rmtree(check_src_exist)
+
         shutil.move(new_components_folder, self.e_deploy_pos_folder)
 
     @staticmethod
@@ -253,6 +300,9 @@ class Util(object):
         src_htdocs_folder = os.path.join(package_folder, "htdocs")
         os.rename(os.path.join(package_folder, "_guizip"), src_htdocs_folder)
         htdocs_folder = os.path.join(server_folder, "htdocs")
+        if os.path.exists(htdocs_folder):
+            shutil.rmtree(htdocs_folder)
+
         shutil.move(src_htdocs_folder, htdocs_folder)
         gui_zips = os.listdir(htdocs_folder)
 
@@ -273,9 +323,10 @@ class Util(object):
     @logger
     def create_genesis_sdk_folders(self, sdk_folders):
         for folder in sdk_folders:
-            os.mkdir(os.path.join(self.genesis_apache_folder, folder))
-            os.mkdir(os.path.join(self.genesis_bin_folder, folder))
-            os.mkdir(os.path.join(self.genesis_python_folder, folder))
+            if not os.path.exists(os.path.join(self.genesis_apache_folder, folder)):
+                os.mkdir(os.path.join(self.genesis_apache_folder, folder))
+                os.mkdir(os.path.join(self.genesis_bin_folder, folder))
+                os.mkdir(os.path.join(self.genesis_python_folder, folder))
 
             folder_child = [sub_folder for sub_folder in os.listdir(os.path.join(self.sdk_folder, folder))
                             if os.path.isdir(os.path.join(self.sdk_folder, folder, sub_folder))]
