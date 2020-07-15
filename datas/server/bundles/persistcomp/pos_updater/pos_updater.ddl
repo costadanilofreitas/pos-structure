@@ -6,7 +6,7 @@
 CREATE TABLE schema_version AS
 SELECT "$Author: ldlima $" AS Author,
        "$Date: 2020-06-16 16:00:00 -0300$" AS LastModifiedAt,
-       "$Revision: 1bff8e66871afbba4e90400f33b484a2c09641cf$" AS Revision;
+       "$Revision: 1bff8e66871afbba4e90400f13b484a2c09641cf$" AS Revision;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -38,6 +38,7 @@ CREATE UNIQUE INDEX 'idx_UpdateStatus_Id' ON 'UpdateStatus' ('Id', 'Status');
 INSERT INTO UpdateStatus (Id, Status) VALUES (1, 'PENDING');
 INSERT INTO UpdateStatus (Id, Status) VALUES (2, 'APPLIED');
 INSERT INTO UpdateStatus (Id, Status) VALUES (3, 'ERROR');
+INSERT INTO UpdateStatus (Id, Status) VALUES (4, 'SKIPPED');
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
