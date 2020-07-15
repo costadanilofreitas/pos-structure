@@ -434,7 +434,8 @@ class Util(object):
         matches = []
         for root, dir_names, file_names in os.walk(self.genesis_data_folder):
             for filename in fnmatch.filter(file_names, '*.cfg'):
-                matches.append(os.path.join(root, filename))
+                if "loader" in filename:
+                    matches.append(os.path.join(root, filename))
         return matches
 
     @staticmethod
