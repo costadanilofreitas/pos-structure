@@ -135,8 +135,9 @@ class Util(object):
 1 - Completo
 2 - Data 
 3 - Src 
-4 - Core\n """))
-            if option not in ("1", "2", "3", "4"):
+4 - Core
+5 - Data + Src\n"""))
+            if option not in ("1", "2", "3", "4", "5"):
                 print("#### Valor incorreto ####\n")
                 sys.exit(0)
         except NameError:
@@ -152,6 +153,9 @@ class Util(object):
             self.install_src_package()
         elif option == "4":
             self.install_sdk_package()
+        elif option == "5":
+            self.install_data_package()
+            self.install_src_package()
 
     @logger
     def backup(self):
@@ -172,9 +176,11 @@ class Util(object):
         genesis_backup_folder = current_backup_folder + "/genesis"
         databases_backup_folder = current_backup_folder + "/databases"
         src_backup_folder = current_backup_folder + "/src"
+        bundles_backup_folder = current_backup_folder + "/bundles"
         copy_tree(self.genesis_folder, genesis_backup_folder)
         copy_tree(self.databases_folder, databases_backup_folder)
         copy_tree(self.src_folder, src_backup_folder)
+        copy_tree(self.data_folder + "/server/bundles", bundles_backup_folder)
         self.compress_backups(current_backup_folder)
 
     @logger
@@ -182,7 +188,7 @@ class Util(object):
         os.chdir(current_backup_folder)
         for directory in os.listdir('.'):
             shutil.make_archive(directory, 'zip', current_backup_folder + '/' + directory)
-            shutil.rmtree(directory)
+            shutil.rmtree(directory, ignore_errors=True)
 
         if len(os.listdir(self.backup_folder)) > self.backup_files_retention:
             self.clean_old_backups()
@@ -191,7 +197,7 @@ class Util(object):
     def clean_old_backups(self):
         os.chdir(self.backup_folder)
         backup_files = os.listdir('.')
-        shutil.rmtree(sorted(backup_files, key=os.path.getctime)[0])
+        shutil.rmtree(sorted(backup_files, key=os.path.getctime)[0], ignore_errors=True)
 
     @logger
     def create_e_deploy_pos_folder(self):
@@ -257,6 +263,9 @@ class Util(object):
 
     @logger
     def install_data_package(self):
+        if os.path.exists(self.data_folder + "/server/bundles"):
+            shutil.rmtree(self.data_folder + "/server/bundles")
+
         tar_file_name = os.path.join(self.genesis_data_folder, "data.tgz")
         urllib.urlretrieve(self.data_url, tar_file_name)
         tar_file = tarfile.open(tar_file_name, "r:gz")
@@ -290,7 +299,7 @@ class Util(object):
         os.rename(components_folder, new_components_folder)
         check_src_exist = os.path.join(self.e_deploy_pos_folder, "src")
         if os.path.exists(check_src_exist):
-            shutil.rmtree(check_src_exist)
+            shutil.rmtree(check_src_exist, ignore_errors=True)
 
         shutil.move(new_components_folder, self.e_deploy_pos_folder)
 
@@ -425,7 +434,8 @@ class Util(object):
         matches = []
         for root, dir_names, file_names in os.walk(self.genesis_data_folder):
             for filename in fnmatch.filter(file_names, '*.cfg'):
-                matches.append(os.path.join(root, filename))
+                if "loader" in filename:
+                    matches.append(os.path.join(root, filename))
         return matches
 
     @staticmethod
