@@ -2,26 +2,23 @@
 	"itemGoals": [
 		{
 			"endDate": "2025-12-31",
-			"name": "BEERS",
+			"name": "BRAHMA",
 			"operatorQuantity": 50,
 			"partCodes": [
-				"13030",
-				"13031",
-				"13032",
-				"13033",
-				"13034",
-				"13035",
-				"13036",
-				"13037",
-				"13038",
-				"13039"
+				"2143539",
+                "2143540",
+                "2143541",
+                "2150001",
+                "2150023",
+                "2150025",
+                "8000562"
 			],
 			"quantity": 500,
 			"startDate": "2019-07-20"
 		},
 		{
 			"endDate": "2025-12-31",
-			"name": "REAL BURGERS",
+			"name": "BURGERS",
 			"operatorQuantity": 15,
 			"partCodes": [
 				"10805",
