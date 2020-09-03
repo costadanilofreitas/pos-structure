@@ -227,6 +227,11 @@ class Util(object):
         os.mkdir(self.genesis_python_folder)
 
     @logger
+    def create_file_version(self, filename, version):
+        with open(filename, 'w') as tempfile:
+            tempfile.write(version)
+
+    @logger
     def install_packages(self):
         self.install_sdk_package()
         self.install_src_package()
@@ -234,6 +239,7 @@ class Util(object):
 
     @logger
     def install_sdk_package(self):
+        self.test_web_response("http://{}/pos-core/pos-core-{}.tar.gz".format(self.sdk_repository, self.sdk_version))
         command = self.pip_install_command.format(package_name="pos-core",
                                                   version=self.sdk_version,
                                                   install_folder=self.genesis_folder,
@@ -244,9 +250,11 @@ class Util(object):
         self.create_genesis_sdk_folders(sdk_folders)
         self.copy_python_files()
         self.remove_sdk_folders()
+        self.create_file_version(os.path.join(self.e_deploy_pos_folder + '/.sdk_version'), self.sdk_version)
 
     @logger
     def install_src_package(self):
+        self.test_web_response("http://{}/pos-src/pos-src-{}.tar.gz".format(self.sdk_repository, self.src_version))
         command = self.pip_install_command.format(package_name="pos-src",
                                                   version=self.src_version,
                                                   install_folder=self.genesis_folder,
@@ -260,13 +268,15 @@ class Util(object):
         self.create_src_folder(package_folder)
         self.move_pypkgs_to_bin(package_folder)
         self.clean_server_packages()
+        self.create_file_version(os.path.join(self.e_deploy_pos_folder + '/.src_version'), self.src_version)
 
     @logger
     def install_data_package(self):
+        tar_file_name = os.path.join(self.genesis_data_folder, "data.tgz")
         if os.path.exists(self.data_folder + "/server/bundles"):
             shutil.rmtree(self.data_folder + "/server/bundles")
 
-        tar_file_name = os.path.join(self.genesis_data_folder, "data.tgz")
+        self.test_web_response(self.data_url)
         urllib.urlretrieve(self.data_url, tar_file_name)
         tar_file = tarfile.open(tar_file_name, "r:gz")
         tar_file.extractall(self.genesis_data_folder)
@@ -275,6 +285,14 @@ class Util(object):
 
         self.fix_loaders_argument_paths()
         self.copy_bundles_dependencies()
+
+    @logger
+    def test_web_response(self, url):
+        if urllib.urlopen(url).getcode() != 200:
+            print("""######### ERRO #########
+Verifique valores do arquivo configurations.txt
+Conteúdo em {} não encontrado\n """.format(url))
+            sys.exit()
 
     @logger
     def clean_server_packages(self):
