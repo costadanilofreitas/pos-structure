@@ -276,6 +276,11 @@ class Util(object):
         if os.path.exists(self.data_folder + "/server/bundles"):
             shutil.rmtree(self.data_folder + "/server/bundles")
 
+        self._remove_folders(self.genesis_data_folder, ["server"])
+
+        server_genesis_data_folder = self.genesis_data_folder + "/server"
+        self._remove_folders(server_genesis_data_folder, ["databases", "htdocs"])
+
         self.test_web_response(self.data_url)
         urllib.urlretrieve(self.data_url, tar_file_name)
         tar_file = tarfile.open(tar_file_name, "r:gz")
@@ -285,6 +290,12 @@ class Util(object):
 
         self.fix_loaders_argument_paths()
         self.copy_bundles_dependencies()
+
+    @staticmethod
+    def _remove_folders(folder, folders_to_not_delete):
+        for item in os.listdir(folder):
+            if os.path.isdir(os.path.join(folder, item)) and item not in folders_to_not_delete:
+                shutil.rmtree(folder + "/" + item)
 
     @logger
     def test_web_response(self, url):
