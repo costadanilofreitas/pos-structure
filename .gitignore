@@ -13,3 +13,4 @@ mwsdk-*
 httpd-*
 /scripts/edeployPOS
 updater*
+/datas/server/sent_fiscal_xmls
