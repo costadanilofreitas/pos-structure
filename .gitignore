@@ -13,3 +13,4 @@ mwsdk-*
 httpd-*
 /scripts/edeployPOS
 updater*
+/scripts/set_paths.bat
