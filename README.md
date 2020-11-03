@@ -10,27 +10,17 @@
  * [Git with Git-Bash](https://git-scm.com/downloads)
  * [NodeJS with NPM](https://nodejs.org/en/download/)
 
- 2. Add the following paths to your [Windows Path](https://docs.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v%3Doffice.14)) (*examples to add if your choose applications default installation*):
+ 2. If you installed the dependencies on a not standard directory, create a file name `set_paths.bat` and add the following content to it:
 
     ```
-    C:\Python27\
+    set PYTHON_DIR=${PYTHON_DIR}
+    set GIT_DIR=${GIT_DIR}
+    set NODE_DIR=${NODE_DIR}
     ```
     
-    ```
-    C:\Python27\Scripts\
-    ```
-    
-    ```
-    C:\Program Files\Git\
-    ```
-    
-    ```
-    C:\Program Files\Git\cmd\
-    ```
-    
-    ```
-    C:\Program Files\nodejs\
-    ```
+    Replace `${PYTHON_DIR}` with the python installation directory (default: `C:\Python27`)
+    Replace `${GIT_DIR}` with the git installation directory (default: `C:\Program Files\Git`)
+    Replace `${NODE_DIR}` with the node installation directory (default: `C:\Program Files\nodejs`)
 
 **Steps to build environment:**
 
@@ -43,17 +33,19 @@
  2. Inside of `edeploy-pos-structure`, checkout to our main development branch:
 
     ```
-    git checkout -b new-git remotes/origin/new-git -- 
+    git checkout -b dev remotes/origin/dev -- 
     ```
 
- 3. Go to `edeploy-pos-structure/src` and update your submodule and checkout them to correct branch:
+ 3. Go to `edeploy-pos-structure` and update the src submodule:
 
     ```
     git submodule update --progress --init --recursive -- "src"
     ```
 
+ 4. Also in `edeploy-pos-structure` checkout the development branch:
+ 
     ```
-    git checkout -b new-git remotes/origin/new-git -- 
+    git checkout -b dev remotes/origin/dev -- 
     ```
 
  4. Go to `edeploy-pos-structure/scripts` and execute `build_environment.bat`

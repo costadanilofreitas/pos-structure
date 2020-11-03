@@ -14,3 +14,4 @@ httpd-*
 /scripts/edeployPOS
 updater*
 /datas/server/sent_fiscal_xmls
+/scripts/set_paths.bat
