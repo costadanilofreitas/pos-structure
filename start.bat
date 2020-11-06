@@ -10,14 +10,13 @@ cd %CurDir%
 set MWAPP_NODE=server
 set PLATFORM=windows-x86
 set HVMAXLOGFILES=5
-set HVLOGLEVEL=56
+set HVLOGLEVEL=63
 set BASEDIR=%CD%
 set DEBUG=true
 
 IF NOT EXIST %BASEDIR%\genesis call :ERROR Could not find 'genesis' in base dir.
 IF NOT EXIST %BASEDIR%\mwsdk call :ERROR Could not find 'mwsdk' in base dir.
 
-if exist %BASEDIR%\genesis goto :rungenclient
 if exist %BASEDIR%\mwsdk goto :runhv
 goto :EXIT
 

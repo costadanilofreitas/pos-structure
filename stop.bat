@@ -3,7 +3,6 @@
 set PLATFORM=windows-x86
 set BASEDIR="%CD%"
 
-if exist %BASEDIR%\genesis goto :rungenclient
 if exist %BASEDIR%\mwsdk goto :runhv
 goto :EXIT
 
