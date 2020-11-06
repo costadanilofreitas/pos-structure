@@ -215,31 +215,31 @@
         </versao>
         <versao ws="4" ambiente="2">
             <url_autorizacao>
-		https://nfce-homologacao.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx
+                https://nfce-homologacao.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx
             </url_autorizacao>
             <url_ret_autorizacao>
-		https://nfce-homologacao.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx
+                https://nfce-homologacao.svrs.rs.gov.br/ws/NfeAutorizacao/NFeAutorizacao4.asmx
             </url_ret_autorizacao>
             <url_cancelamento>
-		https://nfce-homologacao.svrs.rs.gov.br/ws/NfeRetAutorizacao/NFeRetAutorizacao4.asmx
+                https://nfce-homologacao.svrs.rs.gov.br/ws/NfeRetAutorizacao/NFeRetAutorizacao4.asmx
             </url_cancelamento>
             <url_inutilizacao>
-		https://nfce-homologacao.svrs.rs.gov.br/ws/nfeinutilizacao/nfeinutilizacao4.asmx
+                https://nfce-homologacao.svrs.rs.gov.br/ws/nfeinutilizacao/nfeinutilizacao4.asmx
             </url_inutilizacao>
             <url_status_servico>
-		https://nfce-homologacao.svrs.rs.gov.br/ws/NfeStatusServico/NfeStatusServico4.asmx
+                https://nfce-homologacao.svrs.rs.gov.br/ws/NfeStatusServico/NfeStatusServico4.asmx
             </url_status_servico>
             <url_recepcao_evento>
-		https://nfce-homologacao.svrs.rs.gov.br/ws/NfeStatusServico/NfeStatusServico4.asmx
+                https://nfce-homologacao.svrs.rs.gov.br/ws/NfeStatusServico/NfeStatusServico4.asmx
             </url_recepcao_evento>
             <url_consulta_nfe>
-		https://nfce-homologacao.svrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx
+                https://nfce-homologacao.svrs.rs.gov.br/ws/recepcaoevento/recepcaoevento4.asmx
             </url_consulta_nfe>
             <qrcode_check_url>
-		http://dec.fazenda.df.gov.br/ConsultarNFCe.aspx?
+                http://dec.fazenda.df.gov.br/ConsultarNFCe.aspx?
             </qrcode_check_url>
             <qrcode_base_url>
-		http://dec.fazenda.df.gov.br/ConsultarNFCe.aspx?
+                http://dec.fazenda.df.gov.br/ConsultarNFCe.aspx?
             </qrcode_base_url>
         </versao>
     </estado>
