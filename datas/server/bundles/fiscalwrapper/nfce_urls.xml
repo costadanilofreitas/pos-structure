@@ -486,6 +486,35 @@
                 http://nfe.sefaz.go.gov.br/nfeweb/sites/nfce/danfeNFCe?
             </qrcode_base_url>
         </versao>
+        <versao ws="4" ambiente="2">
+            <url_autorizacao>
+                https://homolog.sefaz.go.gov.br/nfe/services/NFeAutorizacao4?wsdl
+            </url_autorizacao>
+            <url_ret_autorizacao>
+                https://homolog.sefaz.go.gov.br/nfe/services/NFeRetAutorizacao4?wsdl
+            </url_ret_autorizacao>
+            <url_cancelamento>
+                https://homolog.sefaz.go.gov.br/nfe/services/NFeRecepcaoEvento4?wsdl
+            </url_cancelamento>
+            <url_inutilizacao>
+                https://homolog.sefaz.go.gov.br/nfe/services/NFeInutilizacao4?wsdl
+            </url_inutilizacao>
+            <url_status_servico>
+                https://homolog.sefaz.go.gov.br/nfe/services/NFeStatusServico4?wsdl
+            </url_status_servico>
+            <url_recepcao_evento>
+                https://homolog.sefaz.go.gov.br/nfe/services/NFeRecepcaoEvento4?wsdl
+            </url_recepcao_evento>
+            <url_consulta_nfe>
+                https://homolog.sefaz.go.gov.br/nfe/services/NFeConsultaProtocolo4?wsdl
+            </url_consulta_nfe>
+            <qrcode_check_url>
+                http://www.sefaz.go.gov.br/nfce/consulta
+            </qrcode_check_url>
+            <qrcode_base_url>
+                http://nfe.sefaz.go.gov.br/nfeweb/sites/nfce/danfeNFCe?
+            </qrcode_base_url>
+        </versao>
     </estado>
     <estado uf="MA">
         <versao ws="4" ambiente="1">
