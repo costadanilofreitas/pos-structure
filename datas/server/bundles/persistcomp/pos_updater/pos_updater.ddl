@@ -6,7 +6,7 @@
 CREATE TABLE schema_version AS
 SELECT "$Author: ldlima $" AS Author,
        "$Date: 2020-06-16 16:00:00 -0300$" AS LastModifiedAt,
-       "$Revision: 1bff8e66871afbba4e90400f13b484a2c09641cf$" AS Revision;
+       "$Revision: 1bff8e589h1afbba4e90400f13b484a2c09641cf$" AS Revision;
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -22,6 +22,8 @@ CREATE UNIQUE INDEX 'idx_UpdateType_Id' ON 'UpdateType' ('Id', 'Type');
 -- ----------------------------------------------------------------
 INSERT INTO UpdateType (Id, Type) VALUES (1, 'CATALOG');
 INSERT INTO UpdateType (Id, Type) VALUES (2, 'MEDIA');
+INSERT INTO UpdateType (Id, Type) VALUES (3, 'USERS');
+INSERT INTO UpdateType (Id, Type) VALUES (4, 'LOADERS');
 
 -- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
