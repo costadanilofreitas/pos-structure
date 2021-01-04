@@ -1,0 +1,139 @@
+{
+    "version": 1,
+    "formatters": {
+        "defaultFormatter": {
+            "class": "helper.IsoFormatter",
+            "format": "%(asctime)-6s: 0 - %(name)s - %(levelname)s - %(thread)d:%(threadName)s - %(module)s:%(filename)s:%(lineno)s:%(funcName)s - %(message)s"
+        }
+    },
+    "handlers": {
+        "default": {
+            "level": "DEBUG",
+            "formatter": "defaultFormatter",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "../../../datas/server/bundles/pos-updater/default.log",
+            "maxBytes": 10485760,
+            "backupCount": 10,
+            "encoding": "utf-8"
+        },
+        "controller": {
+            "level": "DEBUG",
+            "formatter": "defaultFormatter",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "../../../datas/server/bundles/pos-updater/controller.log",
+            "maxBytes": 10485760,
+            "backupCount": 10,
+            "encoding": "utf-8"
+        },
+        "catalog": {
+            "level": "DEBUG",
+            "formatter": "defaultFormatter",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "../../../datas/server/bundles/pos-updater/catalog.log",
+            "maxBytes": 10485760,
+            "backupCount": 10,
+            "encoding": "utf-8"
+        },
+        "media": {
+            "level": "DEBUG",
+            "formatter": "defaultFormatter",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "../../../datas/server/bundles/pos-updater/media.log",
+            "maxBytes": 10485760,
+            "backupCount": 10,
+            "encoding": "utf-8"
+        },
+        "user": {
+            "level": "DEBUG",
+            "formatter": "defaultFormatter",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "../../../datas/server/bundles/pos-updater/user.log",
+            "maxBytes": 10485760,
+            "backupCount": 10,
+            "encoding": "utf-8"
+        },
+        "catalog-manager": {
+            "level": "DEBUG",
+            "formatter": "defaultFormatter",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "../../../datas/server/bundles/pos-updater/catalog-manager.log",
+            "maxBytes": 10485760,
+            "backupCount": 10,
+            "encoding": "utf-8"
+        },
+        "update-service": {
+            "level": "DEBUG",
+            "formatter": "defaultFormatter",
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": "../../../datas/server/bundles/pos-updater/update-service.log",
+            "maxBytes": 10485760,
+            "backupCount": 10,
+            "encoding": "utf-8"
+        }
+    },
+    "loggers": {
+        "ComponentMessageHandlerBuilder": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["controller"]
+        },
+        "CatalogUpdaterManager": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["catalog-manager"]
+        },
+        
+        "CatalogUpdaterInteractor": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["catalog"]
+        },
+        "GetCatalogVersionToApplyInteractor": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["catalog"]
+        },
+        
+        "MediaUpdaterAPIRepository": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["media"]
+        },
+        "MediaUpdaterInteractor": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["media"]
+        },
+        "MediaUpdaterManager": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["media"]
+        },
+        
+        "UserUpdaterAPIRepository": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["user"]
+        },
+        "UserUpdaterInteractor": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["user"]
+        },
+        "UserUpdaterManager": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["user"]
+        },
+         "UpdaterService": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["update-service"]
+        }
+    },
+    "root": {
+        "level": "DEBUG",
+        "handlers": ["default"]
+    },
+    "disable_existing_loggers": false
+}
