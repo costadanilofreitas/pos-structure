@@ -15,3 +15,10 @@ httpd-*
 updater*
 /datas/server/sent_fiscal_xmls
 /scripts/set_paths.bat
+genesis
+/datas/server/bundles/sat/dll
+/datas/server/bundles/sat/.sat.pypkg.ctl
+/datas/server/bundles/sitef/lib/clisitef32.dll
+/datas/server/bundles/sitef/lib/clisitef32i.dll
+/datas/server/bundles/sitef/lib/libemv.dll
+/datas/server/bundles/sitef/lib/libseppemv.dll
