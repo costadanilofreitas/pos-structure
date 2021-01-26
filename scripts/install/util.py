@@ -452,11 +452,14 @@ Conteúdo em {} não encontrado\n """.format(url))
     def fix_loaders_argument_paths(self):
         all_loaders = self.get_all_loaders()
         for loader in all_loaders:
-            loader_path = os.path.split(os.path.abspath(loader))[0]
-            if "fiscalwrapper" in loader_path and "lib" in loader_path:
-                continue
-
-            self.fix_loader_argument_paths(loader)
+            try:
+                loader_path = os.path.split(os.path.abspath(loader))[0]
+                if "fiscalwrapper" in loader_path and "lib" in loader_path:
+                    continue
+    
+                self.fix_loader_argument_paths(loader)
+            except Exception as _:
+                print "Error on loader: {}", format(loader)
 
     @logger
     def get_all_loaders(self):
