@@ -2,6 +2,7 @@
     "width": "750",
     "height": "525",
     "rotation": "0",
+	"enabled" : "true",
     "plan": {
         "FC": [
             {
