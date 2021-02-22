@@ -1,3 +1,3 @@
 #!/bin/bash
 
-tools/make.exe -j $*
+tools/make.exe -j2 $*

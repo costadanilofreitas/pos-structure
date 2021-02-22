@@ -13,4 +13,4 @@ set NODE_DIR=C:\Program Files\nodejs
 )
 
 set PATH=%PYTHON_DIR%;%PYTHON_DIR%\Scripts;%GIT_DIR%;%GIT_DIR%\cmd\;%NODE_DIR%;%PATH%
-REM git-bash -c "./make.sh"
+git-bash -c "./make.sh"
