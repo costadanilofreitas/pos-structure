@@ -18,11 +18,11 @@ all: sdkcore sdkcore-syslink apache-conf post-install
 	$(info $@: Done!)
 
 sdkcore:
-	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk*; fi
-	python -m pip install pos-core==2.3.1 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --no-cache-dir --trusted-host mwsdk.hmledp.com.br
-	@mv ../pos-core ../mwsdk
-	@rm -rf ../pos_core*
-	@rm -rf ../mwsdk/base-linux.tgz
+	if [ -d ../mwsdk ]; then rm -rf ../mwsdk*; fi
+	python -m pip install pos-core==2.3.2 -t ../ --extra-index-url=http://mwsdk.hmledp.com.br/ --no-cache-dir --trusted-host mwsdk.hmledp.com.br
+	mv ../pos-core ../mwsdk
+	rm -rf ../pos_core*
+	rm -rf ../mwsdk/base-linux.tgz
 
 ifeq ($(OPSYS),windows)
 sdkcore-syslink:
@@ -39,15 +39,15 @@ common-comp:
 
 ifeq ($(OPSYS),windows)
 apache-conf:
-	@rm -rf httpd-*.zip
-	@if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
+	rm -rf httpd-*.zip
+	if [ -d $(APACHEDIR) ]; then rm -rf $(APACHEDIR); fi
 	curl -LO https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
-	@rm -rf temp
+	rm -rf temp
 	unzip -q httpd-*.zip -d temp
-	@rm -rf httpd-*.zip
-	@mkdir $(APACHEDIR)
-	@cp -a temp/Apache24/* $(APACHEDIR)
-	@rm -rf temp
+	rm -rf httpd-*.zip
+	mkdir $(APACHEDIR)
+	cp -a temp/Apache24/* $(APACHEDIR)
+	rm -rf temp
 else
 apache-conf:
 endif
@@ -61,7 +61,7 @@ endif
 	$(info $@: Done!)
 
 post-install: common-comp
-	@if [ ! -d $(BASEDIR)/datas/server/htdocs ]; then mkdir $(BASEDIR)/datas/server/htdocs; fi
+	if [ ! -d $(BASEDIR)/datas/server/htdocs ]; then mkdir $(BASEDIR)/datas/server/htdocs; fi
 	cd ../src/_guizip && find -name '*.zip' -exec sh -c 'unzip -o -d "$(BASEDIR)/datas/server/htdocs/$${1%.*}" "$$1"' _  {} \; && cd -
 	$(info $@: Done!)
 
@@ -78,5 +78,5 @@ clean-apache:
 	$(info $@: Done!)
 
 clean: clean-common clean-apache
-	@if [ -d ../mwsdk ]; then rm -rf ../mwsdk*; fi
+	if [ -d ../mwsdk ]; then rm -rf ../mwsdk*; fi
 	$(info $@: Done!)
