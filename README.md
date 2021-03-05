@@ -9,6 +9,7 @@
  * [Python 2 with PIP](https://www.python.org/downloads/windows/)   
  * [Git with Git-Bash](https://git-scm.com/downloads)
  * [NodeJS with NPM](https://nodejs.org/en/download/)
+ * [C++] (https://www.microsoft.com/en-us/download/details.aspx?id=40784)
 
  2. If you installed the dependencies on a not standard directory, create a file name `set_paths.bat` and add the following content to it:
 
