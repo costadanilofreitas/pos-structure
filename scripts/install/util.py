@@ -127,6 +127,7 @@ class Util(object):
 
         self.copy_scripts()
         self.remove_install_directory()
+        self.insert_system_version_pos_updater()
 
     @logger
     def update(self):
@@ -597,3 +598,15 @@ Conteúdo em {} não encontrado\n """.format(url))
             os.remove(filename)
         except OSError:
             pass
+
+    def insert_system_version_pos_updater(self):
+        insert = """
+INSERT INTO UpdatesController(UpdateId, UpdateName, TypeId, StatusId, ObtainedDate, DownloadedDate, BackupDate, AppliedDate, NotifiedDate)
+VALUES (1, '#1#', 5, 2, '#2#', '#2#', '#2#', '#2#', '#2#');"""
+
+        insert = insert.replace('#1#', "CORE:{}|SRC:{}".format(
+                    self.sdk_version, self.src_version))
+        insert = insert.replace('#2#', str(datetime.now().isoformat()))
+
+        with open(os.path.join(self.src_folder, "persistcomp", "pos_updater", "pos_updater.ddl"), 'a') as file:
+            file.write(insert)
