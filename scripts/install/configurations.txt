@@ -1,6 +1,6 @@
 client_store=edeploy-demo-windows
-sdk_version=2.3.0
-src_version=1.7.0
+sdk_version=2.3.2
+src_version=1.7.3
 
 apache_url=https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
 
