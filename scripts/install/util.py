@@ -6,13 +6,15 @@ import re
 import shutil
 import sys
 import urllib
+import urllib2
 import zipfile
 import tarfile
+import requests
 
 from datetime import datetime
 from distutils.dir_util import copy_tree, mkpath
 from xml.etree import cElementTree as eTree
-
+from helper import retry
 
 def logger(fn):
     global iter_count
@@ -43,7 +45,7 @@ def logger(fn):
 
 
 class Util(object):
-    def __init__(self, new_package=False, installingApache=False):
+    def __init__(self, new_package=False, installing_apache=False):
         configurations = self.get_configurations()
 
         self.pos_folder_name = configurations["pos_folder_name"]
@@ -63,8 +65,8 @@ class Util(object):
         self.backup_folder = os.path.join(self.e_deploy_pos_folder, os.pardir, ("backup_" + self.pos_folder_name))
         self.backup_files_retention = 5
 
-        if installingApache:
-            self.e_deploy_pos_folder = self.current_folder            
+        if installing_apache:
+            self.e_deploy_pos_folder = self.current_folder
 
         if new_package:
             self.e_deploy_pos_folder = self.e_deploy_pos_folder + "_downloaded"
@@ -97,7 +99,9 @@ class Util(object):
         self.sdk_repository = configurations["mwsdk_repository"]
         self.pip_install_command = configurations["pip_install_command"]
         self.apache_url = configurations["apache_url"]
-        self.data_url = configurations["data_url"].format(client_store=configurations["client_store"])
+        self.data_url = configurations["data_url"].format(
+                backoffice_url=configurations["backoffice_url"] , client_store=configurations["client_store"])
+        self.backoffice_api_key = configurations["backoffice_api_key"]
 
     @staticmethod
     @logger
@@ -273,7 +277,7 @@ class Util(object):
 
     @logger
     def install_data_package(self):
-        tar_file_name = os.path.join(self.genesis_data_folder, "data.tgz")
+        zip_file_name = os.path.join(self.genesis_data_folder, "data.zip")
         if os.path.exists(self.data_folder + "/server/bundles"):
             shutil.rmtree(self.data_folder + "/server/bundles")
 
@@ -282,18 +286,20 @@ class Util(object):
         server_genesis_data_folder = self.genesis_data_folder + "/server"
         self._remove_folders(server_genesis_data_folder, ["databases", "htdocs"])
 
-        self.test_web_response(self.data_url)
-        urllib.urlretrieve(self.data_url, tar_file_name)
-        tar_file = tarfile.open(tar_file_name, "r:gz")
-        tar_file.extractall(self.genesis_data_folder)
-        tar_file.close()
-        os.remove(tar_file_name)
+        loaders_url = self.get_loaders_url(self.data_url)
+        urllib.urlretrieve(loaders_url, zip_file_name)
+        with zipfile.ZipFile(zip_file_name, 'r') as zip_ref:
+            zip_ref.extractall(self.genesis_data_folder)
+        os.remove(zip_file_name)
 
         self.fix_loaders_argument_paths()
         self.copy_bundles_dependencies()
 
     @staticmethod
     def _remove_folders(folder, folders_to_not_delete):
+        if not os.path.exists(folder):
+            return
+
         for item in os.listdir(folder):
             if os.path.isdir(os.path.join(folder, item)) and item not in folders_to_not_delete:
                 shutil.rmtree(folder + "/" + item)
@@ -301,10 +307,28 @@ class Util(object):
     @logger
     def test_web_response(self, url):
         if urllib.urlopen(url).getcode() != 200:
-            print("""######### ERRO #########
-Verifique valores do arquivo configurations.txt
-Conteúdo em {} não encontrado\n """.format(url))
+            print("""
+                    ######### ERRO ######### \n 
+                    Verifique valores do arquivo configurations.txt \n
+                    Conteúdo em {} não encontrado\n
+                  """.format(url))
             sys.exit()
+
+    @logger
+    def get_loaders_url(self, file_path):
+        # type: () -> str
+
+        url = self.data_url
+        headers = {"X-Api-Key": self.backoffice_api_key, "Content-type": "application/zip"}
+        response = requests.request("GET", url=url, headers=headers, timeout=60)
+        if response is None or response.status_code != 302:
+            print("""
+                     ######### ERRO ######### \n 
+                     Erro ao baixar os loaders
+                 """)
+            sys.exit()
+
+        return str(response.text.replace("\"", ""))
 
     @logger
     def clean_server_packages(self):
@@ -457,7 +481,7 @@ Conteúdo em {} não encontrado\n """.format(url))
                 loader_path = os.path.split(os.path.abspath(loader))[0]
                 if "fiscalwrapper" in loader_path and "lib" in loader_path:
                     continue
-    
+
                 self.fix_loader_argument_paths(loader)
             except Exception as _:
                 print "Error on loader: {}", format(loader)

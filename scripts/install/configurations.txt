@@ -1,10 +1,12 @@
-client_store=edeploy-demo-windows
+client_store=1018
+backoffice_url=https://test.backoffice.hmledp.com.br
+backoffice_api_key=777777-6666-2222-1111-109876543210
 sdk_version=2.3.2
-src_version=1.7.3
+src_version=1.7.4
 
 apache_url=https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
 
 pos_folder_name=edeployPOS
-data_url=http://mwsdk.hmledp.com.br/pos-datas/{client_store}.tgz
+data_url={backoffice_url}/pump/storeConfig/{client_store}
 mwsdk_repository=mwsdk.hmledp.com.br
 pip_install_command=python -m pip install {package_name}=={version} -t {install_folder} --extra-index-url=http://{mwsdk_repository}/ --trusted-host {mwsdk_repository} --no-cache-dir --upgrade
