@@ -14,7 +14,6 @@ import requests
 from datetime import datetime
 from distutils.dir_util import copy_tree, mkpath
 from xml.etree import cElementTree as eTree
-from helper import retry
 
 def logger(fn):
     global iter_count
