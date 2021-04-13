@@ -1,7 +1,0 @@
-..\helper.py
-..\helper.pyc
-PKG-INFO
-SOURCES.txt
-dependency_links.txt
-requires.txt
-top_level.txt

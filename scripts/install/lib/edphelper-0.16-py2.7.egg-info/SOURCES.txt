@@ -1,8 +1,0 @@
-helper.py
-setup.cfg
-setup.py
-edphelper.egg-info/PKG-INFO
-edphelper.egg-info/SOURCES.txt
-edphelper.egg-info/dependency_links.txt
-edphelper.egg-info/requires.txt
-edphelper.egg-info/top_level.txt
