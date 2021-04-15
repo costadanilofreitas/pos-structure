@@ -52,11 +52,11 @@
             "backupCount": 10,
             "encoding": "utf-8"
         },
-        "catalog-manager": {
+        "binaries": {
             "level": "DEBUG",
             "formatter": "defaultFormatter",
             "class": "logging.handlers.RotatingFileHandler",
-            "filename": "../../../datas/server/bundles/pos-updater/catalog-manager.log",
+            "filename": "../../../datas/server/bundles/pos-updater/binaries.log",
             "maxBytes": 10485760,
             "backupCount": 10,
             "encoding": "utf-8"
@@ -77,10 +77,11 @@
             "propagate": false,
             "handlers": ["controller"]
         },
+        
         "CatalogUpdaterManager": {
             "level": "INFO",
             "propagate": false,
-            "handlers": ["catalog-manager"]
+            "handlers": ["catalog"]
         },
         
         "CatalogUpdaterInteractor": {
@@ -125,6 +126,23 @@
             "propagate": false,
             "handlers": ["user"]
         },
+        
+        "BinaryUpdaterAPIRepository": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["binaries"]
+        },
+        "BinaryUpdaterInteractor": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["binaries"]
+        },
+        "BinaryUpdaterManager": {
+            "level": "INFO",
+            "propagate": false,
+            "handlers": ["binaries"]
+        },
+        
          "UpdaterService": {
             "level": "INFO",
             "propagate": false,
