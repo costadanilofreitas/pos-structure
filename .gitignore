@@ -23,3 +23,4 @@ genesis
 /datas/server/bundles/sitef/lib/libemv.dll
 /datas/server/bundles/sitef/lib/libseppemv.dll
 /venv
+/scripts/install/lib
