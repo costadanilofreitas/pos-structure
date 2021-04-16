@@ -1,8 +1,8 @@
 client_store=1018
 backoffice_url=https://test.backoffice.hmledp.com.br
 backoffice_api_key=777777-6666-2222-1111-109876543210
-sdk_version=2.3.2
-src_version=1.7.4
+sdk_version=3.0.0
+src_version=1.8.0
 
 apache_url=https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
 
