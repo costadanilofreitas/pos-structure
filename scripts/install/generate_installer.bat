@@ -4,13 +4,13 @@ if exist dist (
 
 pyinstaller --onefile installEdeployPOS.py
 
-if exist installEdeployPOS (
-    rmdir /s /q "installEdeployPOS"
+if exist install (
+    rmdir /s /q "install"
 )
-mkdir "installEdeployPOS"
-copy "dist" "installEdeployPOS"
-mkdir "installEdeployPOS\pos_files"
-copy "pos_files" "installEdeployPOS/pos_files"
-copy "configurations.txt" "installEdeployPOS"
+mkdir "install"
+copy "dist" "install"
+mkdir "install\pos_files"
+copy "pos_files" "install/pos_files"
+copy "configurations.txt" "install"
 
-tar.exe -a -c -f installEdeployPOS.zip installEdeployPOS
+tar.exe -a -c -f install.zip install
