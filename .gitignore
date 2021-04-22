@@ -27,5 +27,5 @@ genesis
 /scripts/install/installEdeployPOS.spec
 /scripts/install/build
 /scripts/install/dist
-/scripts/install/installEdeployPOS
-/scripts/install/installEdeployPOS.zip
+/scripts/install/install
+/scripts/install/install.zip
