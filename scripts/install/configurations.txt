@@ -9,4 +9,4 @@ apache_url=https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win
 pos_folder_name=edeployPOS
 data_url={backoffice_url}/pump/storeConfig/{client_store}
 mwsdk_repository=mwsdk.hmledp.com.br
-pip_install_command=python -m pip install {package_name}=={version} -t {install_folder} --extra-index-url=http://{mwsdk_repository}/ --trusted-host {mwsdk_repository} --no-cache-dir --upgrade
+pip_install_command=python\python.exe -m pip install {package_name}=={version} -t {install_folder} --extra-index-url=http://{mwsdk_repository}/ --trusted-host {mwsdk_repository} --no-cache-dir --upgrade
