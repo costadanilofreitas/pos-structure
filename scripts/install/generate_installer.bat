@@ -1,7 +1,6 @@
 if exist dist (
     rmdir /s /q "dist"
 )
-
 pyinstaller --onefile --name="edeployPOSInstaller.exe" --icon="pos_icon.ico" installEdeployPOS.py
 
 if exist install (
@@ -14,5 +13,6 @@ xcopy "pos_files" "install/pos_files" /E
 copy "configurations.txt" "install"
 mkdir "install\python"
 xcopy "..\..\mwsdk\windows-x86\python" "install/python" /E
+tar.exe -a -c -f "edeployPOSInstaller - windows.zip" install
 
-tar.exe -a -c -f edeployPOSInstaller.zip install
+tar.exe -a -c -f "edeployPOSInstaller - linux.zip" "configurations.txt" "edeployPOS.x86_64.rpm"
