@@ -13,6 +13,6 @@ xcopy "pos_files" "install/pos_files" /E
 copy "configurations.txt" "install"
 mkdir "install\python"
 xcopy "..\..\mwsdk\windows-x86\python" "install/python" /E
-tar.exe -a -c -f "edeployPOSInstaller - windows.zip" install
+tar.exe -a -c -f "edeploypos_windows.zip" install
 
-tar.exe -a -c -f "edeployPOSInstaller - linux.zip" "configurations.txt" "edeployPOS.x86_64.rpm"
+tar.exe -a -c -f "edeploypos_linux.zip" "configurations.txt" "edeployPOS.x86_64.rpm"
