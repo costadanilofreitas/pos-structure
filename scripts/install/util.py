@@ -6,14 +6,13 @@ import re
 import shutil
 import sys
 import urllib
-import urllib2
 import zipfile
-import tarfile
-import requests
-
 from datetime import datetime
 from distutils.dir_util import copy_tree, mkpath
 from xml.etree import cElementTree as eTree
+
+import requests
+
 
 def logger(fn):
     global iter_count
@@ -128,7 +127,6 @@ class Util(object):
             self.create_genesis_sym_links()
             self.create_binary_sym_links()
 
-        self.copy_scripts()
         self.remove_install_directory()
 
     @logger
@@ -205,7 +203,8 @@ class Util(object):
     @logger
     def create_e_deploy_pos_folder(self):
         if os.path.exists(self.e_deploy_pos_folder):
-            shutil.rmtree(self.e_deploy_pos_folder)
+            print("#### Pasta edeployPOS existente no sistema  ####\n")
+            raise Exception()
 
         os.mkdir(self.e_deploy_pos_folder)
 
@@ -514,6 +513,7 @@ class Util(object):
         if self.is_windows:
             start = "start.bat"
             stop = "stop.bat"
+            shutil.copy(os.path.join("", "pos_files", "E-Deploy POS.exe"), self.e_deploy_pos_folder)
         else:
             start = "start.sh"
             stop = "stop.sh"
@@ -584,27 +584,6 @@ class Util(object):
                 src = "./{}".format(binary)
                 dest = os.path.join(self.bin_folder, dest)
                 os.symlink(src, dest)
-
-    @logger
-    def copy_scripts(self):
-        copy_tree(os.path.abspath(os.getcwd()), self.scripts_folder)
-        self.remove_script_files()
-        self.remove_script_directories()
-
-    @logger
-    def remove_script_files(self):
-        files_to_remove = ["installEdeployPOS.py", "util.pyc"]
-        for file_to_remove in files_to_remove:
-            file_name = os.path.join(self.scripts_folder, file_to_remove)
-            self.remove_file(file_name)
-
-    @logger
-    def remove_script_directories(self):
-        directories_to_remove = [".idea", "pos_files"]
-        for directory_to_remove in directories_to_remove:
-            directory_name = os.path.join(self.scripts_folder, directory_to_remove)
-            if os.path.exists(directory_name) and os.path.isdir(directory_name):
-                shutil.rmtree(directory_name)
 
     @logger
     def remove_install_directory(self):

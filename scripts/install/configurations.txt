@@ -2,7 +2,7 @@ client_store=${CLIENT_STORE}
 backoffice_url=https://${BACKOFFICE_URL}
 backoffice_api_key=${BACKOFFICE_API_KEY}
 sdk_version=3.0.1
-src_version=1.8.0
+src_version=1.8.1
 
 apache_url=https://s3.amazonaws.com/pos-install.e-deploy.com.br/httpd-2.4.41-win64-VS16.zip
 
