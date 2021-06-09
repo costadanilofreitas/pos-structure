@@ -1,11 +1,10 @@
 @echo off
 
-if exist data\server\databases\i18ncustom.db (
-    del data\server\databases\i18ncustom.db
-)
+tasklist /FI "IMAGENAME eq genclient.exe" 2>NUL | find /I "genclient.exe" >NUL
+if "%ERRORLEVEL%"=="0" (exit)
+tasklist /FI "IMAGENAME eq hv.exe" 2>NUL | find /I "hv.exe" >NUL
+if "%ERRORLEVEL%"=="0" (exit)
 
-::if [%1]==[] goto syntax
-::if [%2]==[] goto syntax
 
 set APP_NODE=server
 set PLATFORM=windows-x86
