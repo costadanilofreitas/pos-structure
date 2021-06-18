@@ -24,3 +24,8 @@ genesis
 /datas/server/bundles/sitef/lib/libseppemv.dll
 /venv
 /scripts/install/lib
+/scripts/install/installEdeployPOS.spec
+/scripts/install/build
+/scripts/install/dist
+/scripts/install/install
+/scripts/install/install.zip
