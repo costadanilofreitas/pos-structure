@@ -1,0 +1,6 @@
+---
+- hosts: localhost
+  roles:
+  - {role: 'eDeployPOS', tags: 'server'}
+  - {role: 'eDeployPOS-KDS', tags: 'kds'}
+

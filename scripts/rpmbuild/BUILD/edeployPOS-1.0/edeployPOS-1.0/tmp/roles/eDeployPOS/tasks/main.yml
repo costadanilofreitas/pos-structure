@@ -1,0 +1,30 @@
+---
+  - name: Install packages
+    include_role:
+      name: eDeployPOS
+      tasks_from: so_packages
+
+  - name: Services
+    include_role:
+      name: eDeployPOS
+      tasks_from: services
+
+  - name: S.O configurations
+    include_role:
+      name: eDeployPOS
+      tasks_from: so_parameters
+
+  - name: Creating cron jobs
+    include_role:
+      name: eDeployPOS
+      tasks_from: cron
+
+  - name: Install and configure edeployPOS
+    include_role:
+      name: eDeployPOS
+      tasks_from: edeploy
+
+  - name: Remove installation files
+    include_role:
+      name: eDeployPOS
+      tasks_from: remove_installation_files

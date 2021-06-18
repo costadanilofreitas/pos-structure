@@ -1,0 +1,29 @@
+---
+  - name: Enable ntpd service
+    service:
+      name: ntpd
+      enabled: yes
+
+  - name: Stop and disable firewalld
+    service:
+      name: firewalld
+      enabled: no
+      state:   stopped
+    register: firewalld_service_result
+    failed_when: "firewalld_service_result is failed and 'Could not find the requested service' not in firewalld_service_result.msg"      
+
+  - name: Create lightm configuration file
+    copy:
+      src: files/lightdm.conf
+      dest: /etc/lightdm/lightdm.conf
+
+  - name: Set lightdm auto user
+    replace: 
+      path: /etc/lightdm/lightdm.conf
+      regexp: 'autologin-user='
+      replace: 'autologin-user={{ username }}'
+
+  - name: Configure service lightdm
+    service:
+      name: lightdm
+      enabled: yes

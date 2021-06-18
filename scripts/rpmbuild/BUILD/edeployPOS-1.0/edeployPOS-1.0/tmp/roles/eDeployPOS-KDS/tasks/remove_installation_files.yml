@@ -1,0 +1,10 @@
+---
+    - name: "Remove installation files"
+      shell: rm -rf ansible.zip configurations.sh group_vars provisioning.yml roles install
+      args:
+        warn: false
+
+    - name: "Remove package installation"
+      yum:
+        name: edeployPOS
+        state: absent
