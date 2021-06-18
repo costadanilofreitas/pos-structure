@@ -1,0 +1,16 @@
+#!/bin/bash
+
+
+if [ ! -f $HOME/configurations.txt ];then
+  echo "configurations.txt not found on $HOME"
+  exit 1
+fi
+
+yum install -y ansible
+
+set -m
+touch /tmp/installation.log && tail -f /tmp/installation.log &
+
+ansible-playbook $HOME/provisioning.yml --tags $1
+
+kill %1

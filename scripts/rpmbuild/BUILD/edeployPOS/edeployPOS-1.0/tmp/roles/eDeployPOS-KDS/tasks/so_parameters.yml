@@ -1,0 +1,33 @@
+---
+  - name: Create user "{{ username }}" for manage edeployPOS and S.O
+    user:
+      name: "{{ username }}"
+      comment: edeployPOS User
+      groups: users,wheel
+      append: yes
+
+  - name: Copy .bash_profile for {{ username }}
+    copy:
+      src: 'files/bash_profile'
+      dest: '/home/{{ username }}/.bash_profile'
+
+  - name: Copy ntp config file
+    copy:
+      src: 'files/ntp.conf'
+      dest: '/etc/ntp.conf'
+
+  - name: Set SELINUX in permissive mode
+    replace: 
+      path: /etc/selinux/config
+      regexp: 'SELINUX=enforcing'
+      replace: 'SELINUX=permissive'
+
+  - name: Opnebox configuration
+    copy: 
+      src: files/.config
+      dest: /home/{{ username }}/
+      owner: "{{ username }}"
+      group: "{{ username }}"
+
+  - name: Configure startup system with gui
+    shell: 'systemctl set-default graphical.target'

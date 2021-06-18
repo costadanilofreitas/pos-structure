@@ -1,0 +1,24 @@
+---
+  - name: Create eDeployPOS
+    copy:
+      src: files/edeployPOS_kds
+      dest: /home/{{ username }}/
+      owner: "{{ username }}"
+      group: "{{ username }}"    
+
+  - name: Configure user for openbox
+    replace: 
+      path: /home/{{ username }}//.config/openbox/autostart
+      regexp: 'changestring'
+      replace: '{{ username }}'
+
+  - name: Configure permission bin files
+    file:
+      path: /home/{{ username }}/edeployPOS_kds/
+      mode: '0777'
+      recurse: yes
+
+  - name: Configure permission execute openbox
+    file:
+      path: /home/{{ username }}//.config/openbox/autostart
+      mode: '0777'

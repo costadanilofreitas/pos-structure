@@ -1,0 +1,33 @@
+---
+  - name: Create eDeployPOS service
+    copy:
+      src: 'files/edeploypos_server'
+      dest: '/etc/init.d/edeploypos_server'
+      mode: u+rwx,g-rwx
+
+  - name: Configure path eDeployPOS service
+    replace:
+      path: '/etc/init.d/edeploypos_server'
+      regexp: 'changestring'
+      replace: "{{ username }}"
+
+  - name: Enable edeployPOS service on boot
+    shell: 'chkconfig edeploypos_server on'
+
+  - name: Enable httpd service
+    service:
+      name: httpd
+      enabled: yes
+
+  - name: Enable ntpd service
+    service:
+      name: ntpd
+      enabled: yes
+
+  - name: Stop and disable firewalld
+    service:
+      name: firewalld
+      enabled: no
+      state:   stopped
+    register: firewalld_service_result
+    failed_when: "firewalld_service_result is failed and 'Could not find the requested service' not in firewalld_service_result.msg"      

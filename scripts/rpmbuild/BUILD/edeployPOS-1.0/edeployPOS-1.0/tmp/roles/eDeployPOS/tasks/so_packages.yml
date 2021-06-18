@@ -1,0 +1,23 @@
+---
+  - name: Upgrade packages - takes a little while...
+    with_items: "{{ ansible_mounts }}"
+    when: item.mount == "/boot" and item.size_available > 231074304
+    yum:
+      name: '*'
+      state: latest
+
+  - name: Install dependencies for edeployPOS
+    yum:
+      name: ['httpd', 'httpd-tools','python2','python2-pip','python2-wheel.noarch']
+      state: latest
+
+  - name: Install S.O packages
+    yum:
+      name: ['htop','hdparm','zip','unzip','telnet','iotop','vim-common.x86_64','vim-enhanced.x86_64', 'ntp', 'ntpdate']
+      state: latest
+
+  - name: Upgrade pip
+    shell: python2 -m pip install --upgrade "pip < 21.0"
+
+  - name: Python requests
+    shell: python2 -m pip install requests

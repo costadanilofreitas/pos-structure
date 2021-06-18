@@ -1,0 +1,6 @@
+---
+  - cron:
+      name: "Cron to reboot system"
+      minute: "20"
+      hour: "07"
+      job: "/sbin/reboot"

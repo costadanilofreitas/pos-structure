@@ -1,0 +1,27 @@
+---
+  - name: Copy install 
+    copy:
+      src: 'install'
+      dest: '/home/{{ username }}/'
+
+  - name: Copy configurations 
+    copy:
+      src: 'configurations.txt'
+      dest: '/home/{{ username }}/install/configurations.txt'
+
+  - name: Install eDeployPOS
+    shell: 'cd /home/{{ username }}/install && python installEdeployPOS.py 2>&1 >> /tmp/installation.log'
+
+  - name: Create htdocs to prevent first boot service httpd
+    file:
+      path: "/home/{{ username }}/edeployPOS/data/server/htdocs"
+      state: directory
+      mode: '0755'
+   
+  - name: Change permission for edeployPOS directory installation
+    file:
+      path: '/home/{{ username }}/edeployPOS'
+      state: directory
+      owner: "{{ username }}"
+      group: "{{ username }}"
+      recurse: yes
