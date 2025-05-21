@@ -1,0 +1,31 @@
+
+rpython:S100è"NRename method "MB_EvtSend" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ô¯·ÿùÿÿÿÿ8Ó´ğº‚/
+upython:S100“	"VRename method "MB_EasySendMessage" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÆÊØ8Ó´ğº‚/
+hpython:S33584"IExtract this nested conditional expression into an independent statement.(°‚Ê8Ó´ğº‚/
+vpython:S100Ú"RRename method "MB_PeekMessage" to match the regular expression ^[a-z_][a-z0-9_]*$.(ò¢Ú¹ùÿÿÿÿ8Ó´ğº‚/
+}python:S1542Ñ"XRename function "MB_GetTokenByIndex" to match the regular expression ^[a-z_][a-z0-9_]*$.(§ŞË¨ûÿÿÿÿ8Ó´ğº‚/
+|python:S100‚"XRename method "MB_SendOneWayMessage" to match the regular expression ^[a-z_][a-z0-9_]*$.(×ü„Îùÿÿÿÿ8Ó´ğº‚/
+upython:S100Ë"VRename method "MB_RegisterService" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÏÎÒ¥8Ó´ğº‚/
+spython:S100	"ORename method "MB_Finalize" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ö°„àúÿÿÿÿ8Ó´ğº‚/
+zpython:S117Ñ"VRename this parameter "tokenIndex" to match the regular expression ^[_a-z][a-z0-9_]*$.(§ŞË¨ûÿÿÿÿ8Ó´ğº‚/
+npython:S100¡"ORename method "MB_Finalize" to match the regular expression ^[a-z_][a-z0-9_]*$.(¯Ä–ª8Ó´ğº‚/
+tpython:S100’"URename method "MB_EvtUnsubscribe" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ò‚Áè8Ó´ğº‚/
+ypython:S117Å"URename this parameter "tokenName" to match the regular expression ^[_a-z][a-z0-9_]*$.(Ù®è¥úÿÿÿÿ8Ó´ğº‚/
+xpython:S100¬"TRename method "MB_LocateService" to match the regular expression ^[a-z_][a-z0-9_]*$.(…™ÚÉùÿÿÿÿ8Ó´ğº‚/
+\python:S5754°"<Specify an exception class to catch or reraise the exception(ˆÊÉ·8Ó´ğº‚/
+xpython:S100‡	"TRename method "MB_EasyWaitStart" to match the regular expression ^[a-z_][a-z0-9_]*$.(³Û†ÿÿÿÿÿ8Ó´ğº‚/
+ypython:S100Â"URename method "MB_GetQueueStatus" to match the regular expression ^[a-z_][a-z0-9_]*$.(º¾Û›úÿÿÿÿ8Ó´ğº‚/
+tpython:S1542¹"URename function "MB_GetTokenName" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÓÒá
+8Ó´ğº‚/
+|python:S1542Å"WRename function "MB_GetTokenByName" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ù®è¥úÿÿÿÿ8Ó´ğº‚/
+~python:S1186	"YAdd a nested comment explaining why this method is empty, or complete the implementation.(Ö°„àúÿÿÿÿ8Ó´ğº‚/
+ypython:S1186	"YAdd a nested comment explaining why this method is empty, or complete the implementation.(ä½ï„8Ó´ğº‚/
+rpython:S100	"SRename method "MB_EasyFinalize" to match the regular expression ^[a-z_][a-z0-9_]*$.(ä½ï„8Ó´ğº‚/
+ppython:S100Ë"QRename method "MB_GetMessage" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ò«˜×8Ó´ğº‚/
+rpython:S100›"SRename method "MB_ReplyMessage" to match the regular expression ^[a-z_][a-z0-9_]*$.(àÂõ°8Ó´ğº‚/
+tpython:S100İ"PRename method "MB_WaitStart" to match the regular expression ^[a-z_][a-z0-9_]*$.(°Œøÿÿÿÿ8Ó´ğº‚/
+opython:S100Š	"PRename method "MB_WaitStart" to match the regular expression ^[a-z_][a-z0-9_]*$.(îÔ‹ô8Ó´ğº‚/
+qpython:S100ƒ"SRename method "MB_EvtSubscribe" to match the regular expression ^[a-z_][a-z0-9_]*$.(„ÊP8Ó´ğº‚/
+\python:S5754	"<Specify an exception class to catch or reraise the exception(ˆÊÉ·8Ó´ğº‚/
+Ppython:S5806©	"+Rename this variable; it shadows a builtin.(îæˆˆùÿÿÿÿ8Ó´ğº‚/
+qpython:S100è"RRename method "MB_SendMessage" to match the regular expression ^[a-z_][a-z0-9_]*$.(¾‡‚8Ó´ğº‚/

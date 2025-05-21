@@ -1,0 +1,51 @@
+
+bpython:S1192"LDefine a constant instead of duplicating this literal "$OK|$CANCEL" 6 times.(êê†Ë
+rpython:S1192"\Define a constant instead of duplicating this literal "CurrentOrder/Order/SaleLine" 3 times.(Ž½í¨
+_python:S1192"IDefine a constant instead of duplicating this literal "$YES|$NO" 3 times.(¬¹ž‡
+fpython:S1192"KDefine a constant instead of duplicating this literal "%s\0%s\0%s" 4 times.(ÍÄŠ¦ûÿÿÿÿ
+dpython:S1192"NDefine a constant instead of duplicating this literal "$CONFIRMATION" 3 times.(¬¹ž‡
+Epython:S1066"/Merge this if statement with the enclosing one.(ïÜƒ
+4python:S125"Remove this commented out code.(œîé­
+Ypython:S5709">Derive this class from "Exception" instead of "BaseException".(¡Ð’Æùÿÿÿÿ
+Fpython:S5806"+Rename this variable; it shadows a builtin.(ý·’èúÿÿÿÿ
+Fpython:S5806"+Rename this variable; it shadows a builtin.(ý·’èúÿÿÿÿ
+Fpython:S5806"+Rename this variable; it shadows a builtin.(ý·’èúÿÿÿÿ
+Fpython:S5806"+Rename this variable; it shadows a builtin.(ý·’èúÿÿÿÿ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+dpython:S3358"IExtract this nested conditional expression into an independent statement.(Ä®Ýúøÿÿÿÿ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+jpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 33 to the 15 allowed.(ÑðêÐ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Spython:S112">Replace this generic exception class with a more specific one.(ë…ÖÖ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+ppython:S107"VFunction "show_any_dialog" has 18 parameters, which is greater than the 13 authorized.(¶¢ù¥üÿÿÿÿ
+mpython:S107"XFunction "update_any_dialog" has 18 parameters, which is greater than the 13 authorized.(ÿ——
+npython:S107"TFunction "show_keyboard" has 16 parameters, which is greater than the 13 authorized.(°—ìòûÿÿÿÿ
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.(°—ìòûÿÿÿÿ
+dpython:S3358"IExtract this nested conditional expression into an independent statement.(Ý±¸Úÿÿÿÿÿ
+dpython:S3358"IExtract this nested conditional expression into an independent statement.(Ý±¸Úÿÿÿÿÿ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 24 to the 15 allowed.(ØÊŽâþÿÿÿÿ
+jpython:S930"UAdd 1 missing arguments; 'show_info_message' expects at least 2 positional arguments.(´œ¿ÿ
+Apython:S5806"+Rename this variable; it shadows a builtin.(ÛÔî×
+upython:S1542"ZRename function "get_clearOptionsInfo" to match the regular expression ^[a-z_][a-z0-9_]*$.(£ÞÃ¯ýÿÿÿÿ
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 19 to the 15 allowed.(£ÞÃ¯ýÿÿÿÿ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Spython:S112">Replace this generic exception class with a more specific one.(èË­“
+Spython:S112">Replace this generic exception class with a more specific one.(ãùØˆ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 35 to the 15 allowed.(›Ÿ¤Êûÿÿÿÿ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Apython:S5806"+Rename this variable; it shadows a builtin.(éÖ¤Æ
+~python:S117"dRename this local variable "discountDescription" to match the regular expression ^[_a-z][a-z0-9_]*$.(£æ­æüÿÿÿÿ
+ppython:S117"[Rename this local variable "discountId" to match the regular expression ^[_a-z][a-z0-9_]*$.(ñéÇÙ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+npython:S1542"XRename function "doShowConfirmation" to match the regular expression ^[a-z_][a-z0-9_]*$.(îÞ…ß
+opython:S1542"YRename function "doCloseAsynchDialog" to match the regular expression ^[a-z_][a-z0-9_]*$.(²„é

@@ -1,15 +1,11 @@
 *.pyc
 *.log
 .flake/
-.idea/
 *debug.txt
 *.lnk
 *printer*.txt
 /datas/server/fiscal_xml
-apache
-mwsdk
 /scripts/install/edeployPOS*
-mwsdk-*
 httpd-*
 /scripts/edeployPOS
 updater*

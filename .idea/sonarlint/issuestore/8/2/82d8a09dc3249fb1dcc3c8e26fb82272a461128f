@@ -1,0 +1,116 @@
+
+tpython:S1542Ñ"VRename function "doRuptureCleanup" to match the regular expression ^[a-z_][a-z0-9_]*$.(ş×½Šøÿÿÿÿ
+opython:S1542ª"VRename function "storewideRestart" to match the regular expression ^[a-z_][a-z0-9_]*$.(Î»ç™
+mpython:S3776’"TRefactor this function to reduce its Cognitive Complexity from 33 to the 15 allowed.(¾¢»Á
+tpython:S1542Ù"VRename function "doChangeSaleType" to match the regular expression ^[a-z_][a-z0-9_]*$.(•°¡øûÿÿÿÿ
+rpython:S1542…"TRename function "notImplemented" to match the regular expression ^[a-z_][a-z0-9_]*$.(ø÷ùÿÿÿÿ
+mpython:S1542Ÿ"TRename function "doCheckUpdates" to match the regular expression ^[a-z_][a-z0-9_]*$.(ª¡é„
+Vpython:S112">Replace this generic exception class with a more specific one.(Š€£Ê
+rpython:S3776¡"TRefactor this function to reduce its Cognitive Complexity from 28 to the 15 allowed.(ãŠá‰ÿÿÿÿÿ
+mpython:S3776Ï"TRefactor this function to reduce its Cognitive Complexity from 36 to the 15 allowed.(äŸËû
+Upython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+mpython:S1542í"ORename function "doScanTab" to match the regular expression ^[a-z_][a-z0-9_]*$.(éÈŒßúÿÿÿÿ
+lpython:S1192è"SDefine a constant instead of duplicating this literal "CurrentOrder/Order" 6 times.(ÔËÛ¯
+opython:S1542İ"VRename function "doOverwritePrice" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÕË¨É
+tpython:S1542Î"VRename function "doReportBKOffice" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÄŠƒÙûÿÿÿÿ
+[python:S112Û">Replace this generic exception class with a more specific one.(Ğş¾°øÿÿÿÿ
+npython:S1542­"PRename function "doModifier" to match the regular expression ^[a-z_][a-z0-9_]*$.(ü±Îúÿÿÿÿ
+lpython:S1542–"SRename function "incrementLine" to match the regular expression ^[a-z_][a-z0-9_]*$.(§ŒòÍ
+kpython:S1542‰"RRename function "doCheckSiTef" to match the regular expression ^[a-z_][a-z0-9_]*$.(®´Ä¨
+Upython:S5754Ü"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+opython:S1542Ñ"VRename function "doChangeLanguage" to match the regular expression ^[a-z_][a-z0-9_]*$.(Úø¾Ø
+wpython:S1542À"YRename function "doRecreateXMLFiscal" to match the regular expression ^[a-z_][a-z0-9_]*$.(¦ï¯–ıÿÿÿÿ
+Hpython:S1066ù"/Merge this if statement with the enclosing one.(Ÿè¾ä
+qpython:S1542"XRename function "doGetPrinterStatus" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÏÓ ×
+lpython:S1542¾"SRename function "doClearOption" to match the regular expression ^[a-z_][a-z0-9_]*$.(×«
+tpython:S1542Ô"[Rename function "doSetCustomerDocument" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÿ ¬Ó
+jpython:S1542ú"LRename function "doSale" to match the regular expression ^[a-z_][a-z0-9_]*$.(•¶ııÿÿÿÿ
+mpython:S3776À"TRefactor this function to reduce its Cognitive Complexity from 31 to the 15 allowed.(Ú¥“ÿ
+Vpython:S5754¥"8Catch a more specific exception or reraise the exception(ê¥Ğ…úÿÿÿÿ
+rpython:S3776ê"TRefactor this function to reduce its Cognitive Complexity from 88 to the 15 allowed.(ßİ÷·üÿÿÿÿ
+cpython:S1192ˆ"JDefine a constant instead of duplicating this literal "Sitef%02d" 3 times.(©ú”Ì
+Upython:S5754ß"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+fpython:S1542ú"MRename function "doTotal" to match the regular expression ^[a-z_][a-z0-9_]*$.(´ÕŸá
+tpython:S1186ÿ"[Add a nested comment explaining why this function is empty, or complete the implementation.(¢©Ÿ™
+mpython:S3776”"TRefactor this function to reduce its Cognitive Complexity from 40 to the 15 allowed.(Ëê‚Œ
+kpython:S1192¸"RDefine a constant instead of duplicating this literal "$OPERATION_FAILED" 9 times.(ÎÏÄí
+Hpython:S1481¯")Remove the unused local variable "order".(Î¾8àŠ×·‹/
+rpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 21 to the 15 allowed.(±ÑÒÊøÿÿÿÿ
+Vpython:S112Õ">Replace this generic exception class with a more specific one.(¢ò¤—
+[python:S112‡">Replace this generic exception class with a more specific one.(ñ†Ãûÿÿÿÿ
+Qpython:S5754Á"8Catch a more specific exception or reraise the exception(†Ä¾Ç
+Upython:S5754‚"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+kpython:S1542Ï"RRename function "rupturaItens" to match the regular expression ^[a-z_][a-z0-9_]*$.(äŸËû
+upython:S1542Å"WRename function "doUpdateBlacklist" to match the regular expression ^[a-z_][a-z0-9_]*$.(ˆ’‡øÿÿÿÿ
+opython:S1192Ù"VDefine a constant instead of duplicating this literal "$OPERATION_SUCCEEDED" 10 times.(†¨‡Ú
+ppython:S1542â"WRename function "doSetCustomerName" to match the regular expression ^[a-z_][a-z0-9_]*$.(ïÑí
+[python:S112â">Replace this generic exception class with a more specific one.(Ğş¾°øÿÿÿÿ
+gpython:S1192"NDefine a constant instead of duplicating this literal "$INVALID_DATE" 5 times.(ğş±–
+Qpython:S5754Ş"8Catch a more specific exception or reraise the exception(†Ä¾Ç
+apython:S1192œ"HDefine a constant instead of duplicating this literal "$CANCEL" 3 times.(èÒÛÎ
+rpython:S3776¦"TRefactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.(›ôü›úÿÿÿÿ
+lpython:S1542İ	"NRename function "doTender" to match the regular expression ^[a-z_][a-z0-9_]*$.(ßğ¥üÿÿÿÿ
+Upython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+qpython:S1542¦"XRename function "doFixSefazProtocol" to match the regular expression ^[a-z_][a-z0-9_]*$.(×†¼š
+mpython:S3776"TRefactor this function to reduce its Cognitive Complexity from 28 to the 15 allowed.(„Œ÷
+vpython:S1192ƒ"XDefine a constant instead of duplicating this literal "$ERROR_CODE_INFO|%d|%s" 13 times.(Ş¥¡—ıÿÿÿÿ
+Mpython:S1066¬	"/Merge this if statement with the enclosing one.(‰²åÊÿÿÿÿÿ
+ppython:S1542ê"RRename function "closedOrders" to match the regular expression ^[a-z_][a-z0-9_]*$.(ßİ÷·üÿÿÿÿ
+jpython:S1542š"QRename function "doReSignXML" to match the regular expression ^[a-z_][a-z0-9_]*$.(„—Œë
+Upython:S5754¼"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+upython:S1542Ğ"WRename function "doClearOptionItem" to match the regular expression ^[a-z_][a-z0-9_]*$.(¤…ú·úÿÿÿÿ
+rpython:S1542Ê"ZRename function "doToggleMirrorScreen" to match the regular expression ^[a-z_][a-z0-9_]*$.(ê•áG
+wpython:S1542ò"YRename function "doPurgeStoredOrders" to match the regular expression ^[a-z_][a-z0-9_]*$.(Úå™»ıÿÿÿÿ
+¿python:S1515Ì" Add a parameter to the parent lambda function and use variable "selected" as its default value; The value of "selected" might change at the next loop iteration.(Êæªıÿÿÿÿ
+apython:S1192Ò"HDefine a constant instead of duplicating this literal "$ERROR" 14 times.(ü¨
+lpython:S3776İ"TRefactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.(†Š½U
+npython:S1192ï
+"UDefine a constant instead of duplicating this literal "TenderHistory/Tender" 3 times.(±ş¦‰
+vpython:S1542Ë"XRename function "doSyncDeliveryMenu" to match the regular expression ^[a-z_][a-z0-9_]*$.(‚õ—·ıÿÿÿÿ
+ppython:S1542±"RRename function "activateUser" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÁşÜıÿÿÿÿ
+spython:S1542ò"URename function "doChangePrinter" to match the regular expression ^[a-z_][a-z0-9_]*$.(§ŞÿÊûÿÿÿÿ
+Mpython:S1066Ø"/Merge this if statement with the enclosing one.(ÀÙÂïúÿÿÿÿ
+kpython:S1192÷"MDefine a constant instead of duplicating this literal "$INFORMATION" 6 times.(Ê››Úøÿÿÿÿ
+mpython:S3776Ÿ"TRefactor this function to reduce its Cognitive Complexity from 20 to the 15 allowed.(ª¡é„
+kpython:S1192•
+"MDefine a constant instead of duplicating this literal "$PLEASE_WAIT" 3 times.(¨êÑ¹şÿÿÿÿ
+Upython:S5754İ"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+¿python:S1515Ë" Add a parameter to the parent lambda function and use variable "selected" as its default value; The value of "selected" might change at the next loop iteration.(Ä¸€ôùÿÿÿÿ
+Vpython:S5754å"8Catch a more specific exception or reraise the exception(ê¥Ğ…úÿÿÿÿ
+rpython:S1542É"YRename function "doGetPigeonVersions" to match the regular expression ^[a-z_][a-z0-9_]*$.( Áš¶
+npython:S1542İ"VRename function "doCompleteOption" to match the regular expression ^[a-z_][a-z0-9_]*$.(†Š½U
+dpython:S2208="GImport only needed names or import the module and then use its members.(Øä£úÿÿÿÿ
+npython:S1192Á"PDefine a constant instead of duplicating this literal "Maintenance%02d" 3 times.(Õ‰İşÿÿÿÿ
+kpython:S1542İ"RRename function "doOpenDrawer" to match the regular expression ^[a-z_][a-z0-9_]*$.(ËÕºÜ
+mpython:S3776•"TRefactor this function to reduce its Cognitive Complexity from 21 to the 15 allowed.(Ä¬ôÁ
+kpython:S1542·"RRename function "doCheckSEFAZ" to match the regular expression ^[a-z_][a-z0-9_]*$.(õñ¸é
+Upython:S5754ê"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+kpython:S1542À"RRename function "doRecallNext" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ú¥“ÿ
+mpython:S1542æ"TRename function "doGetKDSstatus" to match the regular expression ^[a-z_][a-z0-9_]*$.(œ¤”«
+jpython:S1192å
+"LDefine a constant instead of duplicating this literal "$OK|$CANCEL" 3 times.(Ø‰·ıÿÿÿÿ
+spython:S3776İ	"URefactor this function to reduce its Cognitive Complexity from 219 to the 15 allowed.(ßğ¥üÿÿÿÿ
+Upython:S5754Á"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+rpython:S1542ß"TRename function "doReprintOrder" to match the regular expression ^[a-z_][a-z0-9_]*$.(‚‰§äùÿÿÿÿ
+upython:S1542×"WRename function "isPyscriptsOnline" to match the regular expression ^[a-z_][a-z0-9_]*$.(¼İº¤ûÿÿÿÿ
+spython:S1542—"URename function "requestQuantity" to match the regular expression ^[a-z_][a-z0-9_]*$.(Úã½¶øÿÿÿÿ
+ppython:S1542€"RRename function "doStartOrder" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ä¨Çüÿÿÿÿ
+mpython:S3776İ"TRefactor this function to reduce its Cognitive Complexity from 24 to the 15 allowed.(ÕË¨É
+qpython:S1542Š"SRename function "dayOpenReport" to match the regular expression ^[a-z_][a-z0-9_]*$.(—åáûÿÿÿÿ
+rpython:S3776ú"TRefactor this function to reduce its Cognitive Complexity from 32 to the 15 allowed.(•¶ııÿÿÿÿ
+epython:S1542Ğ"LRename function "doKill" to match the regular expression ^[a-z_][a-z0-9_]*$.(¢Í©
+rpython:S3776Î"TRefactor this function to reduce its Cognitive Complexity from 33 to the 15 allowed.(ÄŠƒÙûÿÿÿÿ
+Vpython:S112£">Replace this generic exception class with a more specific one.(¢ò¤—
+gpython:S1542•"NRename function "doOption" to match the regular expression ^[a-z_][a-z0-9_]*$.(Ä¬ôÁ
+rpython:S1192Ê"TDefine a constant instead of duplicating this literal "$ERROR_PRINT_NFE|%s" 3 times.(»Íî¯úÿÿÿÿ
+Upython:S5754Ò"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+ppython:S1542§"RRename function "doReprintTef" to match the regular expression ^[a-z_][a-z0-9_]*$.(×ëó’ùÿÿÿÿ
+Upython:S5754š"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Upython:S5754İ"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+qpython:S1542Ü"XRename function "doSearchSatModules" to match the regular expression ^[a-z_][a-z0-9_]*$.(ùÉ£¯
+tpython:S1542¡"VRename function "doChangeQuantity" to match the regular expression ^[a-z_][a-z0-9_]*$.(ãŠá‰ÿÿÿÿÿ
+rpython:S1542²"TRename function "enterTabNumber" to match the regular expression ^[a-z_][a-z0-9_]*$.(÷¤‘Ñıÿÿÿÿ
+mpython:S1542å"TRename function "doOrderPicture" to match the regular expression ^[a-z_][a-z0-9_]*$.(ÃºØ…
+mpython:S3776ú"TRefactor this function to reduce its Cognitive Complexity from 18 to the 15 allowed.(´ÕŸá
+Upython:S5754®"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Upython:S5754õ"<Specify an exception class to catch or reraise the exception(ˆÊÉ·

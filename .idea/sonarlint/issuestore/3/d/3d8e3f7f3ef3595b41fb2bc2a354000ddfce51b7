@@ -1,0 +1,12 @@
+
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 16 to the 15 allowed.(¾ÍÁÓøÿÿÿÿ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+3python:S3626"Remove this redundant return.(ÙãÞŸ
+qpython:S117"WRename this local variable "isSync" to match the regular expression ^[_a-z][a-z0-9_]*$.(Å˜ÿøýÿÿÿÿ
+Rpython:S5754"<Specify an exception class to catch or reraise the exception(ˆÊÉ·
+Apython:S5806"+Rename this variable; it shadows a builtin.(¦Í¤‰
+Apython:S5806"+Rename this variable; it shadows a builtin.(Óµªº
+tpython:S117"ZRename this local variable "startTime" to match the regular expression ^[_a-z][a-z0-9_]*$.(ÒÂË€ÿÿÿÿÿ
+mpython:S117"YRename this local variable "stopTime" to match the regular expression ^[_a-z][a-z0-9_]*$.(¯ò®t
+opython:S117"ZRename this local variable "timeTaken" to match the regular expression ^[_a-z][a-z0-9_]*$.(ãÞø
+opython:S3776"TRefactor this function to reduce its Cognitive Complexity from 23 to the 15 allowed.(­ä’Šûÿÿÿÿ
