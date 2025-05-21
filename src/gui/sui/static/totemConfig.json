@@ -1,0 +1,22 @@
+{
+  "banner": {
+    "images": [
+      {
+        "path": "/sui/images/banner_1.jpg",
+        "productId": "2150001"
+      },
+      {
+        "path": "/sui/images/banner_2.jpg",
+        "productId": ""
+      },
+      {
+        "path": "/sui/images/banner_3.jpg",
+        "productId": ""
+      },
+      {
+        "path": "/sui/images/banner_4.jpg",
+        "productId": "90401"
+      }
+    ]
+  }
+}

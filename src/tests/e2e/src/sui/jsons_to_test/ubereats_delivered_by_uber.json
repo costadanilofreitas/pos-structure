@@ -1,0 +1,59 @@
+{
+    "originalMerchant": "test-menu2",
+    "partnerId": 4,
+    "pickup": {
+        "company": "ubereats",
+        "time": null,
+        "type": "delivery"
+    },
+    "status": "placed",
+    "createAt": "2021-02-02T20:08:30.728759Z",
+    "id": "c0c050d1-764d-4530-b6d0-fa5f4f8f663b",
+    "originalId": null,
+    "observations": "",
+    "shortReference": "FC638",
+    "merchant": "test-menu2",
+    "partner": "ubereats",
+    "deliveryFee": 10.39,
+    "subTotal": 7.9,
+    "totalPrice": 18.29,
+    "code": "15bbe84a-9207-4739-b2ae-cd165f7fc638",
+    "custom_properties": [{
+            "key": "customer_name",
+            "value": "UBER - DELIVERED BY UBER"
+        }, {
+            "key": "customer_id",
+            "value": ""
+        }, {
+            "key": "customer_phone",
+            "value": ""
+        }, {
+            "key": "customer_email",
+            "value": ""
+        }, {
+            "key": "customer_document",
+            "value": ""
+        }, {
+            "key": "store_name",
+            "value": "E-Deploy Store 1"
+        }
+    ],
+    "tenders": [{
+            "tenderPaymentMethodCode": null,
+            "paymentMethodCode": "ubereats",
+            "paymentMethod": "ubereats",
+            "prepaid": true,
+            "value": 18.29,
+            "type": "online"
+        }
+    ],
+    "items": [{
+            "observation": "",
+            "quantity": 1,
+            "partCode": "1001",
+            "parts": [],
+            "price": 7.9
+        }
+    ],
+    "originalOrderId": "15bbe84a-9207-4739-b2ae-cd165f7fc638"
+}

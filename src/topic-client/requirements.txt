@@ -1,0 +1,6 @@
+mbcontextmessagehandler==0.2
+MessageProcessorUtil==0.2
+MessageProcessor==0.3
+MessageBus==0.5
+edphelper==0.16
+boto3==1.9.118

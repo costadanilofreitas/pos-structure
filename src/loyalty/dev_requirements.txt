@@ -1,0 +1,7 @@
+coverage==5.4
+pycodestyle==2.4.0
+messagebusmock==0.1
+mwcommon==0.1
+pytest==4.6.5
+TestDoubleUtil==0.4
+assertpy==1.1

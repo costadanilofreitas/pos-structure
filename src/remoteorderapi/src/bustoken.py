@@ -1,0 +1,193 @@
+#
+# M E S S A G E   T O K E N S
+#
+# TOKEN FORMAT (32 bits): 0xPGGXNNNN
+#    P  - message priority
+#    G  - message group
+#    X  - not used
+#    N  - message number
+#
+
+MSGPRT_HIGH = "F"
+MSGPRT_MEDHIG = "A"
+MSGPRT_MEDLOW = "5"
+MSGPRT_LOW = "0"
+
+
+def create_token(priority, message_grourp, number):
+    # type: (str, str, str) -> int
+    while len(number) < 4:
+        number = "0" + number
+
+    while len(message_grourp) < 2:
+        message_grourp = "0" + message_grourp
+
+    return int("0x" + priority + message_grourp + "0" + number, 16)
+
+
+def get_message_number(token):
+    # type: (int) -> int
+    return token & 0xFFFF
+
+
+def get_token_hexa_string(token):
+    # type: (int) -> str
+    return "0x" + format(token, 'x')
+
+
+# SAT Module
+TK_SAT_PROCESS_REQUEST = create_token(MSGPRT_HIGH, "30", "1")
+TK_SAT_STATUS_REQUEST = create_token(MSGPRT_LOW, "30", "2")
+TK_SAT_OPERATIONAL_STATUS_REQUEST = create_token(MSGPRT_LOW, "30", "3")
+TK_SAT_CANCEL_SALE = create_token(MSGPRT_LOW, "30", "4")
+
+# FiscalWrapper Module
+TK_FISCALWRAPPER_PROCESS_REQUEST = create_token(MSGPRT_HIGH, "31", "1")
+TK_FISCALWRAPPER_SEARCH_REQUEST = create_token(MSGPRT_LOW, "31", "2")
+TK_FISCALWRAPPER_REPRINT = create_token(MSGPRT_HIGH, "31", "3")
+TK_FISCALWRAPPER_SEFAZ_CONNECTIVITY = create_token(MSGPRT_HIGH, "31", "4")
+TK_FISCALWRAPPER_SAT_OPERATIONAL_STATUS_REQUEST = create_token(MSGPRT_HIGH, "31", "5")
+TK_FISCALWRAPPER_EXPORT_FISCAL_FILES = create_token(MSGPRT_LOW, "31", "6")
+TK_FISCALWRAPPER_GET_NF_TYPE = create_token(MSGPRT_LOW, "31", "7")
+TK_FISCALWRAPPER_SAT_PROCESS_PAYMENT = create_token(MSGPRT_LOW, "31", "8")
+TK_FISCALWRAPPER_SAT_PAYMENT_STATUS = create_token(MSGPRT_LOW, "31", "9")
+TK_FISCALWRAPPER_CANCEL_ORDER = create_token(MSGPRT_LOW, "31", "10")
+TK_SAT_PROCESS_PAYMENT = create_token(MSGPRT_LOW, "31", "11")
+TK_SAT_PAYMENT_STATUS = create_token(MSGPRT_LOW, "31", "12")
+TK_SAT_CANCEL_ORDER = create_token(MSGPRT_LOW, "31", "13")
+TK_FISCALWRAPPER_RE_SIGN_XML = create_token(MSGPRT_LOW, "31", "14")
+TK_FISCALWRAPPER_SITUATION = create_token(MSGPRT_LOW, "31", "15")  # 51380245
+TK_FISCALWRAPPER_GET_CST = create_token(MSGPRT_LOW, "31", "16")
+TK_FISCALWRAPPER_GET_BASE_REDUCTION = create_token(MSGPRT_LOW, "31", "17")
+TK_FISCALWRAPPER_GET_FISCAL_XML = create_token(MSGPRT_LOW, "31", "18")
+TK_FISCALWRAPPER_GET_IBPT_TAX = create_token(MSGPRT_LOW, "31", "19")
+TK_FISCALWRAPPER_GET_ORDERS_DATA = create_token(MSGPRT_LOW, "31", "20")  # 51380246
+TK_FISCALWRAPPER_GET_LAST_ORDER_ID = create_token(MSGPRT_LOW, "31", "21")  # 51380247
+TK_FISCALWRAPPER_GET_CERTIFICATE_EXPIRATION_DAYS = create_token(MSGPRT_LOW, "31", "22")
+TK_FISCALWRAPPER_GET_CONTINGENCY_STATUS = create_token(MSGPRT_LOW, "31", "23")
+TK_FISCALWRAPPER_CHANGE_CONTINGENCY_STATUS = create_token(MSGPRT_LOW, "31", "24")
+
+# SiTEF Module
+TK_SITEF_ADD_PAYMENT = create_token(MSGPRT_HIGH, "32", "1")
+TK_SITEF_CANCEL_PAYMENT = create_token(MSGPRT_LOW, "32", "2")
+TK_SITEF_FINISH_PAYMENT = create_token(MSGPRT_LOW, "32", "3")
+TK_SITEF_CONNECTIVITY_TEST = create_token(MSGPRT_LOW, "32", "4")
+
+# FingerPrint Reader
+TK_FPR_ENROLL_USER = create_token(MSGPRT_LOW, "33", "1")
+TK_FPR_IDENTIFY_USER = create_token(MSGPRT_LOW, "33", "2")
+TK_FPR_AUTHORIZE_USER = create_token(MSGPRT_LOW, "33", "3")
+TK_FPR_OK = create_token(MSGPRT_LOW, "33", "4")
+TK_FPR_RE_ENROLL_USER = create_token(MSGPRT_LOW, "33", "5")
+TK_FPR_TIMEOUT = create_token(MSGPRT_LOW, "33", "6")
+TK_FPR_FINGER_PRINT_ALREADY_REGISTERED = create_token(MSGPRT_LOW, "33", "7")
+
+# KDSMonitor Module
+TK_KDSMONITOR_STATUS_REQUEST = create_token(MSGPRT_LOW, "34", "1")
+
+# Maintenance Module
+TK_MAINTENANCE_TERMINATE_REQUEST = create_token(MSGPRT_LOW, "35", "1")
+TK_MAINTENANCE_RESTART_REQUEST = create_token(MSGPRT_LOW, "35", "2")
+TK_MAINTENANCE_RECREATE_FILES_XML = create_token(MSGPRT_LOW, "35", "3")  # token 55574531
+TK_MAINTENANCE_RECREATE_FILE_NUMBER = create_token(MSGPRT_LOW, "35", "4")
+TK_MAINTENANCE_CLEAN_AUDIT_LOG = create_token(MSGPRT_LOW, "35", "5")
+
+# Chat Controller
+TK_CHAT_SEND_MESSAGE = create_token(MSGPRT_LOW, "36", "1")
+TK_CHAT_GET_UPDATES = create_token(MSGPRT_LOW, "36", "2")
+TK_CHAT_MARK_UPDATES_RECEIVED = create_token(MSGPRT_LOW, "36", "3")
+TK_CHAT_GET_LAST_MESSAGES = create_token(MSGPRT_LOW, "36", "4")
+TK_CHAT_INVALID_REQUEST = create_token(MSGPRT_LOW, "36", "100")
+
+# Remote Order
+TK_REMOTE_ORDER_GET_STORED_ORDERS = create_token(MSGPRT_LOW, "37", "1")
+TK_REMOTE_ORDER_SEND_ORDER_TO_PRODUCTION = create_token(MSGPRT_LOW, "37", "2")
+TK_REMOTE_ORDER_GET_STORE = create_token(MSGPRT_LOW, "37", "3")
+TK_REMOTE_ORDER_CLOSE_STORE = create_token(MSGPRT_LOW, "37", "4")
+TK_REMOTE_ORDER_OPEN_STORE = create_token(MSGPRT_LOW, "37", "5")
+TK_REMOTE_ORDER_INVALID_ORDER_ID = create_token(MSGPRT_LOW, "37", "100")
+TK_REMOTE_STORE_ALREADY_OPEN = create_token(MSGPRT_LOW, "37", "101")
+TK_REMOTE_STORE_ALREADY_CLOSED = create_token(MSGPRT_LOW, "37", "102")
+TK_REMOTE_ORDER_REPRINT = create_token(MSGPRT_LOW, "37", "104")
+TK_REMOTE_ORDER_GET_AVAILABLE_PRODUCTS = create_token(MSGPRT_LOW, "37", "201")
+TK_REMOTE_ORDER_GET_UNAVAILABLE_PRODUCTS = create_token(MSGPRT_LOW, "37", "202")
+TK_REMOTE_ORDER_UPDATE_AVAILABLE_PRODUCTS = create_token(MSGPRT_LOW, "37", "203")
+TK_REMOTE_ORDER_ERROR = create_token(MSGPRT_LOW, "37", "204")
+TK_REMOTE_ORDER_CHECK_RUPTURA_DIFF_ITEMS = create_token(MSGPRT_LOW, "37", "205")
+TK_REMOTE_ORDER_VOID_REMOTE_ORDER = create_token(MSGPRT_LOW, "37", "206")
+TK_REMOTE_ORDER_CREATE_AND_PRODUCE = create_token(MSGPRT_LOW, "37", "207")
+TK_REMOTE_ORDER_CREATE = create_token(MSGPRT_LOW, "37", "208")
+TK_REMOTE_ORDER_GET_VOIDED_ORDERS = create_token(MSGPRT_LOW, "37", "209")
+TK_REMOTE_ORDER_GET_POS_ID = create_token(MSGPRT_LOW, "37", "210")
+TK_REMOTE_ORDER_GET_CONFIRMED_ORDERS = create_token(MSGPRT_LOW, "37", "211")
+
+# Daily Goals
+TK_DAILYGOALS_UPDATE_GOALS = create_token(MSGPRT_LOW, "38", "1")
+TK_DAILYGOALS_UPDATE_TOTAL_SOLD = create_token(MSGPRT_LOW, "38", "2")
+TK_DAILYGOALS_TERMINATE_REQUEST = create_token(MSGPRT_LOW, "38", "3")
+
+# Pickup Display Module
+TK_PICKUPDISPLAY_ADD_READY_TO_PICK_ORDER = create_token(MSGPRT_LOW, "39", "1")
+TK_PICKUPDISPLAY_ADD_PAID_ORDER = create_token(MSGPRT_LOW, "39", "2")
+TK_PICKUPDISPLAY_ADD_PICKED_UP_ORDER = create_token(MSGPRT_LOW, "39", "3")
+TK_PICKUPDISPLAY_UPDATE_ORDER = create_token(MSGPRT_LOW, "39", "4")
+TK_PICKUPDISPLAY_SEND_CACHED_ORDERS = create_token(MSGPRT_LOW, "39", "5")
+
+# Custom Production
+TK_PROD_ENABLEVIEW = create_token(MSGPRT_LOW, "0C", "100")
+TK_PROD_DISABLEVIEW = create_token(MSGPRT_LOW, "0C", "101")
+TK_PROD_PURGE = create_token(MSGPRT_LOW, "0C", "103")
+
+# BK Office uploader
+TK_BKOFFICEUPLOADER_UPDATE_ORDERPICTURE = create_token(MSGPRT_LOW, "40", "1")
+TK_BKOFFICEUPLOADER_SEND_SANGRIA = create_token(MSGPRT_LOW, "40", "2")
+TK_BKOFFICEUPLOADER_SEND_BKOFFICE_ORDER = create_token(MSGPRT_LOW, "40", "3")
+
+# Sapiens uploader
+TK_SAPIENS_GENERATE_SALES = create_token(MSGPRT_LOW, "41", "1")
+TK_SAPIENS_GENERATE_REDUCTIONZ = create_token(MSGPRT_LOW, "41", "2")
+TK_SAPIENS_GENERATE_SALE_CENTER = create_token(MSGPRT_LOW, "41", "3")
+TK_SAPIENS_UPLOAD = create_token(MSGPRT_LOW, "41", "4")
+TK_SAPIENS_GENERATE_ALL_FILES_PER_PERIOD = create_token(MSGPRT_LOW, "41", "5")
+TK_SAPIENS_PERFORM_BACKUP = create_token(MSGPRT_LOW, "41", "6")
+TK_SAPIENS_PERFORM_FISCAL_VALIDATION = create_token(MSGPRT_LOW, "41", "7")
+
+# Ruptura messages
+TK_RUPTURA_GET_ENABLED = create_token(MSGPRT_LOW, "42", "3")
+TK_RUPTURA_GET_DISABLED = create_token(MSGPRT_LOW, "42", "4")
+TK_RUPTURA_GET_ENABLED_PRODUCTS = create_token(MSGPRT_LOW, "42", "5")
+TK_RUPTURA_GET_DISABLED_PRODUCTS = create_token(MSGPRT_LOW, "42", "6")
+TK_RUPTURA_IS_PROCESSED = create_token(MSGPRT_LOW, "42", "7")
+TK_RUPTURA_UPDATE_ITEMS = create_token(MSGPRT_LOW, "42", "8")
+TK_RUPTURA_CHECK_ITEMS = create_token(MSGPRT_LOW, "42", "9")
+
+# Discount
+TK_DISCOUNT_APPLY = create_token(MSGPRT_HIGH, "43", "1")
+TK_DISCOUNT_CLEAR = create_token(MSGPRT_HIGH, "43", "2")
+TK_DISCOUNT_AUTOMATIC = create_token(MSGPRT_HIGH, "43", "3")
+
+# Blacklist
+TK_BLACKLIST_CHECK_STRING = create_token(MSGPRT_LOW, "44", "0")
+TK_BLACKLIST_FILTER_STRING = create_token(MSGPRT_LOW, "44", "1")
+
+# PafEcfListener
+TK_VERIFY_PAF_ECF_LISTENER = create_token(MSGPRT_LOW, "45", "1")
+TK_POS_FUNCTION_CHANGED = create_token(MSGPRT_LOW, "45", "2")
+
+# Coupon
+TK_COUPON_SET = create_token(MSGPRT_LOW, "46", "1")
+TK_COUPON_GET = create_token(MSGPRT_LOW, "46", "2")
+TK_COUPON_GET_FROM_QR_CODE = create_token(MSGPRT_LOW, "46", "3")
+TK_COUPON_GET_FROM_REFERENCE = create_token(MSGPRT_LOW, "46", "4")
+TK_COUPON_GET_FROM_OFFLINE_DATA = create_token(MSGPRT_LOW, "46", "5")
+TK_COUPON_GET_FROM_PARTCODE = create_token(MSGPRT_LOW, "46", "6")
+TK_COUPON_GET_FROM_LINE_NUMBERS = create_token(MSGPRT_LOW, "46", "7")
+TK_COUPON_REMOVE_FROM_ORDER = create_token(MSGPRT_LOW, "46", "8")
+TK_COUPON_SAVE_DATA = create_token(MSGPRT_LOW, "46", "9")
+TK_COUPON_LOCK = create_token(MSGPRT_LOW, "46", "A")
+TK_COUPON_GET_FREE_COUPON_DATA = create_token(MSGPRT_LOW, "46", "B")
+TK_COUPON_SYNC_FREE_COUPON_DATA = create_token(MSGPRT_LOW, "46", "C")
+
+
+#Totem
+TK_TOTEM_OPEN = create_token(MSGPRT_LOW, "47", "1")

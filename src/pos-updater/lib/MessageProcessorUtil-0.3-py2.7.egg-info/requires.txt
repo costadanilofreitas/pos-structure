@@ -1,0 +1,5 @@
+MessageProcessor==0.5
+SimpleHttpRouter==0.1
+
+[:python_version <= "2.7"]
+uuid

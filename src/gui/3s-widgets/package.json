@@ -1,0 +1,59 @@
+{
+  "name": "3s-widgets",
+  "version": "1.0.0",
+  "description": "3S Widgets Components",
+  "main": "index.js",
+  "repository": "https://bitbucket.org/edeployteam/mwpos.git",
+  "author": "",
+  "license": "",
+  "sideEffects": false,
+  "scripts": {
+    "build": "webpack",
+    "analyze": "source-map-explorer lib/*.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.13.1",
+    "@babel/plugin-proposal-class-properties": "^7.13.0",
+    "@babel/plugin-proposal-decorators": "^7.13.5",
+    "@babel/plugin-proposal-do-expressions": "^7.12.13",
+    "@babel/plugin-proposal-export-default-from": "^7.12.13",
+    "@babel/plugin-proposal-export-namespace-from": "^7.12.13",
+    "@babel/plugin-proposal-function-bind": "^7.12.13",
+    "@babel/plugin-proposal-function-sent": "^7.12.13",
+    "@babel/plugin-proposal-json-strings": "^7.12.13",
+    "@babel/plugin-proposal-logical-assignment-operators": "^7.12.13",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.13.0",
+    "@babel/plugin-proposal-numeric-separator": "^7.12.13",
+    "@babel/plugin-proposal-optional-chaining": "^7.13.0",
+    "@babel/plugin-proposal-pipeline-operator": "^7.12.13",
+    "@babel/plugin-proposal-throw-expressions": "^7.12.13",
+    "@babel/plugin-syntax-dynamic-import": "^7.8.3",
+    "@babel/plugin-syntax-import-meta": "^7.10.4",
+    "@babel/preset-env": "^7.13.5",
+    "@babel/preset-react": "^7.12.13",
+    "babel-loader": "^8.1.0",
+    "copy-webpack-plugin": "^5.1.2",
+    "core-js": "^3.9.0",
+    "prop-types": "^15.7.2",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-image": "^2.4.0",
+    "react-jss": "^10.5.1",
+    "react-visibility-sensor": "^5.1.1",
+    "styled-components": "^5.2.0",
+    "webpack": "^4.46.0",
+    "webpack-cli": "^3.3.11"
+  },
+  "peerDependencies": {
+    "prop-types": "^15.7.2",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-jss": "^10.1.1",
+    "styled-components": "^5.1.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "react-virtualized": "^9.22.2"
+  }
+}

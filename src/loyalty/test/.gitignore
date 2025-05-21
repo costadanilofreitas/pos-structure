@@ -1,0 +1,4 @@
+/testenv/htmlcov
+/testenv/reports
+/testenv/.coverage
+.pytest_cache

@@ -1,0 +1,108 @@
+{
+    "id": "afcf5034-e9e8-4adf-8f46-2d76314a2321",
+    "code": "5008305477976055",
+    "shortReference": "2152",
+    "createAt": "2021-02-04T21:36:40.328321Z",
+    "status": "placed",
+    "merchant": "test-menu2",
+    "needLogistics": false,
+    "vouchers": {
+        "store": {},
+        "partner": {}
+    },
+    "deliveryFee": 0.0,
+    "tenders": [{
+            "TenderPaymentMethodCode": "VIS",
+            "paymentMethod": "PREPAID",
+            "paymentMethodCode": "PREPAID",
+            "prepaid": true,
+            "type": "online",
+            "value": 7.9
+        }
+    ],
+    "items": [{
+            "partCode": "1001",
+            "observation": "",
+            "quantity": 1,
+            "parts": [],
+            "price": 7.9
+        }
+    ],
+    "pickup": {
+        "company": "ifood",
+        "time": null,
+        "type": "eat_in",
+        "address": {}
+    },
+    "subTotal": 7.9,
+    "totalPrice": 7.9,
+    "custom_properties": [{
+            "key": "observation",
+            "value": "1: NAO COBRAR - PGTO ONLINE; "
+        }, {
+            "key": "prepaid",
+            "value": "True"
+        }, {
+            "key": "classification",
+            "value": "$TO_GO_TAKE_OUT"
+        }, {
+            "key": "contact_number",
+            "value": "0800-007-0110 ID: 79302897"
+        }, {
+            "key": "customer_doc",
+            "value": "98765432100"
+        }, {
+            "key": "customer_id",
+            "value": "169528809"
+        }, {
+            "key": "customer_name",
+            "value": "IFOOD - AGENDADO"
+        }, {
+            "key": "customer_phone",
+            "value": "0800 200 5011 ID: 79302897"
+        }, {
+            "key": "delivery_by",
+            "value": "NOT_APPLICABLE"
+        }, {
+            "key": "delivery_method",
+            "value": "DEFAULT"
+        }, {
+            "key": "father_order_id",
+            "value": "766813b0-4eae-4a9a-8664-52bbb360be44"
+        }, {
+            "key": "father_remote_id",
+            "value": "5008305477976055"
+        }, {
+            "key": "grouped_orders_qty",
+            "value": "1"
+        }, {
+            "key": "order_number",
+            "value": "5008305477976055"
+        }, {
+            "key": "order_type",
+            "value": "N"
+        }, {
+            "key": "originator",
+            "value": "test-menu2"
+        }, {
+            "key": "store_name",
+            "value": "Teste e-Deploy Cardapio 2"
+        }, {
+            "key": "customer_email",
+            "value": "0"
+        }, {
+            "key": "customer_document",
+            "value": "0"
+        }, {
+            "value": "2020-07-28T23:00:00.999308Z",
+            "key": "SCHEDULE_TIME"
+        }, {
+            "value": "A",
+            "key": "ORDER_TYPE"
+        }
+    ],
+    "partner": "ifood",
+    "partnerId": 1,
+    "originalMerchant": "test-menu2",
+    "originalOrderId": "5008305477976055"
+}

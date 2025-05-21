@@ -1,0 +1,49 @@
+# Reset PATH and LD_LIBRARY_PATH as needed to use correct python distribution
+BASEDIR=$(CURDIR)
+GENPYPKG := $(BASEDIR)/../_tools/genpypkg/genpypkg.py
+COMPNAME := sitef
+$(info Component: $(COMPNAME))
+
+all: prd | dev
+	@rm -rf dist
+	$(info $@: Done!)
+
+prd:
+	@if [ -d ./dist ]; then rm -rf dist; fi
+	@mkdir dist
+	@cp -R ./src/* ./dist
+	@if [ -d ./lib ]; then cp -R ./lib ./dist; fi
+	@if [ -d ./dll ]; then cp -R ./dll ./dist; fi
+	@if [ ! -d ../_pypkg ]; then mkdir ../_pypkg; fi
+	@cp -f ./lib/clisitef32_prod.dll ./dist/lib/clisitef32.dll
+	@cp -f ./lib/clisitef32i_prod.dll ./dist/lib/clisitef32i.dll
+	@cp ./lib/clisitef32_prod.dll ./dist/lib/
+	@rm -rf ./dist/lib/*.ini
+	@rm -rf ./dist/lib/*dev*.*
+	@rm -rf ./dist/lib/*prod*.*
+	@python $(GENPYPKG) $(COMPNAME) $(BASEDIR)/dist . ALL_FOLDERS
+	@cp ./dist/$(COMPNAME).pypkg ../_pypkg
+	$(info $@: Done PRD!)
+
+dev:
+	@if [ -d ./dist ]; then rm -rf dist; fi
+	@mkdir dist
+	@cp -R ./src/* ./dist
+	@if [ -d ./lib ]; then cp -R ./lib ./dist; fi
+	@if [ -d ./dll ]; then cp -R ./dll ./dist; fi
+	@if [ ! -d ../_pypkg ]; then mkdir ../_pypkg; fi
+	@cp -f ./lib/clisitef32_dev.dll ./dist/lib/clisitef32.dll
+	@cp -f ./lib/clisitef32i_dev.dll ./dist/lib/clisitef32i.dll
+	@cp ./lib/clisitef32_prod.dll ./dist/lib/
+	@rm -rf ./dist/lib/*.ini
+	@rm -rf ./dist/lib/*dev*.*
+	@rm -rf ./dist/lib/*prod*.*
+	@python $(GENPYPKG) $(COMPNAME)_dev $(BASEDIR)/dist . ALL_FOLDERS
+	@cp ./dist/$(COMPNAME)_dev.pypkg ../_pypkg
+	$(info $@: Done DEV!)
+
+# Clean rule
+clean:
+	$(foreach w,$(MAKEDIRS), cd $(w) && $(MAKE) clean -f MAKEFILE && cd -;)
+	@if [ -d ./dist ]; then rm -rf ./dist; fi
+	$(info $@: Done!)

@@ -1,0 +1,11 @@
+class ContextKeys(object):
+    total_vbc = "total_vbc"
+    total_prod = "total_prod"
+    total_icms = "total_icms"
+    total_pis = "total_pis"
+    total_cofins = "total_cofins"
+    item_no = "item_no"
+    current_sale_item = "current_sale_item"
+    sale_items = "sale_items"
+    data_emissao = "data_emissao"
+    cpf_cnpj = "cpf_cnpj"

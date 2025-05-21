@@ -1,0 +1,11 @@
+[run]
+omit =
+		..\..\test\*
+		..\..\lib\*
+source = 
+		..\..\src\production
+branch=True
+
+[report]
+exclude_lines =
+		raise NotImplementedError

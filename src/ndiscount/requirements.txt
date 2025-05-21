@@ -1,0 +1,9 @@
+SimpleHttpRouter==0.2
+edphelper==0.16
+iso8601==0.1.13
+mbcontextmessagehandler==0.4
+messagebus==0.5
+messageprocessor==0.7.2
+messageprocessorutil==0.3
+mwhelper==0.2
+requests==2.7.0

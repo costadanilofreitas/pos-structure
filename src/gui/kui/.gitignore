@@ -1,0 +1,13 @@
+/node_modules
+/dist
+bundle.js
+npm-debug.log
+
+# IntelliJ
+*.iml
+/.idea
+.DS_Store
+*.swp
+*.swo
+*.pyc
+*.zip

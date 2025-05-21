@@ -1,0 +1,36 @@
+# MAKEFILE
+COMPDIR = $(CURDIR)
+
+ifdef COMSPEC
+RUN_PYTHON = PYTHONPATH='$(PYTHONPATH);$(COMPDIR)/dev_lib;$(COMPDIR)/test;$(COMPDIR)/lib;$(COMPDIR)/src' python
+else
+RUN_PYTHON = PYTHONPATH=$(PYTHONPATH):'$(COMPDIR)/dev_lib':'$(COMPDIR)/test':'$(COMPDIR)/lib':'$(COMPDIR)/src' python
+endif
+
+.PHONY: test clean
+
+lib: requirements.txt
+	@rm -rf $(COMPDIR)/lib
+	@python -m pip install -r requirements.txt -t $(COMPDIR)/lib --extra-index-url=https://pip.e-deploy.com.br/
+
+dev_lib: dev_requirements.txt
+	@rm -rf $(COMPDIR)/dev_lib
+	@python -m pip install -r dev_requirements.txt -t $(COMPDIR)/dev_lib --extra-index-url=https://pip.e-deploy.com.br/
+
+all: lib
+	@rm -rf $(COMPDIR)/nohup.out
+	$(info $@: Done!)
+
+test: dev_lib lib
+	@cd $(COMPDIR)/test/testenv && $(RUN_PYTHON) -m coverage run run_all_unit_tests.py
+	@cd $(COMPDIR)/test/testenv && $(RUN_PYTHON) -m coverage xml -o $(COMPDIR)/coverage.xml
+	@cd $(COMPDIR)/test/testenv && $(RUN_PYTHON) -m coverage html
+	@cd $(COMPDIR)/test/testenv && $(RUN_PYTHON) -m coverage report
+
+clean:
+	rm -rf $(COMPDIR)/lib
+	rm -rf $(COMPDIR)/dev_lib
+	rm -rf $(COMPDIR)/debug_lib
+	rm -rf $(COMPDIR)/nohup.out
+	@cd $(COMPDIR)/test/testenv/ && rm -rf -- */;
+	$(info $@: Done!)

@@ -1,0 +1,1 @@
+from update_goals import update_daily_goals

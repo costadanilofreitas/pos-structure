@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<testsuite errors="0" failures="0" name="test_u_schedulecomp_JobParser.JobParserTestCase-20170411143209" tests="10" time="0.000">
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_eventJobDescriptionWithJustSubjectAndTypeAndExtraParameters_ParsedCorreclyAndExtraParametersIgnored" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_eventJobDescriptionWithJustSubjectAndType_ParsedCorrecly" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_eventJobDescriptionWithJustSubject_ParsedCorrecly" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_invalidJobDescriptionInvalidJobType_ExceptionInRisen" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_invalidJobDescriptionNoJobTypeAndParametersSeparator_ExceptionIsRisen" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_tokenJobDescriptionWithExtraParamters_ParsedCorrectlyAndExtraParametersIgnored" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_tokenJobDescriptionWithInvalidToken_RaisesException" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_tokenJobDescriptionWithServiceNameAndToken_ParsedCorrecly" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_tokenJobDescriptionWithServiceNameTokenAndFormat_ParsedCorrecly" time="0.000"/>
+	<testcase classname="test_u_schedulecomp_JobParser.JobParserTestCase" name="test_tokenJobDescriptionWithTooFewParameters_RaisesException" time="0.000"/>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

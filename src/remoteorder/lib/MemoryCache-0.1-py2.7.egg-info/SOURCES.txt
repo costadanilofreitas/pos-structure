@@ -1,0 +1,8 @@
+memorycache.py
+setup.cfg
+setup.py
+MemoryCache.egg-info/PKG-INFO
+MemoryCache.egg-info/SOURCES.txt
+MemoryCache.egg-info/dependency_links.txt
+MemoryCache.egg-info/requires.txt
+MemoryCache.egg-info/top_level.txt

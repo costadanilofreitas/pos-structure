@@ -1,0 +1,29 @@
+# Reset PATH and LD_LIBRARY_PATH as needed to use correct python distribution
+BASEDIR=$(abspath $(CURDIR)/../../)
+GENZIP := $(BASEDIR)/_tools/genzip/genzip.py
+COMPILED := dist/bundle.js dist/styles.css dist/index.html
+OUTPUT := kds.zip
+
+.PHONY: all
+
+all: $(OUTPUT)
+	$(info $@:done!)
+
+pre-build:
+	@$(RM) $(OUTPUT)
+	@if [ -d ./dist ]; then $(RM) -rf ./dist; fi
+	@if [ ! -d ./dist ]; then mkdir ./dist; fi
+
+$(OUTPUT): compile
+	@python $(GENZIP) $(OUTPUT) dist
+	@if [ ! -d ../../_guizip ]; then mkdir ../../_guizip; fi
+	@cp $(OUTPUT) ../../_guizip
+
+compile: pre-build
+	@cp -r `ls -A | grep -v "dist"` ./dist
+	@rm -f ./dist/MAKEFILE
+	@rm -f ./dist/.gitignore
+
+clean:
+	@if [ -d ./dist ]; then rm -rf ./dist; fi
+	$(RM) $(OUTPUT)

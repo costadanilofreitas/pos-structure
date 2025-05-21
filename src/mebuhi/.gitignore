@@ -1,0 +1,6 @@
+/python_path.bat
+/venv
+/.idea
+/dev_lib
+/lib
+/**/*.pyc

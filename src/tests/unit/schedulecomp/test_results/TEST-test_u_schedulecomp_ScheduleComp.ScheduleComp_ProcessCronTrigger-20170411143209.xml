@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<testsuite errors="0" failures="0" name="test_u_schedulecomp_ScheduleComp.ScheduleComp_ProcessCronTrigger-20170411143209" tests="2" time="0.004">
+	<testcase classname="test_u_schedulecomp_ScheduleComp.ScheduleComp_ProcessCronTrigger" name="test_whenCronTriggerIsActiveJobIsExecuted" time="0.001"/>
+	<testcase classname="test_u_schedulecomp_ScheduleComp.ScheduleComp_ProcessCronTrigger" name="test_whenCronTriggerIsNotActiveJobIsNotExecuted" time="0.003"/>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

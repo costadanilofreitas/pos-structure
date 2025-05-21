@@ -1,0 +1,23 @@
+# Reset PATH and LD_LIBRARY_PATH as needed to use correct python distribution
+BASEDIR=$(CURDIR)
+GENPYPKG := $(BASEDIR)/../_tools/genpypkg/genpypkg.py
+COMPNAME := sat
+$(info Component: $(COMPNAME))
+
+all:
+	@if [ -d ./dist ]; then rm -rf dist; fi
+	@mkdir dist
+	@cp -R ./src/* ./dist
+	@if [ -d ./lib ]; then cp -R ./lib ./dist; fi
+	@if [ -d ./dll ]; then cp -R ./dll ./dist; fi
+	@if [ ! -d ../_pypkg ]; then mkdir ../_pypkg; fi
+	@python $(GENPYPKG) $(COMPNAME) $(BASEDIR)/dist . ALL_FOLDERS
+	@cp ./dist/$(COMPNAME).pypkg ../_pypkg
+	@rm -rf dist
+	$(info $@: Done!)
+
+# Clean rule
+clean:
+	$(foreach w,$(MAKEDIRS), cd $(w) && $(MAKE) clean -f MAKEFILE && cd -;)
+	@if [ -d ./dist ]; then rm -rf ./dist; fi
+	$(info $@: Done!)

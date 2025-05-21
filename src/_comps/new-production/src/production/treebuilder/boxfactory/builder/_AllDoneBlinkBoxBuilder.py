@@ -1,0 +1,15 @@
+from production.box import AllDoneBlinkBox
+from production.treebuilder import BoxConfiguration
+
+from ._BoxBuilder import BoxBuilder
+
+
+class AllDoneBlinkBoxBuilder(BoxBuilder):
+    def __init__(self, loggers):
+        super(AllDoneBlinkBoxBuilder, self).__init__(loggers)
+
+    def build(self, config):
+        # type: (BoxConfiguration) -> AllDoneBlinkBox
+        return AllDoneBlinkBox(config.name,
+                               config.sons,
+                               self.get_logger(config))

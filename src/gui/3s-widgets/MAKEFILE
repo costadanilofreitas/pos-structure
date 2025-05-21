@@ -1,0 +1,24 @@
+LIBDIR := ./lib
+OUTPUT := $(LIBDIR)/3s-widgets-1.0.0.tgz
+
+.PHONY: all
+
+all: $(OUTPUT)
+	$(info $@:done!)
+
+compile: pre-build
+	@npm run build
+
+$(OUTPUT): compile
+	cd lib && npm pack
+
+clean:
+	$(RM) $(OUTPUT)
+	rm -rf package-lock.json
+	rm -rf node_modules
+	rm -rf lib
+
+pre-build:
+	rm -rf lib
+	@npm install
+	@npm update

@@ -1,0 +1,3 @@
+import ConnectedDeliveryAddressDialog from './ConnectedDeliveryAddressDialog'
+
+export default ConnectedDeliveryAddressDialog

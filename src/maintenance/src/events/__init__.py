@@ -1,0 +1,5 @@
+from _AppendFiscalFiles import AppendFiscalFilesProcessor
+from _CleanDatabases import CleanDatabasesProcessor
+from _Maintenance import MaintenanceProcessor
+from _RecreateXMLFiles import RecreateXMLFilesProcessor
+from _CleanJsonProcessors import CleanJsonProcessors

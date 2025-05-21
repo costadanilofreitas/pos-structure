@@ -1,0 +1,27 @@
+{
+  "defaultTheme": "DEFAULT",
+  "themes": [
+    {
+      "name": "DARK_THEME",
+
+      "screenBackground": "#D5DBDB",
+      "defaultBackground": "#707B7C",
+      "modalOverlayBackground": "rgba(24, 39, 56, 0.85)",
+      "backgroundColor": "#000000",
+      "color": "#FFFFFF",
+
+      "defaultIconColor": "#000000",
+      "defaultIconBackground": "#000000",
+      "activeBackgroundColor": "#424949 !important",
+      "activeColor": "white !important",
+      "pressedBackgroundColor": "#000000 !important",
+      "pressedColor": "white !important",
+
+      "disabledBackgroundColor": "#BDC3C7 !important",
+      "disabledColor": "white !important",
+      "productBackgroundColor": "#000000 !important",
+      "productColor": "black !important",
+      "titleBackgroundColor": "#212F3C !important"
+    }
+  ]
+}

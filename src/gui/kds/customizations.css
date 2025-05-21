@@ -1,0 +1,48 @@
+/* Include any local CSS customizations on this file */
+
+.cell, .saleCellBody, .saleCellFooter, * {
+	font-family: Verdana, sans-serif;
+}
+
+.cell {
+	position: absolute;
+	overflow: hidden;
+	white-space: nowrap;
+	cursor: default;
+	padding: 0px;
+	margin: 0px;
+	color: black;
+	background-color: #99ff66;
+	border: 1px solid black;
+}
+
+.saleCellThreshold01 {
+	color: black;
+	background-color: #ff9900;
+}
+
+.saleCellThreshold02 {
+	color: black;
+	background-color: #d96459;
+}
+
+.saleCellThreshold03 {
+	color: black;
+	background-color: #d96459;
+}
+
+.saleCellVoided {
+	color: white;
+	background-color: gray;
+    background-image: url(images/redX.png);
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.statusBarText {
+	width: 100%;
+	text-align: center;
+    font-size: 25px;
+}
+
+

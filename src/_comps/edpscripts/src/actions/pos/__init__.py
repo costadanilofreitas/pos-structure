@@ -1,0 +1,2 @@
+from pos_must_be_blocked import pos_must_be_blocked
+from check_table_status import has_tab_or_tables_opened

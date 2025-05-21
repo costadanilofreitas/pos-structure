@@ -1,0 +1,10 @@
+[run]
+branch = True
+omit =
+    ./*.py
+    ../lib/*
+    ../tools/*
+    ../../edpcommon/*
+    ../../common/*
+    ../../pyscripts_pypkg/*
+    ../../remoteorder/lib/*

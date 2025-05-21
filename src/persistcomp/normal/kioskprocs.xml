@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	Module Name: kioskprocs.xml
+	Module Description: Popeyes kiosk stored procedures
+
+	Created by: aferreira
+-->
+<Procedures>
+    <Procedure name="getProductPrices">
+        SELECT
+            (
+                CASE WHEN price.Context THEN (price.Context || '.') ELSE '' END
+            ) || price.ProductCode,
+            price.DefaultUnitPrice,
+            price.AddedUnitPrice
+        FROM Price price
+        JOIN ProductKernelParams params
+            ON params.ProductCode = price.ProductCode
+        WHERE params.ProductType IS NOT 2
+            AND PriceListId = CAST(:pricelist AS TEXT)
+            AND DATETIME('now') BETWEEN ValidFrom AND ValidThru;
+    </Procedure>
+    <Procedure name="getCombosTags">
+        SELECT
+            tags.ProductCode,
+            tags.Tag,
+            part.PartCode
+        FROM ProductTags tags
+        JOIN ProductKernelParams params
+            ON params.ProductCode = tags.ProductCode
+        JOIN ProductPart part
+            ON part.ProductCode = tags.ProductCode
+        WHERE Tag like 'HasOptions=%'
+            AND part.PartType IS 0
+            AND params.ProductType IS 2;
+    </Procedure>
+    <Procedure name="getCompositions">
+        SELECT
+            part.productCode,
+            part.partCode,
+            part.defaultQty,
+            part.minQty,
+            params.ProductType,
+            class.ProductCodes
+        FROM ProductPart part
+        JOIN ProductKernelParams params
+            ON params.ProductCode = part.PartCode
+        LEFT JOIN (
+            SELECT
+                classcode,
+                group_concat(ProductCode) as ProductCodes
+            FROM ProductClassification
+            GROUP BY ClassCode
+        ) class
+            ON class.ClassCode = part.PartCode
+        ORDER BY part.ProductCode;
+    </Procedure>
+    <Procedure name="getDescriptions">
+        SELECT
+            ProductCode,
+            ProductDescription
+        FROM ProductDescriptions
+        WHERE DescrId = CAST(:descr_id AS INTEGER);
+    </Procedure>
+</Procedures>

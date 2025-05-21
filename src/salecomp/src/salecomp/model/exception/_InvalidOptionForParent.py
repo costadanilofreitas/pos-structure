@@ -1,0 +1,2 @@
+class InvalidOptionForParentException(Exception):
+    pass

@@ -1,0 +1,29 @@
+# Reset PATH and LD_LIBRARY_PATH as needed to use correct python distribution
+BASEDIR=$(abspath $(CURDIR)/../../)
+GENZIP := $(BASEDIR)/_tools/genzip/genzip.py
+COMPILED := dist/bundle.js dist/styles.css dist/index.html
+OUTPUT := sui.zip
+
+.PHONY: all
+
+all: $(OUTPUT)
+	$(info $@:done!)
+
+compile: pre-build
+	@npm run build
+
+pre-build:
+	@npm install
+	@npm update
+
+$(OUTPUT): compile
+	@python $(GENZIP) $(OUTPUT) dist
+	@if [ ! -d ../../_guizip ]; then mkdir ../../_guizip; fi
+	@cp $(OUTPUT) ../../_guizip
+
+clean:
+	$(RM) $(OUTPUT) $(COMPILED)
+	@rm -rf node_modules
+	@rm -rf dist
+	@rm -rf package-lock.json
+	@rm -rf $(HOME)/node_modules

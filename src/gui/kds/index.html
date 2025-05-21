@@ -1,0 +1,40 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+		<meta http-equiv="Pragma" content="no-cache"/>
+		<meta http-equiv="Expires" content="Thu, 01 Jan 1970 00:00:00 GMT"/>
+        <meta name="google" content="notranslate" />
+		<title>Loading...</title>
+		<link rel="stylesheet" type="text/css" href="kdsgui.css" />
+		<link rel="stylesheet" type="text/css" href="customizations.css" />
+		<script src="prototype.js" type="text/javascript"></script>
+		<script src="scriptaculous/scriptaculous.js?load=effects,dragdrop" type="text/javascript"></script>
+		<script src="base.js" type="text/javascript"></script>
+		<script src="dateformat.js" type="text/javascript"></script>
+		<script src="gui_ajax.js" type="text/javascript"></script>
+		<script src="gui_main.js" type="text/javascript"></script>
+		<script src="cell.js" type="text/javascript"></script>
+		<script src="customizations.js" type="text/javascript"></script>
+		<script type="text/javascript">
+			function __checkloaded() {
+				var list = ["Prototype", "Scriptaculous", "_main", "__base_js__", "__gui_ajax_js__", "Cell"];
+				for (var i=0;i<list.length;i++) {
+					if (!this[list[i]]) {
+						// Not everything loaded successfully, so lets try again
+						window.location = window.location;
+						return;
+					}
+				}
+				// Everything loaded
+				main();
+			}
+		</script>
+	</head>
+	<body onLoad="__checkloaded()">
+		<div id="debugdiv" class="debug"></div>
+	</body>
+</html>

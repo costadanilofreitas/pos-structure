@@ -1,0 +1,115 @@
+{
+    "id": "34324e06-b288-4477-adee-95caefa322ef",
+    "code": "8005384478227088",
+    "items": [{
+            "parts": [],
+            "price": 7.9,
+            "partCode": "1001",
+            "quantity": 1,
+            "observation": ""
+        }
+    ],
+    "pickup": {
+        "time": null,
+        "type": "delivery",
+        "address": {
+            "city": "Bujari",
+            "state": "AC",
+            "country": "BR",
+            "latitude": -9.821256,
+            "longitude": -67.948009,
+            "reference": "",
+            "complement": "teste",
+            "postalCode": "00000000",
+            "streetName": "PEDIDO DE TESTE - NÃO ENTREGAR - Ramal Bujari",
+            "neighborhood": "Teste",
+            "streetNumber": "10",
+            "formattedAddress": "PEDIDO DE TESTE - NÃO ENTREGAR - Ramal Bujari, 10"
+        },
+        "company": "ifood"
+    },
+    "status": "placed",
+    "partner": "ifood",
+    "tenders": [{
+            "type": "DINHEIRO",
+            "value": 17.9,
+            "prepaid": false,
+            "paymentMethod": "",
+            "paymentMethodCode": "",
+            "TenderPaymentMethodCode": "DIN"
+        }
+    ],
+    "createAt": "2021-02-04T21:29:40.939026Z",
+    "merchant": "test-menu2",
+    "subTotal": 7.9,
+    "vouchers": {
+        "store": {},
+        "partner": {}
+    },
+    "partnerId": 1,
+    "totalPrice": 17.9,
+    "deliveryFee": 10.0,
+    "needLogistics": false,
+    "shortReference": "4479",
+    "originalOrderId": "8005384478227088",
+    "originalMerchant": "test-menu2",
+    "custom_properties": [{
+            "key": "observation",
+            "value": "1: COBRAR NA ENTREGA; 2: PAG DINHEIRO"
+        }, {
+            "key": "prepaid",
+            "value": "False"
+        }, {
+            "key": "classification",
+            "value": "$DELIVERY"
+        }, {
+            "key": "contact_number",
+            "value": "0800-007-0110 ID: 50937897"
+        }, {
+            "key": "customer_doc",
+            "value": "98765432100"
+        }, {
+            "key": "customer_id",
+            "value": "169528809"
+        }, {
+            "key": "customer_name",
+            "value": "IFOOD - DELIVERED BY IFOOD"
+        }, {
+            "key": "customer_phone",
+            "value": "0800 200 5011 ID: 50937897"
+        }, {
+            "key": "delivery_by",
+            "value": "MERCHANT"
+        }, {
+            "key": "delivery_method",
+            "value": "DEFAULT"
+        }, {
+            "key": "father_order_id",
+            "value": "e30f204f-3edf-4d2f-8572-68aed5f813a8"
+        }, {
+            "key": "father_remote_id",
+            "value": "8005384478227088"
+        }, {
+            "key": "grouped_orders_qty",
+            "value": "1"
+        }, {
+            "key": "order_number",
+            "value": "8005384478227088"
+        }, {
+            "key": "order_type",
+            "value": "N"
+        }, {
+            "key": "originator",
+            "value": "test-menu2"
+        }, {
+            "key": "store_name",
+            "value": "Teste e-Deploy Cardapio 2"
+        }, {
+            "key": "customer_email",
+            "value": "0"
+        }, {
+            "key": "customer_document",
+            "value": "0"
+        }
+    ]
+}

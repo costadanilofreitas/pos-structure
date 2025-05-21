@@ -1,0 +1,1 @@
+from get_product_from_scanner import sell_product_by_barcode

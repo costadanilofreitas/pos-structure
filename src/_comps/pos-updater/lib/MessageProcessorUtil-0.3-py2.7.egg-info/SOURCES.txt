@@ -1,0 +1,10 @@
+setup.cfg
+setup.py
+MessageProcessorUtil.egg-info/PKG-INFO
+MessageProcessorUtil.egg-info/SOURCES.txt
+MessageProcessorUtil.egg-info/dependency_links.txt
+MessageProcessorUtil.egg-info/requires.txt
+MessageProcessorUtil.egg-info/top_level.txt
+messageprocessorutil/_DefaultApiRouter.py
+messageprocessorutil/_UuidMessageProcessor.py
+messageprocessorutil/__init__.py

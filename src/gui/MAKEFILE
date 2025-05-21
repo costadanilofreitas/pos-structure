@@ -1,0 +1,42 @@
+# Makefile for SRC directory - Only calls components makefiles
+OPSYS=$(shell uname -s)
+BASEDIR=$(CURDIR)/../
+ifeq ($(OPSYS),Linux)
+	OPSYS := linux-redhat
+else
+	OPSYS := windows
+	MAKE := $(BASEDIR)/_tools/make.exe
+endif
+
+# Configurable variables
+MAKEDIRS := $(sort $(dir $(shell find $(CURDIR) -mindepth 2 -maxdepth 2 -type f -iname 'MAKEFILE' ! -regex '.*3s-.*')))
+LIBSDIRS := $(sort $(dir $(shell find $(CURDIR) -mindepth 2 -maxdepth 2 -type f -iname 'MAKEFILE' -regex '.*3s-.*')))
+$(info LIBSDIRS = $(LIBSDIRS))
+$(info MAKEDIRS = $(MAKEDIRS))
+
+.PHONY: $(foreach z, $(LIBSDIRS), $(z)) $(foreach z, $(MAKEDIRS), $(z))
+
+all: build
+	$(info $@: Done!)
+
+libraries: $(foreach z, $(LIBSDIRS), $(z))
+	$(info $@: Finished!)
+
+$(foreach z, $(LIBSDIRS), $(z)): $@
+	$(info $@: Starting...)
+	$(MAKE) -C $@ -f MAKEFILE
+	$(info $@: Done!)
+
+build: $(foreach z, $(MAKEDIRS), $(z))
+	$(info $@: Finished!)
+
+$(foreach z, $(MAKEDIRS), $(z)): libraries
+	$(info $@: Starting...)
+	$(MAKE) -C $@ -f MAKEFILE
+	$(info $@: Done!)
+
+# Clean rule
+clean:
+	$(foreach w,$(LIBSDIRS), cd $(w) && $(MAKE) clean -f MAKEFILE && cd -;)
+	$(foreach w,$(MAKEDIRS), cd $(w) && $(MAKE) clean -f MAKEFILE && cd -;)
+	$(info $@: Done!)

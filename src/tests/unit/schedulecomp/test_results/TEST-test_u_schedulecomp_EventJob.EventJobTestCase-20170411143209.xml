@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<testsuite errors="0" failures="0" name="test_u_schedulecomp_EventJob.EventJobTestCase-20170411143209" tests="2" time="0.002">
+	<testcase classname="test_u_schedulecomp_EventJob.EventJobTestCase" name="test_whenEventJobIsExecuted_EventIsSentOnMessageBus" time="0.001"/>
+	<testcase classname="test_u_schedulecomp_EventJob.EventJobTestCase" name="test_whenTokenJobIsExecuted_MessageIsSentOnMessageBus" time="0.001"/>
+	<system-out>
+<![CDATA[]]>	</system-out>
+	<system-err>
+<![CDATA[]]>	</system-err>
+</testsuite>

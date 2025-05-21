@@ -1,0 +1,62 @@
+{
+    "id": "274a5607-a648-4a30-8ac4-fd85df2ecc1a",
+    "code": "8412030",
+    "items": [{
+            "parts": [],
+            "price": 5.9,
+            "partCode": "2002",
+            "quantity": 1,
+            "observation": ""
+        }
+    ],
+    "pickup": {
+        "time": null,
+        "type": "delivery",
+        "address": {},
+        "company": "rappi"
+    },
+    "status": "placed",
+    "partner": "rappi",
+    "tenders": [{
+            "type": "online",
+            "value": 5.9,
+            "prepaid": true,
+            "paymentMethod": "PREPAID",
+            "paymentMethodCode": "PREPAID",
+            "TenderPaymentMethodCode": null
+        }
+    ],
+    "createAt": "2021-02-03T16:26:00.445473Z",
+    "merchant": "test-menu2",
+    "subTotal": 5.9,
+    "partnerId": 7,
+    "totalPrice": 5.9,
+    "deliveryFee": 0.0,
+    "needLogistics": true,
+    "shortReference": "12030",
+    "originalOrderId": null,
+    "originalMerchant": "test-menu2",
+    "custom_properties": [{
+            "key": "customer_name",
+            "value": "RAPPI - DELIVERED BY MERCHANT"
+        }, {
+            "key": "customer_phone",
+            "value": ""
+        }, {
+            "key": "customer_id",
+            "value": ""
+        }, {
+            "key": "customer_email",
+            "value": ""
+        }, {
+            "key": "customer_document",
+            "value": ""
+        }, {
+            "key": "store_name",
+            "value": "E-DEPLOY PAV2 [BR] 2.0"
+        }, {
+            "key": "OBSERVATION",
+            "value": "NAO COBRAR - PGTO ONLINE; "
+        }
+    ]
+}

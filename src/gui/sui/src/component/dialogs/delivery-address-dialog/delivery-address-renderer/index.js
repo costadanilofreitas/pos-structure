@@ -1,0 +1,3 @@
+import DeliveryAddressDialogRenderer from './DeliveryAddressDialogRenderer'
+
+export default DeliveryAddressDialogRenderer

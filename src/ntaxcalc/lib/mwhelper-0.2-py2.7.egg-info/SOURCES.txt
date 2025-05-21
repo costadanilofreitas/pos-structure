@@ -1,0 +1,8 @@
+mwhelper.py
+setup.cfg
+setup.py
+mwhelper.egg-info/PKG-INFO
+mwhelper.egg-info/SOURCES.txt
+mwhelper.egg-info/dependency_links.txt
+mwhelper.egg-info/requires.txt
+mwhelper.egg-info/top_level.txt

@@ -1,0 +1,3 @@
+import MessageOptionsDialogRenderer from './MessageOptionsDialogRenderer'
+
+export default MessageOptionsDialogRenderer

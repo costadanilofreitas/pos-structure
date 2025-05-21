@@ -1,0 +1,2 @@
+class EmptySearchException(Exception):
+    pass

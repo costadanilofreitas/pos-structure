@@ -1,0 +1,460 @@
+Metadata-Version: 1.1
+Name: robber
+Version: 1.1.3
+Summary: BDD / TDD assertion library for Python
+Home-page: https://github.com/vesln/robber.py
+Author: Tao Liang
+Author-email: tao@synapse-ai.com
+License: UNKNOWN
+Description: |Build Status| |Coverage Status| |Code Climate|
+        
+        robber.py - BDD / TDD assertion library for Python.
+        ===================================================
+        
+        Synopsis
+        --------
+        
+        In order to use ``robber``, you need to import ``expect`` from the
+        module:
+        
+        .. code:: python
+        
+            from robber import expect
+        
+        That's all. You are good to go.
+        
+        Assertions
+        ~~~~~~~~~~
+        
+        eq/==
+        ^^^^^
+        
+        Asserts that actual is equal (==) to expected:
+        
+        .. code:: python
+        
+            expect(1).to.eq(1)
+            expect([1, 2]).to.eq([1, 2])
+        
+        Also:
+        
+        .. code:: python
+        
+            expect(1) == 1
+        
+        ne/!=
+        ^^^^^
+        
+        Asserts that actual is not equal (!=) to expected:
+        
+        .. code:: python
+        
+            expect(1).to.ne(2)
+            expect(1).to != 2
+            expect(1) != 2
+        
+        equal
+        ^^^^^
+        
+        Asserts that the target is identical (is) to the expected:
+        
+        .. code:: python
+        
+            expect(1).to.equal(1)
+        
+        true
+        ^^^^
+        
+        Asserts that the target is True:
+        
+        .. code:: python
+        
+            expect(True).to.be.true()
+        
+        false
+        ^^^^^
+        
+        Asserts that the target is False:
+        
+        .. code:: python
+        
+            expect(False).to.be.false()
+        
+        instanceof
+        ^^^^^^^^^^
+        
+        Asserts that the target is an instance of expected:
+        
+        .. code:: python
+        
+            expect(obj).to.be.instanceof(Klass)
+        
+        match
+        ^^^^^
+        
+        Asserts that the target can be matched by a regular expression:
+        
+        .. code:: python
+        
+            expect('foo').to.match(r'foo')
+        
+        respond\_to
+        ^^^^^^^^^^^
+        
+        Asserts that the target responds to a method:
+        
+        .. code:: python
+        
+            expect(obj).to.respond_to('method')
+        
+        truthy
+        ^^^^^^
+        
+        Asserts that the target is truthy:
+        
+        .. code:: python
+        
+            expect(['test']).to.be.truthy()
+        
+        falsy
+        ^^^^^
+        
+        Asserts that the target is falsy:
+        
+        .. code:: python
+        
+            expect([]).to.be.falsy()
+        
+        length
+        ^^^^^^
+        
+        Asserts that the target has a length of expected:
+        
+        .. code:: python
+        
+            expect([1, 2]).to.have.length(2)
+            expect('str').to.have.length(3)
+        
+        empty
+        ^^^^^
+        
+        Asserts that the target is empty:
+        
+        .. code:: python
+        
+            expect([]).to.be.empty()
+            expect('').to.be.empty()
+        
+        string
+        ^^^^^^
+        
+        Asserts that the target is a string:
+        
+        .. code:: python
+        
+            expect('str').to.be.a.string()
+        
+        integer
+        ^^^^^^^
+        
+        Asserts that the target is an integer:
+        
+        .. code:: python
+        
+            expect('str').to.be.an.integer()
+        
+        float
+        ^^^^^
+        
+        Asserts that the target is floating point number:
+        
+        .. code:: python
+        
+            expect(1.0).to.be.a.float()
+        
+        list
+        ^^^^
+        
+        Asserts that the target is a list:
+        
+        .. code:: python
+        
+            expect([1, 2]).to.be.a.list()
+        
+        dict
+        ^^^^
+        
+        Asserts that the target is a dictionary:
+        
+        .. code:: python
+        
+            expect({}).to.be.a.dict()
+        
+        tuple
+        ^^^^^
+        
+        Asserts that the target is a tuple:
+        
+        .. code:: python
+        
+            expect((1, 2)).to.be.a.tuple()
+        
+        none
+        ^^^^
+        
+        Asserts that the target is None:
+        
+        .. code:: python
+        
+            expect(None).to.be.none()
+        
+        above
+        ^^^^^
+        
+        Asserts that the target is above expected:
+        
+        .. code:: python
+        
+            expect(2).to.be.above(1)
+        
+        below
+        ^^^^^
+        
+        Asserts that the target is below expected:
+        
+        .. code:: python
+        
+            expect(1).to.be.below(2)
+        
+        within
+        ^^^^^^
+        
+        Asserts that the target is within expected:
+        
+        .. code:: python
+        
+            expect(2).to.be.within(0, 2)
+        
+        contain
+        ^^^^^^^
+        
+        Asserts that the target contains an element, or a key:
+        
+        .. code:: python
+        
+            expect([1,2,3]).to.contain(1, 2, 3)
+            expect({'foo': 'bar', 'foo1': 'bar1'}).to.contain('foo', 'foo1')
+        
+        exclude
+        ^^^^^^^
+        
+        Asserts that the target does not contain an element, or a key:
+        
+        .. code:: python
+        
+            expect({'foo': 'bar'}).to.exclude('baz')
+        
+        throw
+        ^^^^^
+        
+        Asserts that the target throws an exception (or its subclass)
+        
+        .. code:: python
+        
+            expect(lambda: raise_exception(...)).to.throw(Exception)
+            expect(lambda: raise_exception(...)).to.throw(ParentException)
+            expect(any_callable).to.throw(Exception)
+            expect(any_callable).to.throw(ParentException)
+        
+        throw\_exactly
+        ^^^^^^^^^^^^^^
+        
+        Asserts that the target throws exactly an exception (not its subclass)
+        
+        .. code:: python
+        
+            expect(lambda: raise_exception(...)).to.throw_exactly(Exception)
+            expect(any_callable).to.throw_exactly(Exception)
+        
+        called
+        ^^^^^^
+        
+        Asserts that a mock has been called
+        
+        .. code:: python
+        
+            expect(mock).to.be.called()
+        
+        called\_once
+        ^^^^^^^^^^^^
+        
+        Asserts that a mock has been called exactly one time
+        
+        .. code:: python
+        
+            expect(mock).to.be.called_once()
+        
+        callable
+        ^^^^^^^^
+        
+        Asserts that a object is callable
+        
+        .. code:: python
+        
+            expect(object).to.be.callable()
+        
+        called\_with
+        ^^^^^^^^^^^^
+        
+        Asserts that a mock has been called with params
+        
+        .. code:: python
+        
+            expect(mock).to.be.called_with(*args, **kwargs)
+        
+        called\_once\_with
+        ^^^^^^^^^^^^^^^^^^
+        
+        Asserts that a mock has been called once with params
+        
+        .. code:: python
+        
+            expect(mock).to.be.called_once_with(*args, **kwargs)
+        
+        ever\_called\_with
+        ^^^^^^^^^^^^^^^^^^
+        
+        Asserts that a mock has ever been called with params. The call is not
+        necessary to be to latest one (the same as assert.any\_call).
+        
+        .. code:: python
+        
+            expect(mock).to.have.been.ever_called_with(*args, **kwargs)
+            expect(mock).to.have.any_call(*args, **kwargs)
+        
+        Language chains
+        ~~~~~~~~~~~~~~~
+        
+        In order to write more readable assertions, there are a few built-in
+        language chains that you can use:
+        
+        Positive chains
+        ^^^^^^^^^^^^^^^
+        
+        -  to
+        -  be
+        -  been
+        -  a
+        -  an
+        -  have
+        
+        Negative chains
+        ^^^^^^^^^^^^^^^
+        
+        -  not\_to
+        
+        For example, the following two lines are functionally equivalent:
+        
+        .. code:: python
+        
+            expect(1.0).to.be.a.float()
+            expect(1.0).float()
+        
+        Expectation chaining
+        ~~~~~~~~~~~~~~~~~~~~
+        
+        In the spirit of more readable assertions, and to eliminate redundant
+        evaluations of the same expression, you can chain multiple expectations.
+        
+        For example, the following two lines are functionally equivalent. The
+        first example evaluates the expression '1 + 1' only once:
+        
+        .. code:: python
+        
+            expect(1 + 1).to.be.an.integer().to.be.within(1, 3)
+        
+            expect(1 + 1).to.be.an.integer()
+            expect(1 + 1).to.be within(1, 3)
+        
+        Custom assertions
+        ~~~~~~~~~~~~~~~~~
+        
+        Writing custom assertion is as easy as extending a base matcher class
+        and adding the method ``matches`` for matching and the property
+        ``explanation`` for the error notice:
+        
+        .. code:: python
+        
+            class Chain(Base):
+                def matches(self):
+                    expectation = self.actual(None)
+                    chain = getattr(expectation, self.expected)
+                    return expectation is chain
+                
+                @property
+                def explanation(self):
+                    return Explanation(self.actual, self.is_negative, 'have chain', self.expected)
+        
+            expect.register('chain', Chain)
+        
+        After you register the new matcher, you can use it as expected:
+        
+        .. code:: python
+        
+            expect(obj).to.have.chain('be')
+        
+        Custom error messages
+        ~~~~~~~~~~~~~~~~~~~~~
+        
+        If you want to have custom explanations, for assertion or group of
+        assertions, you can simply do:
+        
+        .. code:: python
+        
+            from robber import CustomExplanation
+        
+            with CustomExplanation('Something went wrong'):
+                expect(1).to.eq(2)
+        
+        Installation
+        ------------
+        
+        .. code:: bash
+        
+            $ pip install robber
+        
+        Requirements
+        ------------
+        
+        -  Python 2.6, 2.7, 3.5 or 3.6
+        -  pip
+        -  nose (for testing)
+        
+        Tests
+        -----
+        
+        .. code:: bash
+        
+            $ nosetests tests/
+        
+        License
+        -------
+        
+        MIT License
+        
+        .. |Build Status| image:: https://secure.travis-ci.org/taoenator/robber.py.png
+           :target: http://travis-ci.org/taoenator/robber.py
+        .. |Coverage Status| image:: https://coveralls.io/repos/github/taoenator/robber.py/badge.svg?branch=master
+           :target: https://coveralls.io/github/taoenator/robber.py?branch=master
+        .. |Code Climate| image:: https://codeclimate.com/github/vesln/robber.py/badges/gpa.svg
+           :target: https://codeclimate.com/github/vesln/robber.py
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Software Development :: Testing
